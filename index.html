@@ -309,15 +309,15 @@
   /* portrait footage: phone frame as tall as the stage allows */
   .is-portrait .phone{
     position:absolute; top:10px; left:50%; transform:translateX(-50%);
-    height:calc(100% - 20px); width:auto; aspect-ratio:9 / 16;
+    height:calc(100% - 20px); width:auto; aspect-ratio:1080 / 2316;
     background:var(--bg-deep); border:1px solid var(--line); border-radius:22px; overflow:hidden;
     box-shadow:0 24px 50px -24px rgba(0,0,0,.9), 0 0 48px -14px rgba(69,200,255,.55);
   }
-  /* fit BOTH ways: tall full-screen phones are narrower than 9:16, so width can be the limit */
+  /* fit BOTH ways: tall full-screen phones are narrower than the clip, so width can be the limit */
   @supports (width:1cqh){
     .is-portrait .phone{
       top:50%; transform:translate(-50%,-50%); height:auto;
-      width:min(calc((100cqh - 20px) * 9 / 16), calc(100cqw - 20px));
+      width:min(calc((100cqh - 20px) * 1080 / 2316), calc(100cqw - 20px));
     }
   }
   .is-portrait .phone > video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
@@ -348,9 +348,9 @@
   /* wide stages: the phone moves right, the caption and status sit beside it */
   @container stage (min-width:400px) and (orientation:landscape){
     .is-portrait .phone{top:10px; left:auto; right:max(16px, 7cqw); transform:none}
-    .is-portrait .slide-cap{right:calc((100cqh - 20px) * 9 / 16 + max(16px, 7cqw) + 8px); background:none; padding-bottom:16px}
+    .is-portrait .slide-cap{right:calc((100cqh - 20px) * 1080 / 2316 + max(16px, 7cqw) + 8px); background:none; padding-bottom:16px}
     .is-portrait .slide-status{display:inline-flex; left:12px; right:auto}
-    .reel-stage[data-orient="portrait"] .reel-play{left:calc(100% - max(16px, 7cqw) - (100cqh - 20px) * 9 / 32)}
+    .reel-stage[data-orient="portrait"] .reel-play{left:calc(100% - max(16px, 7cqw) - (100cqh - 20px) * 1080 / 4632)}
   }
   /* very wide, short stages (phone held sideways): the clip reaches the top edge */
   @container stage (min-aspect-ratio:3/2){ .is-landscape .slide-status{display:none} }
@@ -442,7 +442,7 @@
     }
   }
 
-  /* media: landscape clips use .media--landscape > .screen, portrait (9:16) phone
+  /* media: landscape clips use .media--landscape > .screen, portrait (phone-shaped, 1080x2316) phone
      footage uses .media--portrait > .phone. Both panels share the grid-and-glow backdrop. */
   .media{
     position:relative; margin:0; overflow:hidden; border-bottom:1px solid var(--line);
@@ -474,7 +474,7 @@
   }
   .phone{
     position:relative; z-index:1; flex:none;
-    width:min(100%, calc(var(--phone-h) * 9 / 16)); aspect-ratio:9 / 16;
+    width:min(100%, calc(var(--phone-h) * 1080 / 2316)); aspect-ratio:1080 / 2316;
     background:var(--bg-deep); border:1px solid var(--line); border-radius:28px; overflow:hidden;
     box-shadow:0 30px 60px -30px rgba(0,0,0,.9), 0 0 56px -14px rgba(69,200,255,.5);
   }
@@ -500,7 +500,7 @@
       border-bottom:0; border-right:1px solid var(--line);
       padding:clamp(28px,4vw,44px) clamp(28px,4.5vw,56px);
     }
-    .game--portrait .phone{width:calc(var(--phone-h) * 9 / 16)}
+    .game--portrait .phone{width:calc(var(--phone-h) * 1080 / 2316)}
   }
   @media (min-width:900px){
     .game--wide{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)}
@@ -669,7 +669,7 @@
            One slide per clip, played in order. Each clip plays through, then the reel moves on.
            To add a highlight: copy a whole .reel-slide block, set data-game-ref to the id of the
            game card it belongs to, data-duration to the clip length in seconds, and use
-           class "is-landscape" (landscape clip) or "is-portrait" (9:16 phone clip, inside .phone).
+           class "is-landscape" (landscape clip) or "is-portrait" (phone-shaped 1080x2316 clip, inside .phone).
            Keep preload="none" on every slide except the first. -->
       <div class="reel" data-reel role="region" aria-roledescription="carousel" aria-label="Gameplay highlight reel">
         <div class="reel-bar">
@@ -707,12 +707,12 @@
           </div>
 
           <!-- slide 2: BEAMLOCK, level 200 -->
-          <div class="reel-slide is-portrait" data-slide data-game-ref="beamlock" data-name="BEAMLOCK" data-duration="13.1"
+          <div class="reel-slide is-portrait" data-slide data-game-ref="beamlock" data-name="BEAMLOCK" data-duration="8.8"
                style="--accent: var(--beam)" role="group" aria-roledescription="slide" aria-label="2 of 4: BEAMLOCK, level 200, the finale">
-            <img class="slide-bg" src="assets/media/beamlock-level200-poster.jpg" width="720" height="1280" alt="" decoding="async">
+            <img class="slide-bg" src="assets/media/beamlock-level200-poster.jpg" width="720" height="1544" alt="" decoding="async">
             <div class="slide-media">
               <div class="phone">
-                <video class="slide-video" muted playsinline preload="none" width="720" height="1280"
+                <video class="slide-video" muted playsinline preload="none" width="720" height="1544"
                        poster="assets/media/beamlock-level200-poster.jpg" src="assets/media/beamlock-level200.mp4"
                        aria-label="BEAMLOCK gameplay, level 200, the finale: a tutorial hand routes the laser from the emitter through splitters, switches, a door and a crate, with color mixing, until all three rings light up for a three-star clear."></video>
               </div>
@@ -746,12 +746,12 @@
           </div>
 
           <!-- slide 4: BEAMLOCK, level 160 -->
-          <div class="reel-slide is-portrait" data-slide data-game-ref="beamlock" data-name="BEAMLOCK" data-duration="12.9"
+          <div class="reel-slide is-portrait" data-slide data-game-ref="beamlock" data-name="BEAMLOCK" data-duration="8.35"
                style="--accent: var(--beam)" role="group" aria-roledescription="slide" aria-label="4 of 4: BEAMLOCK, level 160, Spectrum Master">
-            <img class="slide-bg" src="assets/media/beamlock-level160-poster.jpg" width="720" height="1280" alt="" decoding="async">
+            <img class="slide-bg" src="assets/media/beamlock-level160-poster.jpg" width="720" height="1544" alt="" decoding="async">
             <div class="slide-media">
               <div class="phone">
-                <video class="slide-video" muted playsinline preload="none" width="720" height="1280"
+                <video class="slide-video" muted playsinline preload="none" width="720" height="1544"
                        poster="assets/media/beamlock-level160-poster.jpg" src="assets/media/beamlock-level160.mp4"
                        aria-label="BEAMLOCK gameplay, level 160, Spectrum Master: the beam is split, a door opens, and the colors are mixed to light the ring."></video>
               </div>
@@ -810,7 +810,7 @@
         2. Give it a unique id and set style="--accent: var(--token)" to one of the :root color tokens.
         3. Swap the media, name, tagline, chips, pitch, highlights and CTA.
            Landscape clip: copy the Apex Dragon block (figure.media--landscape > .screen).
-           Portrait (9:16) phone clip: copy the BEAMLOCK block (figure.media--portrait > .phone).
+           Portrait (phone-shaped 1080x2316) clip: copy the BEAMLOCK block (figure.media--portrait > .phone).
            Keep "game--feature" for a full-width row; drop it for a half-width card.
         4. Add its clips to the highlight reel in the hero (see the note above the reel).
         The card numbers (001, 002, ...), the game counters and the grid layout update automatically.
@@ -819,12 +819,12 @@
 
         <!-- ================= GAME BLOCK: BEAMLOCK ================= -->
         <article class="game game--feature game--portrait" id="beamlock" data-game data-name="BEAMLOCK" style="--accent: var(--beam)">
-          <!-- MEDIA: real in-game footage, portrait 9:16 (level 200 "Beamlock", 13 s loop, no audio).
+          <!-- MEDIA: real in-game footage, portrait 1080x2316, recorded at a real phone resolution (level 200 "Beamlock", 9 s loop, no audio).
                The script at the bottom plays clips only while visible and never autoplays
                under reduced motion (poster + native play control instead). -->
           <figure class="media media--portrait">
             <div class="phone">
-              <video muted loop playsinline controls preload="metadata" width="720" height="1280"
+              <video muted loop playsinline controls preload="metadata" width="720" height="1544"
                      poster="assets/media/beamlock-level200-poster.jpg" src="assets/media/beamlock-level200.mp4"
                      aria-label="BEAMLOCK gameplay, level 200: the laser from the emitter is routed through splitters, switches, a door and a crate, with color mixing, until all three rings light up for a three-star clear."></video>
             </div>
