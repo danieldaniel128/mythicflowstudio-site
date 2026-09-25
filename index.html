@@ -767,6 +767,47 @@
             </p>
           </div>
 
+          <!-- forge:reel:start -->
+          <!-- prototype: Firefly Bloom (from Mythic Forge) -->
+          <div class="reel-slide is-portrait" data-slide data-game-ref="lab" data-name="Firefly Bloom" data-duration="8"
+               style="--accent: var(--beam)" role="group" aria-roledescription="slide" aria-label="Prototype: Firefly Bloom">
+            <img class="slide-bg" src="lab/firefly-bloom/clip-poster.jpg" width="720" height="1544" alt="" decoding="async">
+            <div class="slide-media">
+              <div class="phone">
+                <video class="slide-video" muted playsinline preload="none" width="720" height="1544"
+                     poster="lab/firefly-bloom/clip-poster.jpg" src="lab/firefly-bloom/clip.mp4"
+                     aria-label="Firefly Bloom prototype gameplay"></video>
+              </div>
+            </div>
+            <span class="chip chip--status slide-status"><span class="pulse" aria-hidden="true"></span>Prototype · play it free</span>
+            <p class="slide-cap">
+              <span class="slide-text">
+                <span class="slide-name">Firefly Bloom <span class="flag">Prototype</span></span>
+                <span class="slide-line mono">A garden bed of overlapping seed-pods glows faintly under moonlight, each pod holding a number of fireflies that drift lazily inside it.</span>
+              </span>
+            </p>
+          </div>
+          <!-- prototype: Twinkle Tether (from Mythic Forge) -->
+          <div class="reel-slide is-portrait" data-slide data-game-ref="lab" data-name="Twinkle Tether" data-duration="8"
+               style="--accent: var(--beam)" role="group" aria-roledescription="slide" aria-label="Prototype: Twinkle Tether">
+            <img class="slide-bg" src="lab/twinkle-tether/clip-poster.jpg" width="720" height="1544" alt="" decoding="async">
+            <div class="slide-media">
+              <div class="phone">
+                <video class="slide-video" muted playsinline preload="none" width="720" height="1544"
+                     poster="lab/twinkle-tether/clip-poster.jpg" src="lab/twinkle-tether/clip.mp4"
+                     aria-label="Twinkle Tether prototype gameplay"></video>
+              </div>
+            </div>
+            <span class="chip chip--status slide-status"><span class="pulse" aria-hidden="true"></span>Prototype · play it free</span>
+            <p class="slide-cap">
+              <span class="slide-text">
+                <span class="slide-name">Twinkle Tether <span class="flag">Prototype</span></span>
+                <span class="slide-line mono">A round pond of tiny glowing lily pads floats on screen, each pad linked by a thin silvery tether to a sleepy firefly resting on it.</span>
+              </span>
+            </p>
+          </div>
+          <!-- forge:reel:end -->
+
           <button class="reel-play" type="button" data-reel-play aria-label="Play highlight reel">
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.6v14.8a1.1 1.1 0 0 0 1.7.9l11.4-7.4a1.1 1.1 0 0 0 0-1.8L8.7 3.7A1.1 1.1 0 0 0 7 4.6Z"/></svg>
           </button>
@@ -942,7 +983,8 @@
       .lab-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:18px; margin-top:22px}
       .lab-card{display:flex; flex-direction:column; border:1px solid var(--line); border-radius:18px; overflow:hidden; background:var(--bg-panel)}
       .lab-media{display:block; aspect-ratio:3/4; background:var(--bg-deep); overflow:hidden}
-      .lab-media img{width:100%; height:100%; object-fit:cover; display:block}
+      .lab-media img, .lab-media video{width:100%; height:100%; object-fit:cover; display:block}
+      .lab-media.is-wide{aspect-ratio:16/9}
       .lab-body{display:flex; flex-direction:column; gap:8px; padding:14px 14px 16px; flex:1}
       .lab-body h3{font-size:18px; margin:0}
       .lab-body p{margin:0; color:var(--dim); font-size:14px; line-height:1.5}
@@ -962,7 +1004,7 @@
       <div class="lab-grid">
         <article class="lab-card">
           <a class="lab-media" href="lab/firefly-bloom/" aria-label="Play Firefly Bloom">
-            <img src="lab/firefly-bloom/thumb.gif" alt="Firefly Bloom gameplay" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='lab/firefly-bloom/poster.png'">
+            <video muted loop playsinline preload="none" poster="lab/firefly-bloom/clip-poster.jpg" data-src="lab/firefly-bloom/clip.mp4" aria-hidden="true"></video>
           </a>
           <div class="lab-body">
             <h3>Firefly Bloom</h3>
@@ -973,7 +1015,7 @@
         </article>
         <article class="lab-card">
           <a class="lab-media" href="lab/twinkle-tether/" aria-label="Play Twinkle Tether">
-            <img src="lab/twinkle-tether/thumb.gif" alt="Twinkle Tether gameplay" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='lab/twinkle-tether/poster.png'">
+            <video muted loop playsinline preload="none" poster="lab/twinkle-tether/clip-poster.jpg" data-src="lab/twinkle-tether/clip.mp4" aria-hidden="true"></video>
           </a>
           <div class="lab-body">
             <h3>Twinkle Tether</h3>
@@ -984,6 +1026,23 @@
         </article>
       </div>
     </section>
+    <script>
+      (function () {
+        var vids = document.querySelectorAll('#lab .lab-media video[data-src]');
+        if (!vids.length || !('IntersectionObserver' in window)) return;
+        if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        var io = new IntersectionObserver(function (entries) {
+          entries.forEach(function (e) {
+            var v = e.target;
+            if (e.isIntersecting && e.intersectionRatio >= 0.4) {
+              if (!v.src) v.src = v.getAttribute('data-src');
+              var p = v.play(); if (p && p.catch) p.catch(function () {});
+            } else { v.pause(); }
+          });
+        }, { threshold: [0, 0.4] });
+        vids.forEach(function (v) { io.observe(v); });
+      })();
+    </script>
     <!-- forge:lab:end -->
 
     <!-- ======================================================= STUDIO -->
