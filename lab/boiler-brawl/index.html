@@ -26,7 +26,7 @@ function showErr(e) { errEl.style.display = 'block'; errEl.textContent = 'Oops: 
 window.addEventListener('error', ev => showErr(ev.error || ev.message));
 
 // ---- palette: dark iron, brass, copper (ram), cool blue (graze), steam ----
-const C = { bg: '#1a120c', floor: '#2b1e14', brass: '#e8b04a', brassD: '#8a5a1e', copper: '#e5533a', copperD: '#6e2414', cool: '#5ec8f0', steam: '#eef4f2', ink: '#0b0705' };
+const C = { bg: '#1a120c', floor: '#2b1e14', brass: '#e8b04a', brassD: '#8a5a1e', copper: '#e5533a', copperD: '#6e2414', hot: '#ff9a62', cool: '#5ec8f0', steam: '#eef4f2', ink: '#0b0705' };
 const VW = 360, VH = 640;
 let W = 0, H = 0, dpr = 1, scale = 1, ox = 0, oy = 0;
 function resize() {
@@ -99,6 +99,8 @@ const sfx = {
   blast: () => { noise(0.5, 0.4, 3000); tone(140, 0.4, 'sawtooth', 0.12, 40); },
   hook: () => { tone(300, 0.3, 'sawtooth', 0.07, 1200); noise(0.3, 0.12, 2400); },
   shell: () => { tone(1200, 0.4, 'triangle', 0.07, 900); tone(600, 0.35, 'square', 0.04, 1200); },
+  overfull: () => { tone(380, 0.5, 'sawtooth', 0.07, 1500); noise(0.45, 0.14, 3200); },
+  skim: () => tone(rand(1400, 1700), 0.05, 'square', 0.035, rand(2000, 2400)),
   ready: () => tone(1400, 0.08, 'triangle', 0.05, 1900)
 };
 
@@ -150,6 +152,11 @@ const WRENCH_HEAL = 20, WRENCH_LIFE = 5.5, PATCHES_PER_BOILER = 3, MAX_LIVES = 4
 // shockwave that shoves and drains anyone inside VENT_R. Lingering nearby speeds up its timer; a hard ram
 // during the windup caps the vent (and stuffs the steam back into its boiler).
 const VENT_R = 100, VENT_FUSE = 1.2, VENT_CAP_SPD = 200;
+// overfull: a rival that hits p:100 doesn't pop at once. It stalls for OVER_T (shorter when a chain burst tipped
+// it over) while its tail swells OVER_W thicker and pulses hot copper. Its pressure is locked at 100 and pouring
+// out, so skimming it now siphons OVER_SIP/s without defusing it, and a skim before the pop pays a CLOSE SHAVE.
+const OVER_T = 1.0, OVER_CHAIN = 0.55, OVER_W = 1.35, OVER_SIP = 52;
+let overTip = false;
 // level ups: bursts, grazes, rams and caps earn XP. Each level freezes play and offers 3 cards:
 // active SKILLS (tap a corner button, then recharge) or stacking PASSIVES. At least one skill is always offered.
 let lv = 1, xp = 0, xpK = 0, lvPend = 0, lvFx = 0, perks = {}, skills = [];
@@ -191,7 +198,8 @@ function mkCar(x, y, isPlayer, kind) {
   const K = KINDS[kind || 'rig'];
   return { x, y, vx: 0, vy: 0, r: K.r, K, kind: kind || 'rig', ang: -Math.PI / 2, tAng: -Math.PI / 2, p: isPlayer ? 100 : rand(40, 70),
     player: isPlayer, alive: true, dead: false, sp: 1, ai: rand(1, 2.5), alert: false, hit: 0, grazed: 0,
-    wob: rand(0, 9), puff: 0, resp: 0, fuse: 0, swell: 0, ventCD: rand(3, 5.5), tick: 0, lives: 3, inv: 0 };
+    wob: rand(0, 9), puff: 0, resp: 0, fuse: 0, swell: 0, ventCD: rand(3, 5.5), tick: 0, lives: 3, inv: 0,
+    over: 0, overMax: OVER_T, skim: 0, chain: 0 };
 }
 const tailLen = c => (18 + Math.max(0, c.p) * 1.1) * c.K.tl;
 const ramR = c => c.r + 16;
@@ -208,7 +216,7 @@ function segD(px, py, s) {
 }
 // ram vs graze zones: within ramR(c) of a rival's centre your car body makes contact (ram);
 // further out along the tail you only skim its steam (graze).
-const grazeW = (r, t) => (14 + t * 9) * (0.5 + r.r / 28);
+const grazeW = (r, t) => (14 + t * 9) * (0.5 + r.r / 28) * (r.over > 0 ? OVER_W : 1);
 // TAIL_COLS[desat level 0..4][copper->blue step 0..16]; danger mode drains rival tails toward grey
 const TAIL_COLS = (() => {
   const a = [0xe5, 0x53, 0x3a], b = [0x5e, 0xc8, 0xf0], out = [];
@@ -282,7 +290,7 @@ function restart() {
   shake = 0; flash = 0; hitstop = 0; overT = 0; parts = []; pops = []; rings = []; grazeAcc = 0;
   inDanger = false; danger = 0; alarmT = 0;
   round = 1; roundLeft = roundGoal(1); cogs = []; cogT = 4; banner.t = 0;
-  wrenches = []; patches = 0; healFx = 0; wrenchTip = false;
+  wrenches = []; patches = 0; healFx = 0; wrenchTip = false; overTip = false;
   lv = 1; xp = 0; xpK = 0; lvPend = 0; lvFx = 0; perks = {}; skills = [];
   pick.on = false; pick.chosen = -1; pick.delay = 0;
   drag.on = false; tut.on = false;
@@ -309,6 +317,11 @@ function burst(r) {
   const m = combo, pts = r.K.pts * m, B = r.K.blast, gain = (r.kind === 'tanker' ? 32 : 22) + 12 * pk('scrap');
   addScore(pts); combo = Math.min(combo + 1, 9); comboT = 4;
   pop(r.x, r.y - 12, (m > 1 ? 'x' + m + ' ' : '') + 'BURST +' + pts, C.brass, 26);
+  if (state === 'play' && r.skim >= 2) { // skimmed its overflow before it popped
+    const b = 150 * m; addScore(b); gainXP(8);
+    pop(r.x, r.y + 18, 'CLOSE SHAVE +' + b, C.cool, 20);
+  }
+  r.over = 0;
   if (state === 'play') {
     player.p = Math.min(100, player.p + gain); pop(player.x, player.y - 28, '+' + gain + ' STEAM', C.steam, 16);
     dropWrench(r.x, r.y);
@@ -327,8 +340,33 @@ function burst(r) {
   for (const c of [player, ...rivals]) {
     if (c === r || !c.alive) continue;
     const dx = c.x - r.x, dy = c.y - r.y, d = Math.hypot(dx, dy) || 1;
-    if (d < B) { const k = 1 - d / B; c.vx += dx / d * 520 * k; c.vy += dy / d * 520 * k; if (!c.player) { c.p += 32 * k; c.hit = 0.3; c.swell = 0.2; } }
+    if (d < B) {
+      const k = 1 - d / B; c.vx += dx / d * 520 * k; c.vy += dy / d * 520 * k;
+      if (!c.player) { c.p += 32 * k; c.hit = 0.3; c.swell = 0.2; if (c.p >= 100) c.chain = 1; }
+    }
   }
+}
+function overfill(r) { // p hit 100: stall, swell, and count down to the pop
+  const dur = r.chain ? OVER_CHAIN : OVER_T;
+  r.over = r.overMax = dur; r.chain = 0; r.skim = 0; r.p = 100;
+  r.fuse = 0; r.tick = 0; r.vx *= 0.4; r.vy *= 0.4; r.hit = 0.3; // a winding tanker forgets its vent
+  pop(r.x, r.y - 30, 'OVERFULL!', C.hot, 20);
+  if (!overTip && state === 'play') { overTip = true; pop(r.x, r.y + 34, 'SKIM IT BEFORE IT POPS!', C.cool, 17); }
+  sparks(r.x, r.y, 12, C.hot, 260);
+  part(r.x, r.y, 0, 0, 0.3, r.r, C.hot, 2, 160);
+  shake = Math.max(shake, 3); sfx.overfull();
+}
+function overfullTick(r, dt) {
+  r.over -= dt; r.p = Math.max(r.p, 100); // pressure is locked: skimming can't defuse it
+  const f = Math.exp(-3 * dt); r.vx *= f; r.vy *= f;
+  const k = 1 - Math.max(0, r.over) / r.overMax;
+  if (Math.random() < 0.5 + k * 0.5) { // hot steam spitting off the swollen tail
+    const s = tailSeg(r), u = Math.random(), x = s[0] + (s[2] - s[0]) * u, y = s[1] + (s[3] - s[1]) * u;
+    part(x, y, rand(-70, 70), rand(-70, 70), 0.35, rand(3, 6), Math.random() < 0.5 ? C.copper : C.hot, 0, 8);
+  }
+  r.tick -= dt;
+  if (r.tick <= 0) { r.tick = 0.06 + 0.2 * (1 - k); sfx.tick(k); }
+  if (r.over <= 0) burst(r);
 }
 function tankerVent(r, dt) {
   if (r.fuse > 0) { // windup: plant, shudder, leak steam, tick faster and faster
@@ -673,13 +711,18 @@ function botUpdate(rdt) {
   bot.t -= rdt;
   // a winding tanker close by overrides everything: cap it or get clear
   const vt = rivals.find(r => r.alive && r.fuse > 0.25 && Math.hypot(r.x - player.x, r.y - player.y) < VENT_R + 25);
-  if ((bot.t > 0 && !vt) || Math.hypot(player.vx, player.vy) > (vt ? 160 : 100)) return;
+  // an overfull rival we're not already skimming: dash into its swollen tail before it pops
+  const ov = rivals.find(r => r.alive && r.over > 0.3 && segD(player.x, player.y, tailSeg(r)).d > grazeW(r, 0.5));
+  if ((bot.t > 0 && !vt && !ov) || Math.hypot(player.vx, player.vy) > (vt ? 160 : ov ? 140 : 100)) return;
   let tg = null;
-  for (const r of rivals) if (r.alive && r.sp >= 1 && r.fuse <= 0 && (!tg || r.p > tg.p)) tg = r;
+  for (const r of rivals) if (r.alive && r.sp >= 1 && r.fuse <= 0 && r.over <= 0 && (!tg || r.p > tg.p)) tg = r;
   const wr = wrenches.find(w => w.t > 0.25 && w.life > 1);
-  if (!tg && !wr && !vt) return;
-  let tx, ty, pow;
-  if (vt && player.p > 45 && Math.random() < 0.55) { // slam it shut
+  if (!tg && !wr && !vt && !ov) return;
+  let tx, ty, pow, aim = 0.5;
+  if (ov && !vt) { // skim the overflow
+    const s = tailSeg(ov); tx = s[0] + (s[2] - s[0]) * 0.6; ty = s[1] + (s[3] - s[1]) * 0.6;
+    pow = Math.min(0.7, Math.max(0.3, Math.hypot(tx - player.x, ty - player.y) / 260)); aim = 0.3;
+  } else if (vt && player.p > 45 && Math.random() < 0.55) { // slam it shut
     tx = vt.x; ty = vt.y; pow = 1;
   } else if (vt) { // flee away from the tanker, biased toward the arena centre
     tx = player.x + (player.x - vt.x) * 2 + (AR.x - player.x) * 0.6;
@@ -694,7 +737,7 @@ function botUpdate(rdt) {
     const s = tailSeg(tg); tx = s[0] + (s[2] - s[0]) * 0.55; ty = s[1] + (s[3] - s[1]) * 0.55; pow = 0.5;
   }
   const dx = tx - player.x, dy = ty - player.y, d = Math.hypot(dx, dy) || 1;
-  bot.dx = dx / d; bot.dy = dy / d; bot.pow = pow; bot.aim = bot.aimMax = 0.5;
+  bot.dx = dx / d; bot.dy = dy / d; bot.pow = pow; bot.aim = bot.aimMax = aim;
   drag.on = true; drag.sx = drag.sy = drag.x = drag.y = 0;
   bot.t = rand(0.4, 0.8);
 }
@@ -727,7 +770,7 @@ function moveCar(c, dt) {
 function rivalAI(r, dt) {
   r.ai -= dt;
   if (r.grazed > 0 && !r.alert) { r.alert = true; r.ai = Math.min(r.ai, rand(0.25, 0.6)); }
-  if (r.ai > 0 || r.sp < 1 || r.fuse > 0) return;
+  if (r.ai > 0 || r.sp < 1 || r.fuse > 0 || r.over > 0) return;
   r.alert = false; r.ai = rand(1.3, 3) * r.K.aiT;
   let tx, ty; const roll = Math.random(), hunt = Math.min(0.65, 0.3 + round * 0.07);
   const safe = player.inv > 0, thief = r.kind === 'sprinter';
@@ -840,25 +883,26 @@ function update(dt) {
   for (let i = 0; i < cars.length; i++) for (let j = i + 1; j < cars.length; j++) collide(cars[i], cars[j]);
 
   if (state === 'play') {
-    let grazing = false;
+    let grazing = false, skimming = false;
     for (const r of rivals) {
       if (!r.alive || r.sp < 1) continue;
-      const q = segD(player.x, player.y, tailSeg(r));
-      if (q.d < grazeW(r, q.t) * gMul()) { // player siphons rival steam
-        const take = Math.min(Math.max(0, r.p), 26 * gMul() * dt);
-        r.p -= take; player.p = Math.min(100, player.p + take);
-        addScore(take * 3); gainXP(take * 0.4); grazeAcc += take; r.grazed = 0.15; grazing = true;
+      const q = segD(player.x, player.y, tailSeg(r)), ov = r.over > 0;
+      if (q.d < grazeW(r, q.t) * gMul()) { // player siphons rival steam (overfull: double rate, it stays at 100)
+        const take = ov ? OVER_SIP * gMul() * dt : Math.min(Math.max(0, r.p), 26 * gMul() * dt);
+        if (ov) { r.skim += take; skimming = true; } else r.p -= take;
+        player.p = Math.min(100, player.p + take);
+        addScore(take * (ov ? 6 : 3)); gainXP(take * 0.4); grazeAcc += take; r.grazed = 0.15; grazing = true;
         if (tut.on) tut.took += take;
-        if (Math.random() < 0.7) part(q.x, q.y, (player.x - q.x) * 5, (player.y - q.y) * 5, 0.25, rand(3, 6), C.cool, 0, -8);
+        if (Math.random() < (ov ? 1 : 0.7)) part(q.x, q.y, (player.x - q.x) * 5, (player.y - q.y) * 5, 0.25, rand(3, 6), ov && Math.random() < 0.4 ? C.hot : C.cool, 0, -8);
       }
       const q2 = segD(r.x, r.y, tailSeg(player));
-      if (player.inv <= 0 && !tut.on && q2.d < 12 + q2.t * 9) { // rival siphons yours
+      if (player.inv <= 0 && !tut.on && !ov && q2.d < 12 + q2.t * 9) { // rival siphons yours (not while it's overfull)
         const take = Math.min(Math.max(0, player.p), Math.min(12, 7 + round) * hullK() * dt);
         player.p -= take; r.p += take; player.grazed = 0.15;
         if (Math.random() < 0.5) part(q2.x, q2.y, (r.x - q2.x) * 5, (r.y - q2.y) * 5, 0.25, 4, '#f3dfae', 0, -8);
       }
     }
-    if (grazing) { grazeSnd -= dt; if (grazeSnd <= 0) { grazeSnd = 0.09; sfx.graze(); } }
+    if (grazing) { grazeSnd -= dt; if (grazeSnd <= 0) { grazeSnd = 0.09; if (skimming) sfx.skim(); else sfx.graze(); } }
     grazePopT -= dt;
     if (grazeAcc > 0 && (grazePopT <= 0 || !grazing)) {
       if (grazeAcc >= 1) pop(player.x, player.y - 26, '+' + Math.round(grazeAcc) + ' STEAM', C.cool, 16);
@@ -869,9 +913,10 @@ function update(dt) {
   for (let i = 0; i < rivals.length; i++) {
     const r = rivals[i];
     if (r.alive) {
+      if (r.over > 0) { overfullTick(r, dt); continue; }
       if (r.kind === 'tanker') tankerVent(r, dt);
-      if (r.swell > 0) r.swell -= dt; // brief swell before a chain-burst pops
-      else if (r.p >= 100 && !(tut.on && tut.step !== 2)) burst(r); else if (r.p <= 0) fizzle(r);
+      if (r.swell > 0) r.swell -= dt; // brief swell before a chain-burst tips it overfull
+      else if (r.p >= 100 && !(tut.on && tut.step !== 2)) overfill(r); else if (r.p <= 0) fizzle(r);
     }
     else if (!tut.on) { r.resp -= dt; if (r.resp <= 0) rivals[i] = spawnRival(false); }
   }
@@ -1038,14 +1083,26 @@ function arenaPath(r) { ctx.beginPath(); ctx.arc(AR.x, AR.y1, r, Math.PI, 0); ct
 function drawTail(c) {
   const L = tailLen(c), dx = Math.cos(c.tAng), dy = Math.sin(c.tAng), px = -dy, py = dx;
   const n = Math.max(3, Math.floor(L / 8)), glow = c.grazed > 0 ? 1.6 : 1, sz = c.r / 14, R = ramR(c);
+  // overfull: the tail swells to match its wider graze band and throbs hot copper, faster as the pop nears
+  const ov = !c.player && c.over > 0, ok = ov ? 1 - Math.max(0, c.over) / c.overMax : 0;
+  const pulse = ov ? 0.5 + 0.5 * Math.sin(T * (14 + ok * 30)) : 0, thick = ov ? OVER_W * (1 + 0.15 * pulse) : 1;
+  if (ov) { // hot halo under the whole tail
+    ctx.fillStyle = C.copper;
+    for (let i = n - 1; i >= 0; i--) {
+      const t = i / (n - 1), d = c.r * 0.6 + t * L, w = Math.sin(T * 6 + c.wob + t * 7) * (2 + t * 6);
+      ctx.globalAlpha = 0.14 + 0.18 * pulse;
+      ctx.beginPath(); ctx.arc(c.x - dx * d + px * w, c.y - dy * d + py * w, (6 + t * 9) * sz * thick * 1.55, 0, 6.283); ctx.fill();
+    }
+  }
   // your own tail stays cream; rival tails run hot copper (ram) at the car -> cool blue (graze) at the tip
   ctx.fillStyle = '#f3dfae';
   for (let i = n - 1; i >= 0; i--) {
     const t = i / (n - 1), d = c.r * 0.6 + t * L;
     const w = Math.sin(T * 6 + c.wob + t * 7) * (2 + t * 6);
-    const rad = (6 + t * 9) * c.sp * sz;
+    const rad = (6 + t * 9) * c.sp * sz * thick;
     let a = 0.5 * (1 - t) + 0.1;
-    if (!c.player) { ctx.fillStyle = TAIL_COLS[Math.round(danger * 4)][Math.round(tailCool(d, R) * 16)]; a = 0.6 - 0.32 * t; }
+    if (ov) { ctx.fillStyle = (i + Math.floor(T * 20)) % 3 === 0 || pulse > 0.6 ? C.hot : C.copper; a = 0.85 - 0.3 * t; }
+    else if (!c.player) { ctx.fillStyle = TAIL_COLS[Math.round(danger * 4)][Math.round(tailCool(d, R) * 16)]; a = 0.6 - 0.32 * t; }
     ctx.globalAlpha = Math.min(1, a * glow) * (c.dead ? 0.3 : 1);
     ctx.beginPath(); ctx.arc(c.x - dx * d + px * w, c.y - dy * d + py * w, rad, 0, 6.283); ctx.fill();
   }
@@ -1069,12 +1126,19 @@ function drawTail(c) {
 }
 function drawCar(c) {
   const hot = !c.player && c.p > 75, wind = c.fuse > 0 ? 1 - c.fuse / VENT_FUSE : 0;
-  const k = Math.max(hot ? (c.p - 75) / 25 : 0, wind * 1.4);
+  const ovK = c.over > 0 ? 1 - Math.max(0, c.over) / c.overMax : -1;
+  const k = Math.max(hot ? (c.p - 75) / 25 : 0, wind * 1.4, ovK >= 0 ? 1.2 + ovK * 1.3 : 0);
   const main = c.dead ? '#6b625a' : c.player ? C.brass : C.copper, dark = c.dead ? '#3a332e' : c.player ? C.brassD : C.copperD;
   ctx.save();
   ctx.translate(c.x + rand(-1, 1) * k * 2.5, c.y + rand(-1, 1) * k * 2.5);
   if (c.fuse > 0) { ctx.globalAlpha = 0.5 + 0.4 * Math.sin(T * (14 + wind * 30)); ctx.fillStyle = C.steam; ctx.beginPath(); ctx.arc(0, 0, c.r + 6 + wind * 8, 0, 6.283); ctx.fill(); ctx.globalAlpha = 1; }
-  if (hot) { ctx.globalAlpha = 0.3 + 0.25 * Math.sin(T * 18); ctx.fillStyle = C.copper; ctx.beginPath(); ctx.arc(0, 0, c.r + 8 + k * 6, 0, 6.283); ctx.fill(); ctx.globalAlpha = 1; }
+  if (hot) { ctx.globalAlpha = 0.3 + 0.25 * Math.sin(T * 18); ctx.fillStyle = C.copper; ctx.beginPath(); ctx.arc(0, 0, c.r + 8 + Math.min(1, k) * 6, 0, 6.283); ctx.fill(); ctx.globalAlpha = 1; }
+  if (ovK >= 0) { // pop countdown: the arc drains to zero, then burst()
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 8; ctx.lineCap = 'butt';
+    ctx.beginPath(); ctx.arc(0, 0, c.r + 14, 0, 6.283); ctx.stroke();
+    ctx.strokeStyle = Math.sin(T * (14 + ovK * 30)) > 0 ? C.hot : C.copper; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.arc(0, 0, c.r + 14, -Math.PI / 2, -Math.PI / 2 + 6.283 * (1 - ovK)); ctx.stroke();
+  }
   if (c.player && !c.dead) {
     const shield = c.inv > 0;
     ctx.strokeStyle = shield ? C.cool : C.brass; ctx.globalAlpha = shield ? 0.8 : 0.55; ctx.lineWidth = shield ? 4 : 2.5;
@@ -1082,7 +1146,8 @@ function drawCar(c) {
     if (shield && Math.sin(T * 30) > 0.3) ctx.globalAlpha = 0.45;
   }
   ctx.rotate(c.ang);
-  const s = (c.sp < 1 ? Math.max(0.01, easeOutBack(c.sp)) : 1) * c.r / 14; ctx.scale(s, s);
+  const s = (c.sp < 1 ? Math.max(0.01, easeOutBack(c.sp)) : 1) * c.r / 14 * (ovK >= 0 ? 1.08 + 0.1 * ovK * (0.5 + 0.5 * Math.sin(T * 30)) : 1);
+  ctx.scale(s, s);
   ctx.fillStyle = 'rgba(0,0,0,.4)'; rr(-13, -6, 30, 20, 6); ctx.fill();
   ctx.fillStyle = C.ink;
   ctx.fillRect(-12, -13, 9, 5); ctx.fillRect(-12, 8, 9, 5); ctx.fillRect(5, -13, 9, 5); ctx.fillRect(5, 8, 9, 5);
@@ -1143,6 +1208,12 @@ function drawVentLabel(r) {
   const inside = state === 'play' && Math.hypot(player.x - r.x, player.y - r.y) < VENT_R + player.r;
   ctx.save(); ctx.translate(r.x, r.y - r.r - 26); ctx.scale(s, s);
   txt(inside ? 'GET CLEAR!' : 'VENT!', 0, 0, inside ? 20 : 18, inside ? C.steam : C.copper); ctx.restore();
+}
+function drawSkimLabel(r) { // points at the swollen tail tip: this is where to dive in
+  const s = tailSeg(r), k = 1 - Math.max(0, r.over) / r.overMax, sc = 1 + 0.15 * Math.sin(T * (14 + k * 30));
+  const q = segD(player.x, player.y, s), on = state === 'play' && q.d < grazeW(r, q.t) * gMul();
+  ctx.save(); ctx.translate(s[2], s[3] + (s[3] < 240 ? 24 : -24)); ctx.scale(sc, sc);
+  txt(on ? 'SKIMMING!' : 'SKIM!', 0, 0, on ? 18 : 17, C.cool); ctx.restore();
 }
 function drawParts(filter) {
   for (const p of parts) {
@@ -1271,7 +1342,7 @@ function drawTutWorld() {
   } else if (tut.step === 1 && r && r.alive && r.sp >= 1) {
     const s = tailSeg(r), t = 0.72;
     coach(s[0] + (s[2] - s[0]) * t, s[1] + (s[3] - s[1]) * t, grazeW(r, t) + 6, C.cool, 'SKIM HERE');
-  } else if (tut.step === 2 && r && r.alive) {
+  } else if (tut.step === 2 && r && r.alive && r.over <= 0) {
     coach(r.x, r.y, ramR(r) + 8, C.copper, 'RAM IT!');
   } else if (tut.step === 3 && wrenches.length && wrenches[0].t > 0.3) {
     coach(wrenches[0].x, wrenches[0].y, 28, C.cool, 'GRAB!');
@@ -1362,6 +1433,7 @@ function draw() {
   drawCar(player);
   drawParts(false);
   for (const r of rivals) if (r.alive && r.fuse > 0) drawVentLabel(r);
+  for (const r of rivals) if (r.alive && r.over > 0) drawSkimLabel(r);
   drawTutWorld();
   drawAim();
   for (const p of pops) {

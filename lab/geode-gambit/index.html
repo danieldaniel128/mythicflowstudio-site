@@ -100,6 +100,8 @@ const ZONE = 0.65;       // pressure where a strike shatters
 const TOL = 18;          // "on vein" distance
 const CARVE_R = 13;      // chisel carve radius
 const STEP = 7;          // vein sample spacing
+const NEAR = 9;          // band just outside TOL that counts as a near-miss
+const TRAIL_LIFE = 0.7;  // seconds the carve trail lingers
 const TIERS = [0.25, 0.45, ZONE, 0.8, 0.9]; // pressure levels where every crack snaps wider
 
 let S = null, parts = [], floats = [];
@@ -175,10 +177,11 @@ function newGame(started) {
     state: 'play', t: 0, endT: 0, started: !!started, poly, veins, total, carved: 0, speck, seed,
     cracks: makeCracks(poly), dents: [], pressure: 0, score: 0, streak: 0, pop: 0, beat: 0, inZone: false,
     tier: 0, widen: 0, thump: 0, bulge: 0, snapCd: 0, wpoly: poly, zoneK: 0,
-    carveSnd: 0, payout: 0, shown: 0, mult: 1, tick: 0, shards: [], ring: null, msg: '', sub: '', newBest: false
+    carveSnd: 0, payout: 0, shown: 0, mult: 1, tick: 0, shards: [], ring: null, msg: '', sub: '', newBest: false,
+    trail: [], stroke: 0, nears: [], nmCd: 0
   };
   parts = []; floats = [];
-  P.down = false; P.carving = false; P.tap = false;
+  P.down = false; P.carving = false; P.tap = false; P.nm = null;
 }
 
 // ---------- fx ----------
@@ -208,6 +211,37 @@ function veinDist(x, y) {
   let m = 1e9;
   for (const v of S.veins) for (const p of v) { const d = (p.x - x) * (p.x - x) + (p.y - y) * (p.y - y); if (d < m) m = d; }
   return Math.sqrt(m);
+}
+// nearest still-uncarved vein point (near-misses only count against live veins)
+function openNear(x, y) {
+  let m = 1e9, bp = null;
+  for (const v of S.veins) for (const p of v) {
+    if (p.c) continue;
+    const d = (p.x - x) * (p.x - x) + (p.y - y) * (p.y - y); if (d < m) { m = d; bp = p; }
+  }
+  return { d: Math.sqrt(m), p: bp };
+}
+// glowing trail: one point per few px of chisel travel while carving; strokes don't join
+function addTrail(x, y) {
+  const tr = S.trail, l = tr[tr.length - 1];
+  if (l && l.id === S.stroke && Math.hypot(x - l.x, y - l.y) < 3) return;
+  tr.push({ x, y, t: S.t, id: S.stroke });
+  if (tr.length > 240) tr.shift();
+}
+// dragging (not carving) inside the band just outside TOL: remember the closest pass
+function nearCheck(x, y) {
+  const n = openNear(x, y);
+  if (n.p && n.d < TOL + NEAR) { if (!P.nm || n.d < P.nm.d) P.nm = { x, y, vx: n.p.x, vy: n.p.y, d: n.d }; }
+  else if (P.nm) { nearMiss(P.nm); P.nm = null; }
+}
+function nearMiss(m) {
+  if (S.nmCd > 0) return;
+  S.nmCd = 0.3;
+  S.nears.push({ x: m.x, y: m.y, vx: m.vx, vy: m.vy, t: 0 });
+  float(m.vx, m.vy - 24, 'NEAR MISS!', C.gold, 22);
+  flash(C.gold, 0.12); shake(3); sparks(m.vx, m.vy, 6, C.gold);
+  // glassy "tsing" that bends away: distinct from the carve tick and the low slip buzz
+  tone(1760, 0.07, 'sine', 0.1, 2400); tone(2350, 0.14, 'sine', 0.07, 1400, 0.06); noise(0.06, 0.12, 9000);
 }
 function carveAt(x, y) {
   let n = 0;
@@ -312,12 +346,12 @@ function warp(x, y) {
 }
 
 // ---------- input ----------
-const P = { down: false, x: 268, y: 478, lx: 0, ly: 0, sx: 0, sy: 0, t0: 0, carving: false, tap: false, vis: true };
+const P = { down: false, x: 268, y: 478, lx: 0, ly: 0, sx: 0, sy: 0, t0: 0, carving: false, tap: false, vis: true, nm: null };
 function inputDown(x, y, t) {
   if (S.state !== 'play') { if (S.endT > 0.7) newGame(true); return; }
   S.started = true;
-  P.down = true; P.x = P.lx = P.sx = x; P.y = P.ly = P.sy = y; P.t0 = t; P.vis = true;
-  if (veinDist(x, y) < TOL) { P.carving = true; P.tap = false; carveAt(x, y); }
+  P.down = true; P.x = P.lx = P.sx = x; P.y = P.ly = P.sy = y; P.t0 = t; P.vis = true; P.nm = null;
+  if (veinDist(x, y) < TOL) { P.carving = true; P.tap = false; S.stroke++; carveAt(x, y); addTrail(x, y); }
   else { P.carving = false; P.tap = true; }
 }
 function inputMove(x, y) {
@@ -328,16 +362,23 @@ function inputMove(x, y) {
   const steps = Math.max(1, Math.ceil(L / 5));
   for (let i = 1; i <= steps; i++) {
     const ix = P.lx + mdx * i / steps, iy = P.ly + mdy * i / steps, d = veinDist(ix, iy);
-    if (P.carving) { if (d > TOL * 1.5) { slip(ix, iy); break; } carveAt(ix, iy); }
-    else if (!P.tap && d < TOL) { P.carving = true; carveAt(ix, iy); }
+    if (P.carving) { if (d > TOL * 1.5) { slip(ix, iy); break; } carveAt(ix, iy); addTrail(ix, iy); }
+    else if (!P.tap) {
+      if (d < TOL) { P.carving = true; P.nm = null; S.stroke++; carveAt(ix, iy); addTrail(ix, iy); }
+      else nearCheck(ix, iy);
+    }
+    if (S.state !== 'play') break;
   }
   P.lx = x; P.ly = y;
 }
 function inputUp(x, y, t) {
   if (!P.down) return;
   P.down = false;
-  if (S.state === 'play' && P.tap && t - P.t0 < 400 && inEll(x, y, 1.05)) strike(x, y);
-  P.carving = false; P.tap = false;
+  if (S.state === 'play') {
+    if (P.nm) nearMiss(P.nm);
+    else if (P.tap && t - P.t0 < 400 && inEll(x, y, 1.05)) strike(x, y);
+  }
+  P.carving = false; P.tap = false; P.nm = null;
 }
 function toGame(e) { return { x: (e.clientX - ox) / scale, y: (e.clientY - oy) / scale }; }
 cv.addEventListener('pointerdown', e => {
@@ -348,13 +389,29 @@ cv.addEventListener('pointerdown', e => {
 }, { passive: false });
 cv.addEventListener('pointermove', e => { e.preventDefault(); if (DEMO) return; const p = toGame(e); inputMove(p.x, p.y); }, { passive: false });
 cv.addEventListener('pointerup', e => { e.preventDefault(); if (DEMO) return; const p = toGame(e); inputUp(p.x, p.y, performance.now()); }, { passive: false });
-cv.addEventListener('pointercancel', () => { P.down = false; P.carving = false; P.tap = false; });
+cv.addEventListener('pointercancel', () => { P.down = false; P.carving = false; P.tap = false; P.nm = null; });
 document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
 document.addEventListener('gesturestart', e => e.preventDefault());
 document.addEventListener('contextmenu', e => e.preventDefault());
 
 // ---------- demo AI ----------
-const AI = { phase: 'toVein', vi: 0, idx: 0, x: 268, y: 478, tx: 0, ty: 0, wait: 0 };
+const AI = { phase: 'plan', vi: 0, idx: 0, x: 268, y: 478, tx: 0, ty: 0, wait: 0, skim: null };
+// find a straight drag that runs alongside a vein, inside the near-miss band but never on it
+function aiPlanSkim() {
+  for (const v of S.veins) {
+    const m = Math.floor(v.length / 2), a = v[Math.max(0, m - 3)], b = v[Math.min(v.length - 1, m + 3)];
+    const L = Math.hypot(b.x - a.x, b.y - a.y) || 1, tx = (b.x - a.x) / L, ty = (b.y - a.y) / L;
+    for (const off of [23, -23, 21, -21]) {
+      const cx = v[m].x - ty * off, cy = v[m].y + tx * off;
+      const A = { x: cx - tx * 45, y: cy - ty * 45 }, B = { x: cx + tx * 45, y: cy + ty * 45 };
+      if (!inEll(A.x, A.y, 1) || !inEll(B.x, B.y, 1)) continue;
+      let mn = 1e9;
+      for (let i = 0; i <= 20; i++) mn = Math.min(mn, veinDist(A.x + (B.x - A.x) * i / 20, A.y + (B.y - A.y) * i / 20));
+      if (mn > TOL + 1 && mn < TOL + NEAR - 2) return { A, B };
+    }
+  }
+  return null;
+}
 function aiMove(x, y, dt, sp) {
   const dx = x - AI.x, dy = y - AI.y, d = Math.hypot(dx, dy);
   if (d < sp * dt) { AI.x = x; AI.y = y; return true; }
@@ -371,10 +428,18 @@ function aiPickStrike() {
 }
 function demoUpdate(dt, now) {
   if (S.state !== 'play') {
-    if (S.endT > 2.6) { newGame(true); AI.phase = 'toVein'; AI.vi = 0; AI.idx = 0; }
+    if (S.endT > 2.6) { newGame(true); AI.phase = 'plan'; AI.vi = 0; AI.idx = 0; }
     return;
   }
-  if (AI.phase === 'toVein') {
+  if (AI.phase === 'plan') {
+    AI.skim = aiPlanSkim(); AI.phase = AI.skim ? 'toSkim' : 'toVein';
+  } else if (AI.phase === 'toSkim') {
+    if (aiMove(AI.skim.A.x, AI.skim.A.y, dt, 520)) { inputDown(AI.x, AI.y, now); AI.phase = 'skim'; }
+  } else if (AI.phase === 'skim') {
+    const done = aiMove(AI.skim.B.x, AI.skim.B.y, dt, 170);
+    inputMove(AI.x, AI.y);
+    if (done) { inputUp(AI.x, AI.y, now + 1000); AI.phase = 'toVein'; }
+  } else if (AI.phase === 'toVein') {
     if (S.pressure >= 0.8 || AI.vi >= S.veins.length) { aiPickStrike(); }
     else {
       const v = S.veins[AI.vi];
@@ -445,6 +510,9 @@ function update(dt, now) {
   S.thump = Math.max(0, S.thump - dt * 4);
   S.widen = Math.max(0, S.widen - dt * 3);
   S.snapCd -= dt;
+  S.nmCd -= dt;
+  while (S.trail.length && S.t - S.trail[0].t > TRAIL_LIFE) S.trail.shift();
+  for (let i = S.nears.length - 1; i >= 0; i--) { S.nears[i].t += dt; if (S.nears[i].t > 0.5) S.nears.splice(i, 1); }
   for (const c of S.cracks) c.snap = Math.max(0, c.snap - dt * 5);
   {
     const pr = S.pressure, zk = clamp((pr - ZONE) / (1 - ZONE), 0, 1);
@@ -552,12 +620,43 @@ function drawGeode(time) {
   ctx.strokeStyle = 'rgba(79,240,255,' + (0.16 + 0.16 * pulse).toFixed(3) + ')'; ctx.lineWidth = 12; ctx.stroke(open);
   ctx.strokeStyle = C.cyan; ctx.lineWidth = 3.5; ctx.stroke(open);
   ctx.strokeStyle = '#e6ffff'; ctx.lineWidth = 1.2; ctx.stroke(open);
+  drawTrail();
+  drawNears();
   if (S.state === 'sealed') {
     const a = Math.max(0, 1 - S.endT * 1.5);
     geoPath(0, 0); ctx.strokeStyle = 'rgba(79,240,255,' + a.toFixed(3) + ')'; ctx.lineWidth = 8; ctx.stroke();
     geoPath(0, 0); ctx.fillStyle = 'rgba(11,13,22,0.35)'; ctx.fill();
   }
   ctx.restore();
+}
+// the exact chisel path, glowing additively and fading/thinning with age
+function drawTrail() {
+  const tr = S.trail; if (tr.length < 2) return;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
+  for (let pass = 0; pass < 2; pass++) {
+    for (let i = 1; i < tr.length; i++) {
+      const a = tr[i - 1], b = tr[i]; if (a.id !== b.id) continue;
+      const k = 1 - (S.t - b.t) / TRAIL_LIFE; if (k <= 0) continue;
+      ctx.strokeStyle = pass ? 'rgba(230,255,255,' + k.toFixed(3) + ')' : 'rgba(79,240,255,' + (k * 0.4).toFixed(3) + ')';
+      ctx.lineWidth = pass ? 1.5 + 3 * k : 6 + 12 * k;
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+// near-miss: gold gap line from the chisel to the vein it just missed, plus a ring on the vein
+function drawNears() {
+  ctx.lineCap = 'round';
+  for (const n of S.nears) {
+    const k = 1 - n.t / 0.5, al = k.toFixed(3);
+    ctx.strokeStyle = 'rgba(255,210,63,' + al + ')';
+    ctx.lineWidth = 1 + 3 * k;
+    ctx.beginPath(); ctx.moveTo(n.x, n.y); ctx.lineTo(n.vx, n.vy); ctx.stroke();
+    ctx.lineWidth = 2 + 3 * k;
+    ctx.beginPath(); ctx.arc(n.vx, n.vy, 5 + 22 * (1 - k), 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,210,63,' + al + ')';
+    ctx.beginPath(); ctx.arc(n.x, n.y, 3 + 2 * k, 0, Math.PI * 2); ctx.fill();
+  }
 }
 function drawShards() {
   for (const s of S.shards) {

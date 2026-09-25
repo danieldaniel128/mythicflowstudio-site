@@ -207,6 +207,9 @@ function makeLevel(n) {
 let level = DEMO ? 3 : 1, L = null, state = 'play', stateT = 0, elapsed = 0, started = false, t = 0, holdT = 0;
 let onA = false, onB = false, aligned = false, border = 158, danger = 0, shake = 0, flashA = 0, flashRGB = '255,255,255';
 let hintA = 0, best = 1, ghostNear = 0, ghostPh = 0, misT = 0;
+// heartbeat: dangerV = smoothed danger, hbT = time since last "lub", hbCd = time to next beat
+const DUB = 0.19; // lub -> dub gap, seconds
+let dangerV = 0, hbT = 9, hbCd = 0.4;
 try { best = +(localStorage.getItem('twinkleBest') || 1); } catch (e) {}
 const A = { x: 0, y: 0, kx: 0, ky: 0 }, B = { x: 0, y: 0, kx: 0, ky: 0, sq: 0 };
 const ghost = { x: 0, y: 0 };
@@ -234,7 +237,7 @@ function startLevel() {
   state = 'play'; stateT = 0; elapsed = 0; holdT = 0; started = DEMO;
   onA = onB = false; pend.x = pend.y = 0;
   ST.p = ST.dis = ST.just = ST.wp = null; ST.left = ST.wrap = 0; ST.used = false;
-  aligned = updGhost(); misT = 0;
+  aligned = updGhost(); misT = 0; danger = 0; hbCd = 0.4;
   hintA = !DEMO && HINTS[level] ? 1 : 0;
   ai.think = 0.7; ai.rx = ai.ry = 0; ai.plan = null;
   border = borderR();
@@ -276,6 +279,21 @@ function unstickFx(p) {
   ring(p.x, p.y, '223,232,255', 110, 0.5, 2);
   burst(p.x, p.y, '#dfe8ff', 10, 120, 0.5);
   chime(880, 0.06);
+}
+// soft lub-dub; louder and faster as the pond closes in
+function heartbeat() {
+  hbT = 0;
+  if (started) {
+    const v = 0.05 + 0.12 * dangerV;
+    tone(64, 0.17, 'sine', v, 0, 0.7); tone(128, 0.09, 'triangle', v * 0.45, 0, 0.5);
+    tone(56, 0.15, 'sine', v * 0.75, DUB, 0.7); tone(112, 0.08, 'triangle', v * 0.35, DUB, 0.5);
+  }
+  if (dangerV > 0.5) shake = Math.max(shake, 1.6 * dangerV);
+}
+// visual envelope of the beat: sharp lub, smaller dub (0..1)
+function hbEnv() {
+  const d = hbT > DUB ? 0.65 * Math.exp(-(hbT - DUB) * 11) : 0;
+  return Math.min(1, Math.exp(-hbT * 10) + d);
 }
 function win() {
   state = 'win'; stateT = 0;
@@ -405,7 +423,7 @@ function update(dt) {
       for (const p of L.pads) {
         if (!p.alive) continue;
         const dc = Math.hypot(p.x - CX, p.y - CY) + p.r * 0.4;
-        if (p.kind !== 'N') danger = Math.max(danger, clamp(1 - (R - dc) / 35, 0, 1));
+        if (p.kind !== 'N') danger = Math.max(danger, clamp(1 - (R - dc) / 50, 0, 1));
         if (R < dc) {
           p.alive = false;
           ring(p.x, p.y, '200,220,255', 80, 0.6, 2);
@@ -418,6 +436,13 @@ function update(dt) {
     pend.x = pend.y = 0;
     if (state === 'win' && stateT > 1.5) { level++; startLevel(); }
     else if (state === 'fail' && DEMO && stateT > 1.8) startLevel();
+  }
+
+  dangerV += (danger - dangerV) * (1 - Math.exp(-5 * dt));
+  hbT += dt;
+  if (state === 'play') {
+    hbCd -= dt;
+    if (hbCd <= 0) { hbCd = 60 / (54 + 66 * dangerV); heartbeat(); } // 54 -> 120 bpm
   }
 
   for (let i = parts.length - 1; i >= 0; i--) {
@@ -561,27 +586,42 @@ function draw() {
   ctx.globalAlpha = 1;
 
   // pond
-  const R = border;
+  const R = border, dv = dangerV, hb = hbEnv();
+  const rc = [200 + 55 * dv, 225 - 105 * dv, 255 - 95 * dv].map(Math.round).join(',');
+  const RV = Math.max(1, R + hb * (2.5 + 4 * dv)); // rim thumps outward on each beat (visual only)
+  const mix = (c0, c1) => 'rgb(' + c0.map((v, i) => Math.round(v + (c1[i] - v) * dv)).join(',') + ')';
   ctx.setLineDash([4, 8]); ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(200,220,255,0.15)';
   ctx.beginPath(); ctx.arc(CX, CY, L.R0 + 6, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
-  ctx.fillStyle = 'rgba(120,170,255,0.07)'; ctx.beginPath(); ctx.arc(CX, CY, R + 14, 0, TAU); ctx.fill();
-  const pg = ctx.createRadialGradient(CX, CY - 40, 10, CX, CY, Math.max(R, 20));
-  pg.addColorStop(0, '#1f5486'); pg.addColorStop(1, '#0f2a52');
-  ctx.fillStyle = pg; ctx.beginPath(); ctx.arc(CX, CY, Math.max(R, 1), 0, TAU); ctx.fill();
+  ctx.fillStyle = `rgba(${rc},${0.06 + hb * (0.05 + 0.1 * dv)})`; ctx.beginPath(); ctx.arc(CX, CY, RV + 14, 0, TAU); ctx.fill();
+  // water shifts from night blue toward a deep rc red as danger rises
+  const pg = ctx.createRadialGradient(CX, CY - 40, 10, CX, CY, Math.max(RV, 20));
+  pg.addColorStop(0, mix([31, 84, 134], [140, 44, 78])); pg.addColorStop(1, mix([15, 42, 82], [74, 14, 40]));
+  ctx.fillStyle = pg; ctx.beginPath(); ctx.arc(CX, CY, RV, 0, TAU); ctx.fill();
+  // heartbeat wash over the whole surface, strongest near the closing rim
+  const hg = ctx.createRadialGradient(CX, CY, 0, CX, CY, RV);
+  hg.addColorStop(0, `rgba(${rc},${hb * (0.03 + 0.14 * dv)})`);
+  hg.addColorStop(0.6, `rgba(${rc},${(0.03 + 0.14 * dv) * (0.4 + 0.6 * hb)})`);
+  hg.addColorStop(1, `rgba(${rc},${(0.08 + 0.34 * dv) * (0.5 + 0.5 * hb)})`);
+  ctx.fillStyle = hg; ctx.fill();
+  const Rp = Math.max(R, 1);
   for (let k = 0; k < 3; k++) {
-    const rr = (t * 16 + k * R / 3) % R;
-    ctx.strokeStyle = `rgba(200,225,255,${0.1 * (1 - rr / R)})`; ctx.lineWidth = 2;
+    const rr = (t * 16 + k * Rp / 3) % Rp;
+    ctx.strokeStyle = `rgba(${rc},${(0.1 + 0.08 * dv) * (1 - rr / Rp)})`; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(CX, CY, rr, 0, TAU); ctx.stroke();
+  }
+  // each beat sends a ripple inward from the rim
+  const bu = clamp(hbT / 0.9, 0, 1);
+  if (bu < 1 && R > 30) {
+    ctx.strokeStyle = `rgba(${rc},${(1 - bu) * (0.2 + 0.45 * dv)})`; ctx.lineWidth = 2 + 3 * (1 - bu);
+    ctx.beginPath(); ctx.arc(CX, CY, RV - easeOutCubic(bu) * R * 0.35, 0, TAU); ctx.stroke();
   }
   // mirror line: pink side | gold side
   const mh = Math.max(0, R - 6);
   ctx.setLineDash([3, 9]); ctx.strokeStyle = 'rgba(223,232,255,0.28)'; ctx.lineWidth = 2;
   ctx.beginPath(); ctx.moveTo(CX, CY - mh); ctx.lineTo(CX, CY + mh); ctx.stroke(); ctx.setLineDash([]);
-  const rc = [200 + 55 * danger, 225 - 105 * danger, 255 - 95 * danger].map(Math.round).join(',');
-  const pulse = danger > 0 ? 0.5 + 0.5 * Math.sin(t * 6) : 0.5;
-  ctx.strokeStyle = `rgba(${rc},${0.12 + 0.15 * pulse})`; ctx.lineWidth = 12;
-  ctx.beginPath(); ctx.arc(CX, CY, R, 0, TAU); ctx.stroke();
-  ctx.strokeStyle = `rgba(${rc},0.95)`; ctx.lineWidth = 3.5; ctx.stroke();
+  ctx.strokeStyle = `rgba(${rc},${0.12 + 0.1 * dv + 0.3 * hb})`; ctx.lineWidth = 12 + 10 * hb;
+  ctx.beginPath(); ctx.arc(CX, CY, RV, 0, TAU); ctx.stroke();
+  ctx.strokeStyle = `rgba(${rc},0.95)`; ctx.lineWidth = 3.5 + 2.5 * hb; ctx.stroke();
 
   for (const p of L.pads) drawPad(p);
 
