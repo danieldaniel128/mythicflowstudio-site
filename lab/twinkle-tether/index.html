@@ -26,10 +26,14 @@ const VW = 360, VH = 640, CX = 180, CY = 350, FR = 11, TAU = Math.PI * 2;
 const PINK = '#ff7eb6', GOLD = '#ffd45e', PINK_RGB = '255,126,182', GOLD_RGB = '255,212,94';
 const NOTES = [523.3, 587.3, 659.3, 784, 880, 1046.5];
 const RBX = 326, RBY = 56; // restart button
+const STICK_T = 1.0;   // seconds a sticky pad holds the gold twin
+const AI_SPD = 150;    // demo drag speed, px/s (also converts hold time to drag length in sims)
+const STICK_PX = 130;  // hold length in px of pink travel, used by the level builder
 const HINTS = {
   1: ['Drag anywhere to fly pink', 'The gold twin mirrors you'],
   2: ['Green pads stop the gold twin', 'Push straight up into one'],
-  3: ['Slide the gold ring', 'onto the pink pad']
+  3: ['Wrapped pads catch the twin', 'Slide pink while it is held'],
+  4: ['Slide the gold ring', 'onto the pink pad']
 };
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -76,7 +80,11 @@ function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Ma
 // ---------- movement / collision ----------
 // Mirror is left<->right across the pond's centre line: up/down moves both the same way,
 // left/right moves them opposite. Only green pads (and the pond edge) block the gold twin.
-function resolveB(b, R, live, pads) {
+// Sticky green pads also catch the twin: it stays put for a beat while pink flies on freely,
+// which shifts the mirror offset in any direction. st = { sim, p, left, dis, used, just }:
+// p = pad holding the twin, left = hold left (seconds live, px of pink travel in sims),
+// dis = pad just released (re-arms once the twin drifts clear of it).
+function resolveB(b, R, live, pads, st) {
   for (const p of pads) {
     if (!p.alive || p.kind !== 'N' || p.pop < 0.5) continue;
     const dx = b.x - p.x, dy = b.y - p.y, d = Math.hypot(dx, dy), m = p.r + FR;
@@ -84,27 +92,39 @@ function resolveB(b, R, live, pads) {
       const nx = d > 1e-3 ? dx / d : 1, ny = d > 1e-3 ? dy / d : 0;
       b.x = p.x + nx * m; b.y = p.y + ny * m;
       if (live) { p.hit = true; p.nx = nx; p.ny = ny; }
+      if (st && p.sticky && !st.p && st.dis !== p) {
+        st.p = p; st.left = st.sim ? STICK_PX : STICK_T; st.used = true;
+        if (live) st.just = p;
+      }
     }
   }
+  if (st && st.dis && (!st.dis.alive || dist(b, st.dis) > st.dis.r + FR + 4)) st.dis = null;
   const lim = R - FR, ex = b.x - CX, ey = b.y - CY, d = Math.hypot(ex, ey);
   if (d > lim) { b.x = CX + ex / d * lim; b.y = CY + ey / d * lim; }
 }
-function movePair(a, b, dx, dy, R, live, pads) {
+function movePair(a, b, dx, dy, R, live, pads, st) {
   const n = Math.max(1, Math.ceil(Math.hypot(dx, dy) / 3)), sx = dx / n, sy = dy / n, lim = R - FR;
   for (let i = 0; i < n; i++) {
     let nx = a.x + sx, ny = a.y + sy;
     const ex = nx - CX, ey = ny - CY, d = Math.hypot(ex, ey);
     if (d > lim) { nx = CX + ex / d * lim; ny = CY + ey / d * lim; }
-    b.x -= nx - a.x; b.y += ny - a.y;
+    const mx = nx - a.x, my = ny - a.y;
     a.x = nx; a.y = ny;
-    resolveB(b, R, live, pads);
+    if (st && st.p) { // twin is held: pink moves alone
+      if (!st.sim) continue; // live holds are timed in update()
+      st.left -= Math.hypot(mx, my);
+      if (st.left > 0) continue;
+      st.dis = st.p; st.p = null;
+    }
+    b.x -= mx; b.y += my;
+    resolveB(b, R, live, pads, st);
   }
 }
 
 // ---------- level generation ----------
 let noteIdx = 0;
-function pad(x, y, r, kind) {
-  return { x, y, r, kind, ang: Math.random() * TAU, wob: 0, alive: true, sink: 0, touch: false, hit: false, nx: 0, ny: 0, pop: 1, cd: 0, note: (noteIdx++) % NOTES.length };
+function pad(x, y, r, kind, sticky) {
+  return { x, y, r, kind, sticky: !!sticky, ang: Math.random() * TAU, wob: 0, alive: true, sink: 0, touch: false, hit: false, nx: 0, ny: 0, pop: 1, cd: 0, note: (noteIdx++) % NOTES.length };
 }
 function makeLevel(n) {
   const lv = { R0: 158, shrink: Math.min(2.1, 0.9 + 0.12 * n), pads: [], a: null };
@@ -122,11 +142,21 @@ function makeLevel(n) {
       pad(CX + 60, CY + 20, 22, 'N'), pad(CX - 10, CY - 110, 16, 'N'), pad(CX - 120, CY + 20, 16, 'N'));
     return lv;
   }
+  if (n === 3) { // sticky tutorial: push up into the wrapped pad, keep flying up while gold waits, then slide
+    lv.shrink = 1.1;
+    lv.a = { x: CX - 50, y: CY + 45 };
+    lv.pads.push(pad(CX - 85, CY - 34, 23, 'A'), pad(CX + 85, CY + 26, 23, 'B'),
+      pad(CX + 50, CY - 30, 20, 'N', true), pad(CX - 120, CY + 55, 16, 'N'), pad(CX + 5, CY + 115, 16, 'N'));
+    return lv;
+  }
   // Built backwards from a real solution, so every level is solvable.
+  // Sticky pads only add options (pink can always undo what it did during a hold), so the
+  // builder's route through them is one valid solution among several multi-stroke plans.
   const r = mulberry(n * 7919 + 13);
   const rp = (a, b) => { const an = r() * TAU, d = a + (b - a) * Math.sqrt(r()); return { x: CX + Math.cos(an) * d, y: CY + Math.sin(an) * d }; };
   const minNeed = Math.min(35 + n * 5, 100);
   const nb = Math.min(6, 2 + Math.floor(n * 0.5));
+  const nSticky = n >= 7 ? 2 : 1;
   for (let tries = 0; tries < 600; tries++) {
     const a = rp(40, 105), b = { x: 2 * CX - a.x, y: a.y };
     const greens = [];
@@ -135,17 +165,24 @@ function makeLevel(n) {
       if (dist(p, b) < pr + FR + 8 || dist(p, a) < pr + 6) continue;
       let ok = true;
       for (const q of greens) if (dist(p, q) < pr + q.r + 2 * FR + 6) { ok = false; break; }
-      if (ok) greens.push(pad(p.x, p.y, pr, 'N'));
+      if (ok) greens.push(pad(p.x, p.y, pr, 'N', greens.length < nSticky));
     }
     const sa = { x: a.x, y: a.y }, sb = { x: b.x, y: b.y };
+    const st = { sim: true, p: null, left: 0, dis: null, used: false };
     const strokes = 2 + (r() < 0.4 ? 1 : 0);
     let inside = true;
     for (let s = 0; s < strokes; s++) {
-      const an = r() * TAU, l = 50 + r() * 110;
-      movePair(sa, sb, Math.cos(an) * l, Math.sin(an) * l, 1000, false, greens);
+      let an = r() * TAU, l = 50 + r() * 110;
+      if (s === 0 && greens.length && r() < 0.7) { // aim the twin into the sticky pad, then fly on while held
+        const q = greens[0], bx = q.x - sb.x, by = q.y - sb.y, bd = Math.hypot(bx, by);
+        an = Math.atan2(by, -bx) + (r() - 0.5) * 0.5;
+        l = Math.max(20, bd - q.r - FR) + 20 + r() * 100;
+      }
+      movePair(sa, sb, Math.cos(an) * l, Math.sin(an) * l, 1000, false, greens, st);
       if (Math.hypot(sa.x - CX, sa.y - CY) > 105 || Math.hypot(sb.x - CX, sb.y - CY) > 105) { inside = false; break; }
     }
     if (!inside) continue;
+    if (!st.used && tries < 450) continue; // prefer routes that really use a sticky pad
     const gA = { x: sa.x, y: sa.y }, gB = { x: sb.x, y: sb.y };
     for (const q of greens) { // ease the gold pad off a green pad so both read clearly
       const d = dist(gB, q), m = q.r + 14;
@@ -167,13 +204,15 @@ function makeLevel(n) {
 }
 
 // ---------- state ----------
-let level = DEMO ? 2 : 1, L = null, state = 'play', stateT = 0, elapsed = 0, started = false, t = 0, holdT = 0;
+let level = DEMO ? 3 : 1, L = null, state = 'play', stateT = 0, elapsed = 0, started = false, t = 0, holdT = 0;
 let onA = false, onB = false, aligned = false, border = 158, danger = 0, shake = 0, flashA = 0, flashRGB = '255,255,255';
-let hintA = 0, best = 1;
+let hintA = 0, best = 1, ghostNear = 0, ghostPh = 0, misT = 0;
 try { best = +(localStorage.getItem('twinkleBest') || 1); } catch (e) {}
 const A = { x: 0, y: 0, kx: 0, ky: 0 }, B = { x: 0, y: 0, kx: 0, ky: 0, sq: 0 };
 const ghost = { x: 0, y: 0 };
 const pend = { x: 0, y: 0 };
+// live sticky-pad state (see resolveB); wrap/wp drive the tether-wrap visual
+const ST = { sim: false, p: null, left: 0, dis: null, used: false, just: null, wrap: 0, wp: null };
 const parts = [], rings = [];
 const motes = [];
 for (let i = 0; i < 28; i++) motes.push({ x: Math.random() * VW, y: Math.random() * VH, s: 1 + Math.random() * 2, ph: Math.random() * TAU, v: 4 + Math.random() * 8 });
@@ -183,7 +222,9 @@ const ai = { think: 0, rx: 0, ry: 0, plan: null, drag: false };
 function updGhost() {
   const gA = L.pads[0], gB = L.pads[1];
   ghost.x = A.x + B.x - gB.x; ghost.y = gB.y - B.y + A.y;
-  return dist(ghost, gA) < 18;
+  const d = dist(ghost, gA);
+  ghostNear = clamp(1 - (d - 18) / 140, 0, 1); // 0 = far off, 1 = on the pink pad
+  return d < 18;
 }
 function startLevel() {
   L = makeLevel(level);
@@ -192,7 +233,8 @@ function startLevel() {
   L.pads.forEach((p, i) => { p.pop = -i * 0.07; });
   state = 'play'; stateT = 0; elapsed = 0; holdT = 0; started = DEMO;
   onA = onB = false; pend.x = pend.y = 0;
-  aligned = updGhost();
+  ST.p = ST.dis = ST.just = ST.wp = null; ST.left = ST.wrap = 0; ST.used = false;
+  aligned = updGhost(); misT = 0;
   hintA = !DEMO && HINTS[level] ? 1 : 0;
   ai.think = 0.7; ai.rx = ai.ry = 0; ai.plan = null;
   border = borderR();
@@ -223,6 +265,18 @@ function bounce(p, speed) {
   shake = Math.max(shake, Math.min(5, 1.5 + speed / 120));
   chime(NOTES[p.note], clamp(speed / 500, 0.05, 0.13));
 }
+function stickFx(p) {
+  p.wob = 0.8; B.sq = 0.6;
+  burst(B.x, B.y, '#dfe8ff', 12, 90, 0.6);
+  ring(p.x, p.y, '223,232,255', 60, 0.6, 2.5);
+  shake = Math.max(shake, 2.5);
+  tone(330, 0.25, 'sine', 0.08, 0, 1.5); chime(659.3, 0.07, 0.05);
+}
+function unstickFx(p) {
+  ring(p.x, p.y, '223,232,255', 110, 0.5, 2);
+  burst(p.x, p.y, '#dfe8ff', 10, 120, 0.5);
+  chime(880, 0.06);
+}
 function win() {
   state = 'win'; stateT = 0;
   burst(A.x, A.y, PINK, 34, 220, 0.9); burst(B.x, B.y, GOLD, 34, 220, 0.9);
@@ -246,12 +300,14 @@ function cost(a, b) {
   const gA = L.pads[0], gB = L.pads[1];
   return Math.max(0, dist(a, gA) - gA.r * 0.45) + Math.max(0, dist(b, gB) - gB.r * 0.45);
 }
+const simSt = { sim: true, p: null, left: 0, dis: null, used: false };
 function simPlan(p, R) {
   tA.x = A.x; tA.y = A.y; tB.x = B.x; tB.y = B.y;
-  movePair(tA, tB, p[0], p[1], R, false, L.pads);
+  simSt.p = ST.p; simSt.left = ST.p ? ST.left * AI_SPD : 0; simSt.dis = ST.dis;
+  movePair(tA, tB, p[0], p[1], R, false, L.pads, simSt);
   const c1 = cost(tA, tB);
   if (!p[2] && !p[3]) return c1;
-  movePair(tA, tB, p[2], p[3], R, false, L.pads);
+  movePair(tA, tB, p[2], p[3], R, false, L.pads, simSt);
   return Math.min(c1, cost(tA, tB));
 }
 function aiThink() {
@@ -263,6 +319,11 @@ function aiThink() {
   };
   tryP([0, 0, 0, 0], 0);
   tryP([gA.x - A.x, gA.y - A.y, 0, 0], 0);
+  if (ST.p) { // while held: slide the gold ring onto the pink pad, then fly pink onto it
+    const hx = gA.x - ghost.x, hy = gA.y - ghost.y;
+    tryP([hx, hy, 0, 0], 0);
+    tryP([hx, hy, ghost.x - A.x, ghost.y - A.y], 0);
+  }
   if (ai.plan) tryP([ai.rx, ai.ry, ai.plan[2], ai.plan[3]], 2);
   for (let i = 0; i < 90; i++) {
     const a1 = Math.random() * TAU, l1 = 10 + Math.random() * 130;
@@ -280,7 +341,7 @@ function aiUpdate(dt) {
     ai.rx = ai.plan[2]; ai.ry = ai.plan[3]; ai.plan[2] = ai.plan[3] = 0; l = Math.hypot(ai.rx, ai.ry);
   }
   if (l > 0.01) {
-    const k = Math.min(1, 150 * dt / l), mx = ai.rx * k, my = ai.ry * k;
+    const k = Math.min(1, AI_SPD * dt / l), mx = ai.rx * k, my = ai.ry * k;
     pend.x += mx; pend.y += my; ai.rx -= mx; ai.ry -= my;
   }
   ai.drag = l > 0.5;
@@ -300,6 +361,8 @@ function update(dt) {
   }
   B.sq *= Math.exp(-8 * dt);
   const kd = Math.exp(-10 * dt); B.kx *= kd; B.ky *= kd;
+  ST.wrap += ((ST.p ? 1 : 0) - ST.wrap) * (1 - Math.exp(-12 * dt));
+  if (ST.p) ST.wp = ST.p; else if (ST.wrap < 0.02) ST.wp = null;
 
   if (state === 'play') {
     const dx = pend.x, dy = pend.y;
@@ -309,13 +372,18 @@ function update(dt) {
     if (started && hintA > 0) hintA = Math.max(0.5, hintA - dt);
 
     const speed = Math.hypot(dx, dy) / Math.max(dt, 1e-3);
-    movePair(A, B, dx, dy, R, true, L.pads);
+    if (ST.p && (!ST.p.alive || (ST.left -= dt) <= 0)) { // the beat is over: the tether unwraps
+      const p = ST.p; ST.dis = p; ST.p = null; ST.left = 0;
+      if (p.alive) unstickFx(p);
+    }
+    movePair(A, B, dx, dy, R, true, L.pads, ST);
     // breathing border pushes both inward (not mirrored)
     const ex = A.x - CX, ey = A.y - CY, ed = Math.hypot(ex, ey), lim = R - FR;
     if (ed > lim) { A.x = CX + ex / ed * lim; A.y = CY + ey / ed * lim; }
-    resolveB(B, R, true, L.pads);
+    resolveB(B, R, true, L.pads, ST);
+    if (ST.just) { stickFx(ST.just); ST.just = null; }
     for (const p of L.pads) {
-      if (p.hit && !p.touch) bounce(p, speed);
+      if (p.hit && !p.touch && p !== ST.p) bounce(p, speed);
       p.touch = p.hit; p.hit = false;
     }
 
@@ -323,6 +391,8 @@ function update(dt) {
     const al = updGhost();
     if (al && !aligned) { chime(1318.5, 0.06); ring(gA.x, gA.y, GOLD_RGB, 70, 0.5, 2); }
     aligned = al;
+    misT = aligned ? 0 : misT + dt;
+    ghostPh += dt * TAU * (0.8 + 3.2 * ghostNear); // pulses faster as it closes in
     const nA = dist(A, gA) < gA.r, nB = dist(B, gB) < gB.r;
     if (nA && !onA) { chime(784, 0.1); ring(gA.x, gA.y, PINK_RGB, 90, 0.6, 3); burst(A.x, A.y, PINK, 8, 80, 0.5); }
     if (nB && !onB) { chime(987.8, 0.1); ring(gB.x, gB.y, GOLD_RGB, 90, 0.6, 3); burst(B.x, B.y, GOLD, 8, 80, 0.5); }
@@ -389,6 +459,17 @@ function drawPad(p) {
   for (let i = 1; i < 5; i++) { const a = a0 + 0.32 + i * (TAU - 0.64) / 5; ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * r * 0.8, Math.sin(a) * r * 0.8); }
   ctx.stroke();
   if (p.kind !== 'N') { ctx.fillStyle = p.kind === 'A' ? PINK : GOLD; ctx.beginPath(); ctx.arc(0, 0, 4, 0, TAU); ctx.fill(); }
+  if (p.sticky) { // silvery coil + dashed rim: this pad catches the twin (dim while re-arming)
+    ctx.rotate(t * 0.7);
+    ctx.strokeStyle = `rgba(223,232,255,${ST.dis === p ? 0.35 : 0.85})`; ctx.lineWidth = 2;
+    ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.arc(0, 0, r + 4, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+    ctx.lineWidth = 1.8; ctx.beginPath();
+    for (let i = 0; i <= 24; i++) {
+      const a = i / 24 * TAU * 1.5, rr = 2 + i * 0.35;
+      if (i) ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); else ctx.moveTo(rr, 0);
+    }
+    ctx.stroke();
+  }
   ctx.restore();
 }
 
@@ -442,6 +523,28 @@ function dashLine(x1, y1, x2, y2, col) {
   ctx.setLineDash([]); ctx.lineDashOffset = 0;
 }
 
+// short arrow from pink toward the gold ring once the twins stay misaligned for over a second
+function drawNudge() {
+  const a = state === 'play' ? clamp((misT - 1) / 0.35, 0, 1) : 0;
+  if (a <= 0) return;
+  const dx = ghost.x - A.x, dy = ghost.y - A.y, d = Math.hypot(dx, dy);
+  if (d < 30) return;
+  const ux = dx / d, uy = dy / d, wave = Math.sin(t * 7);
+  const s0 = 20 + 4 * (0.5 + 0.5 * wave), len = Math.min(28, d - 24);
+  const x0 = A.x + ux * s0, y0 = A.y + uy * s0, x1 = A.x + ux * (s0 + len), y1 = A.y + uy * (s0 + len);
+  const hx = x1 - ux * 9, hy = y1 - uy * 9;
+  ctx.save();
+  ctx.globalAlpha = a * (0.8 + 0.2 * wave);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  for (const [c, w] of [['rgba(5,8,25,0.6)', 7.5], ['#fff6d8', 3.5]]) {
+    ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath();
+    ctx.moveTo(x0, y0); ctx.lineTo(x1, y1);
+    ctx.moveTo(hx - uy * 8, hy + ux * 8); ctx.lineTo(x1, y1); ctx.lineTo(hx + uy * 8, hy - ux * 8);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function draw() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   const bg = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) * 0.75);
@@ -482,14 +585,36 @@ function draw() {
 
   for (const p of L.pads) drawPad(p);
 
+  // soft wrap of tether around the sticky pad holding gold, with a hold timer
+  if (ST.wp && ST.wrap > 0.01) {
+    const p = ST.wp, w = ST.wrap, rr = p.r + 5;
+    ctx.save(); ctx.translate(p.x, p.y);
+    ctx.strokeStyle = `rgba(223,232,255,${0.75 * w})`; ctx.lineWidth = 2;
+    for (let k = 0; k < 3; k++) {
+      ctx.beginPath(); ctx.ellipse(0, 0, rr * (0.7 + 0.3 * w), rr * 0.42 * w + 1, k * Math.PI / 3 + t * 0.9, 0, TAU); ctx.stroke();
+    }
+    if (ST.p === p) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 3.5; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.arc(0, 0, p.r + 12, -Math.PI / 2, -Math.PI / 2 + TAU * clamp(ST.left / STICK_T, 0, 1)); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   // gold ring: where pink must land so the twin sits on gold
   if (state === 'play' && L.pads[1].alive && L.pads[1].pop > 0.5) {
-    const g = L.pads[1], k = aligned ? 1 : 0;
-    ctx.fillStyle = `rgba(${GOLD_RGB},${0.1 + 0.2 * k})`;
-    ctx.beginPath(); ctx.arc(ghost.x, ghost.y, g.r, 0, TAU); ctx.fill();
+    // closer to the pink pad = faster, bigger pulse and a shift from dim gold to bright white
+    const g = L.pads[1], k = aligned ? 1 : 0, c = aligned ? 1 : ghostNear;
+    const pl = 0.5 + 0.5 * Math.sin(ghostPh), rr = g.r + (1 + 4 * c) * pl;
+    const col = [185 + 70 * c, 145 + 110 * c, 55 + 200 * c].map(Math.round).join(',');
+    ctx.fillStyle = `rgba(${col},${0.08 + 0.14 * c * pl + 0.15 * k})`;
+    ctx.beginPath(); ctx.arc(ghost.x, ghost.y, rr, 0, TAU); ctx.fill();
     ctx.setLineDash([5, 5]); ctx.lineDashOffset = -t * 12;
-    ctx.strokeStyle = `rgba(${GOLD_RGB},${0.6 + 0.35 * k})`; ctx.lineWidth = 2.5 + k;
+    ctx.strokeStyle = `rgba(${col},${0.45 + 0.5 * c})`; ctx.lineWidth = 2 + 1.5 * c + k;
     ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0;
+    if (c > 0.3) { // soft echo ring breathing outward
+      ctx.strokeStyle = `rgba(${col},${(c - 0.3) * 0.6 * (1 - pl)})`; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(ghost.x, ghost.y, rr + 4 + 8 * pl, 0, TAU); ctx.stroke();
+    }
   }
 
   // level 1 guide arrows before the first move
@@ -502,7 +627,8 @@ function draw() {
   // silvery tether between the twins
   const mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2, dx = B.x - A.x, dy = B.y - A.y, dl = Math.hypot(dx, dy) || 1;
   const sway = Math.sin(t * 1.8) * 8;
-  const qx = (mx + CX) / 2 - dy / dl * sway, qy = (my + CY) / 2 + dx / dl * sway;
+  let qx = (mx + CX) / 2 - dy / dl * sway, qy = (my + CY) / 2 + dx / dl * sway;
+  if (ST.wp) { qx += (ST.wp.x - qx) * ST.wrap; qy += (ST.wp.y - qy) * ST.wrap; } // tether hugs the sticky pad
   const tglow = state === 'win' ? 1 : holdT * 2.5;
   ctx.strokeStyle = `rgba(223,232,255,${0.45 + 0.5 * tglow})`; ctx.lineWidth = 1.6 + 1.5 * tglow;
   ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.quadraticCurveTo(qx, qy, B.x + B.kx, B.y + B.ky); ctx.stroke();
@@ -519,11 +645,14 @@ function draw() {
     ctx.lineWidth = 2;
     ctx.strokeStyle = 'rgba(255,255,255,0.6)';
     ctx.beginPath(); ctx.arc(A.x, A.y, 20 + 2 * Math.sin(t * 8), 0, TAU); ctx.stroke();
-    ctx.strokeStyle = `rgba(${GOLD_RGB},0.4)`;
-    ctx.beginPath(); ctx.arc(B.x, B.y, 20 + 2 * Math.sin(t * 8), 0, TAU); ctx.stroke();
+    if (!ST.p) { // gold is linked unless a sticky pad holds it
+      ctx.strokeStyle = `rgba(${GOLD_RGB},0.4)`;
+      ctx.beginPath(); ctx.arc(B.x, B.y, 20 + 2 * Math.sin(t * 8), 0, TAU); ctx.stroke();
+    }
   }
   drawFly(B, GOLD, GOLD_RGB, onB || state === 'win', 1.5);
   drawFly(A, PINK, PINK_RGB, onA || state === 'win', 0);
+  drawNudge();
 
   if (holdT > 0 && state === 'play') {
     ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3;
