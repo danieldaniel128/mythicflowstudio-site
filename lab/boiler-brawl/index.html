@@ -28,8 +28,9 @@ window.addEventListener('error', ev => showErr(ev.error || ev.message));
 // ---- palette: dark iron, brass, copper (ram), cool blue (graze), steam ----
 const C = { bg: '#1a120c', floor: '#2b1e14', brass: '#e8b04a', brassD: '#8a5a1e', copper: '#e5533a', copperD: '#6e2414', hot: '#ff9a62', cool: '#5ec8f0', steam: '#eef4f2', ink: '#0b0705' };
 const VW = 360, VH = 640;
-let W = 0, H = 0, dpr = 1, scale = 1, ox = 0, oy = 0;
+let W = 0, H = 0, dpr = 1, scale = 1, ox = 0, oy = 0, bgDirty = true;
 function resize() {
+  bgDirty = true; // backdrop + floor sprites are baked at screen resolution
   dpr = Math.min(window.devicePixelRatio || 1, 3);
   W = window.innerWidth; H = window.innerHeight;
   cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
@@ -1078,7 +1079,140 @@ function drawPick(vx0, vy0, vw, vh) {
   });
   ctx.globalAlpha = 1;
 }
-function arenaPath(r) { ctx.beginPath(); ctx.arc(AR.x, AR.y1, r, Math.PI, 0); ctx.arc(AR.x, AR.y2, r, 0, Math.PI); ctx.closePath(); }
+function arenaPath(r, g) { g = g || ctx; g.beginPath(); g.arc(AR.x, AR.y1, r, Math.PI, 0); g.arc(AR.x, AR.y2, r, 0, Math.PI); g.closePath(); }
+
+// ---- background: riveted boiler-plate backdrop + diamond-tread arena floor, baked once per resize ----
+let backCv = null, floorCv = null, blobCv = null, lightG = null;
+const ACY = (AR.y1 + AR.y2) / 2;
+const FL = { x: AR.x - AR.r - 12, y: AR.y1 - AR.r - 12, w: AR.r * 2 + 24, h: SEG + AR.r * 2 + 24 };
+const hash = (x, y) => { const s = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453; return s - Math.floor(s); };
+let seed = 1;
+const srand = () => (seed = seed * 16807 % 2147483647) / 2147483647;
+const WISPS = Array.from({ length: 12 }, (_, i) => ({ x: hash(i, 3), s: 10 + hash(i, 5) * 16, r: 24 + hash(i, 7) * 34, ph: hash(i, 9) }));
+function rivet(g, x, y, r, col) {
+  g.fillStyle = 'rgba(0,0,0,.55)'; g.beginPath(); g.arc(x + r * 0.3, y + r * 0.4, r, 0, 6.283); g.fill();
+  g.fillStyle = col; g.beginPath(); g.arc(x, y, r, 0, 6.283); g.fill();
+  g.fillStyle = 'rgba(255,230,180,.4)'; g.beginPath(); g.arc(x - r * 0.35, y - r * 0.35, r * 0.4, 0, 6.283); g.fill();
+}
+function pipe(g, x, y0, y1, w) { // shaded brass pipe with bolted flanges
+  const gr = g.createLinearGradient(x - w / 2 - 3, 0, x + w / 2 + 3, 0);
+  gr.addColorStop(0, '#170d06'); gr.addColorStop(0.3, '#6e4a1f'); gr.addColorStop(0.45, '#a07234'); gr.addColorStop(1, '#140b05');
+  g.fillStyle = gr; g.fillRect(x - w / 2, y0, w, y1 - y0);
+  for (let y = Math.floor(y0 / 120) * 120 + 40; y < y1; y += 120) {
+    g.fillStyle = gr; g.fillRect(x - w / 2 - 3, y, w + 6, 8);
+    g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(x - w / 2 - 3, y + 8, w + 6, 2);
+  }
+}
+function buildBG() {
+  bgDirty = false;
+  const vx0 = -ox / scale, vy0 = -oy / scale, vw = W / scale, vh = H / scale, k = dpr * scale;
+  backCv = backCv || document.createElement('canvas');
+  backCv.width = cv.width; backCv.height = cv.height;
+  let g = backCv.getContext('2d');
+  g.setTransform(k, 0, 0, k, dpr * ox, dpr * oy);
+  g.fillStyle = '#0f0a07'; g.fillRect(vx0, vy0, vw, vh);
+  // staggered iron plates, bevelled, riveted at the corners, a few scorched
+  const PW = 90, PH = 74;
+  for (let y = Math.floor(vy0 / PH) * PH; y < vy0 + vh; y += PH) {
+    const off = (Math.round(y / PH) & 1) ? PW / 2 : 0;
+    for (let x = Math.floor((vx0 - off) / PW) * PW + off; x < vx0 + vw; x += PW) {
+      const v = hash(x, y);
+      g.fillStyle = 'rgb(' + (30 + v * 12 | 0) + ',' + (21 + v * 8 | 0) + ',' + (15 + v * 5 | 0) + ')';
+      g.fillRect(x + 1.5, y + 1.5, PW - 3, PH - 3);
+      g.fillStyle = 'rgba(255,214,150,.05)'; g.fillRect(x + 1.5, y + 1.5, PW - 3, 2); g.fillRect(x + 1.5, y + 1.5, 2, PH - 3);
+      g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(x + 1.5, y + PH - 3.5, PW - 3, 2); g.fillRect(x + PW - 3.5, y + 1.5, 2, PH - 3);
+      for (const [a, b] of [[7, 7], [PW - 7, 7], [7, PH - 7], [PW - 7, PH - 7]]) rivet(g, x + a, y + b, 2, '#4a331c');
+      if (v > 0.8) {
+        const sg = g.createRadialGradient(x + PW / 2, y + PH / 2, 0, x + PW / 2, y + PH / 2, PW * 0.5);
+        sg.addColorStop(0, 'rgba(0,0,0,.3)'); sg.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = sg; g.fillRect(x, y, PW, PH);
+      }
+    }
+  }
+  pipe(g, 9, vy0, vy0 + vh, 11); pipe(g, 351, vy0, vy0 + vh, 11);
+  // furnace glow behind the arena, then a heavy vignette
+  let rg = g.createRadialGradient(AR.x, ACY, 40, AR.x, ACY, 330);
+  rg.addColorStop(0, 'rgba(232,150,70,.16)'); rg.addColorStop(1, 'rgba(232,150,70,0)');
+  g.fillStyle = rg; g.fillRect(vx0, vy0, vw, vh);
+  const far = Math.hypot(Math.max(AR.x - vx0, vx0 + vw - AR.x), Math.max(ACY - vy0, vy0 + vh - ACY));
+  rg = g.createRadialGradient(AR.x, ACY, 190, AR.x, ACY, Math.max(200, far));
+  rg.addColorStop(0, 'rgba(0,0,0,0)'); rg.addColorStop(1, 'rgba(0,0,0,.7)');
+  g.fillStyle = rg; g.fillRect(vx0, vy0, vw, vh);
+  // the arena sits on top of the plating: soft drop shadow
+  g.save(); g.shadowColor = 'rgba(0,0,0,.8)'; g.shadowBlur = 24 * k; g.shadowOffsetY = 8 * k;
+  arenaPath(AR.r + 16, g); g.fillStyle = C.ink; g.fill(); g.restore();
+
+  // arena floor sprite (drawn in world space so it shakes with the cars)
+  floorCv = floorCv || document.createElement('canvas');
+  floorCv.width = Math.ceil(FL.w * k); floorCv.height = Math.ceil(FL.h * k);
+  g = floorCv.getContext('2d');
+  const fx = floorCv.width / FL.w, fy = floorCv.height / FL.h;
+  g.setTransform(fx, 0, 0, fy, -FL.x * fx, -FL.y * fy);
+  g.save(); arenaPath(AR.r + 3, g); g.clip();
+  rg = g.createRadialGradient(AR.x, ACY, 10, AR.x, ACY, AR.r + SEG / 2 + 10);
+  rg.addColorStop(0, '#3d2a1a'); rg.addColorStop(0.6, C.floor); rg.addColorStop(1, '#1d140d');
+  g.fillStyle = rg; g.fillRect(FL.x, FL.y, FL.w, FL.h);
+  // diamond tread plate: raised lozenges in a checker of alternating angles
+  for (let y = FL.y, row = 0; y < FL.y + FL.h; y += 15, row++) {
+    for (let x = FL.x + (row & 1) * 7.5, i = 0; x < FL.x + FL.w; x += 15, i++) {
+      const a = ((i + row) & 1) ? 0.75 : -0.75, c = Math.cos(a), s = Math.sin(a);
+      g.setTransform(fx * c, fy * s, -fx * s, fy * c, (x - FL.x) * fx, (y - FL.y) * fy);
+      g.fillStyle = 'rgba(0,0,0,.3)'; g.fillRect(-4, 0, 9, 2.6);
+      g.fillStyle = 'rgba(255,215,150,.075)'; g.fillRect(-4.5, -1.2, 9, 2.2);
+    }
+  }
+  g.setTransform(fx, 0, 0, fy, -FL.x * fx, -FL.y * fy);
+  // tyre scuffs and oil stains from past brawls
+  seed = 11; g.lineCap = 'round';
+  for (let i = 0; i < 14; i++) {
+    const x = AR.x + (srand() - 0.5) * 260, y = ACY + (srand() - 0.5) * 380, r = 40 + srand() * 90, a0 = srand() * 6.283, len = 0.5 + srand() * 1.1;
+    g.strokeStyle = 'rgba(0,0,0,' + (0.12 + srand() * 0.12).toFixed(2) + ')'; g.lineWidth = 3;
+    for (const o of [-5, 5]) { g.beginPath(); g.arc(x, y, r + o, a0, a0 + len); g.stroke(); }
+  }
+  for (let i = 0; i < 6; i++) {
+    const x = AR.x + (srand() - 0.5) * 240, y = ACY + (srand() - 0.5) * 360, r = 10 + srand() * 22;
+    const og = g.createRadialGradient(x, y, 0, x, y, r);
+    og.addColorStop(0, 'rgba(8,5,3,.45)'); og.addColorStop(0.7, 'rgba(8,5,3,.22)'); og.addColorStop(1, 'rgba(8,5,3,0)');
+    g.fillStyle = og; g.beginPath(); g.ellipse(x, y, r, r * 0.7, srand() * 3, 0, 6.283); g.fill();
+  }
+  // etched brass lane rings + centre medallion
+  g.strokeStyle = 'rgba(232,176,74,.11)'; g.lineWidth = 2;
+  arenaPath(AR.r - 34, g); g.stroke();
+  g.setLineDash([10, 10]); arenaPath(AR.r - 74, g); g.stroke(); g.setLineDash([]);
+  g.beginPath(); g.arc(AR.x, ACY, 52, 0, 6.283); g.stroke();
+  // inner shadow where the floor meets the wall
+  g.lineWidth = 5;
+  for (let i = 0; i < 8; i++) { g.strokeStyle = 'rgba(0,0,0,' + (0.1 * (1 - i / 8)).toFixed(3) + ')'; arenaPath(AR.r + 1 - i * 4, g); g.stroke(); }
+  g.restore();
+  // bevelled brass rim, lit from above, riveted all the way round
+  const lg = g.createLinearGradient(0, FL.y, 0, FL.y + FL.h);
+  lg.addColorStop(0, '#ffd98a'); lg.addColorStop(0.5, C.brass); lg.addColorStop(1, '#a8702a');
+  arenaPath(AR.r + 4, g); g.strokeStyle = C.ink; g.lineWidth = 10; g.stroke();
+  g.strokeStyle = lg; g.lineWidth = 6; g.stroke();
+  arenaPath(AR.r + 1.5, g); g.strokeStyle = 'rgba(255,240,200,.4)'; g.lineWidth = 1.2; g.stroke();
+  arenaPath(AR.r - 6, g); g.strokeStyle = C.brassD; g.lineWidth = 2; g.stroke();
+  const nR = Math.round(PER / 34);
+  for (let i = 0; i < nR; i++) { const p = perim(i * PER / nR); rivet(g, p[0] + p[2] * 4, p[1] + p[3] * 4, 1.6, C.brassD); }
+
+  if (!blobCv) { // soft steam puff sprite for the drifting background wisps
+    blobCv = document.createElement('canvas'); blobCv.width = blobCv.height = 64;
+    const b = blobCv.getContext('2d'), bg = b.createRadialGradient(32, 32, 0, 32, 32, 32);
+    bg.addColorStop(0, 'rgba(238,244,242,1)'); bg.addColorStop(1, 'rgba(238,244,242,0)');
+    b.fillStyle = bg; b.fillRect(0, 0, 64, 64);
+    lightG = ctx.createRadialGradient(AR.x, ACY, 0, AR.x, ACY, 150);
+    lightG.addColorStop(0, 'rgba(255,190,110,.12)'); lightG.addColorStop(1, 'rgba(255,190,110,0)');
+  }
+}
+function drawWisps() { // steam drifting up off the plating, behind the arena (screen space, no shake)
+  const k = dpr * scale, vx0 = -ox / scale, vy0 = -oy / scale, vw = W / scale, vh = H / scale, span = vh + 140;
+  ctx.setTransform(k, 0, 0, k, dpr * ox, dpr * oy);
+  WISPS.forEach((w, i) => {
+    const y = vy0 + vh + 70 - ((T * w.s + w.ph * span) % span), x = vx0 + w.x * vw + Math.sin(T * 0.5 + i) * 12;
+    const a = 0.06 * Math.max(0, Math.min(1, (y - vy0 + 40) / 160));
+    if (a <= 0) return;
+    ctx.globalAlpha = a; ctx.drawImage(blobCv, x - w.r, y - w.r, w.r * 2, w.r * 2);
+  });
+  ctx.globalAlpha = 1;
+}
 
 function drawTail(c) {
   const L = tailLen(c), dx = Math.cos(c.tAng), dy = Math.sin(c.tAng), px = -dy, py = dx;
@@ -1397,25 +1531,31 @@ function drawTut(vx0, vy0, vw, vh) {
 
 function draw() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.fillStyle = C.bg; ctx.fillRect(0, 0, cv.width, cv.height);
+  if (bgDirty || !backCv) buildBG();
+  ctx.drawImage(backCv, 0, 0);
+  drawWisps();
   const k = dpr * scale, sx = (Math.random() * 2 - 1) * shake, sy = (Math.random() * 2 - 1) * shake;
   ctx.setTransform(k, 0, 0, k, dpr * ox + sx * k, dpr * oy + sy * k);
   // decor gears
-  gear(-5, 640, 70, 12, T * 0.2, C.brass, 0.07);
-  gear(372, 612, 48, 9, -T * 0.3, C.brass, 0.07);
-  gear(355, 150, 34, 8, T * 0.4, C.brass, 0.06);
-  // arena
+  gear(-5, 640, 70, 12, T * 0.2, C.brass, 0.08);
+  gear(372, 612, 48, 9, -T * 0.3, C.brass, 0.08);
+  gear(355, 150, 34, 8, T * 0.4, C.brass, 0.07);
+  // arena: dark track, rotating gear teeth, baked floor + rim, furnace pulse, centre gears
+  arenaPath(AR.r + 11); ctx.strokeStyle = C.ink; ctx.lineWidth = 9; ctx.stroke();
   const nT = Math.round(PER / 22);
-  ctx.fillStyle = C.brassD;
+  ctx.lineWidth = 1.5; ctx.strokeStyle = C.ink;
   for (let i = 0; i < nT; i++) {
     const p = perim(i * PER / nT + T * 10);
-    ctx.save(); ctx.translate(p[0], p[1]); ctx.rotate(Math.atan2(p[3], p[2])); ctx.fillRect(0, -5, 12, 10); ctx.restore();
+    ctx.save(); ctx.translate(p[0], p[1]); ctx.rotate(Math.atan2(p[3], p[2]));
+    ctx.fillStyle = C.brassD; ctx.beginPath(); ctx.moveTo(0, -6.5); ctx.lineTo(16, -4.5); ctx.lineTo(16, 4.5); ctx.lineTo(0, 6.5); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#c08a3a'; ctx.fillRect(10, -4, 5, 2.5);
+    ctx.restore();
   }
-  arenaPath(AR.r + 3); ctx.fillStyle = C.floor; ctx.fill();
-  ctx.strokeStyle = C.brass; ctx.lineWidth = 6; ctx.stroke();
-  arenaPath(AR.r - 6); ctx.strokeStyle = C.brassD; ctx.lineWidth = 2; ctx.stroke();
-  gear(AR.x, (AR.y1 + AR.y2) / 2, 118, 16, T * 0.15, C.brass, 0.06);
-  gear(AR.x, (AR.y1 + AR.y2) / 2, 40, 8, -T * 0.45, C.brass, 0.07);
+  ctx.drawImage(floorCv, FL.x, FL.y, FL.w, FL.h);
+  ctx.globalAlpha = 0.6 + 0.4 * Math.sin(T * 1.3); ctx.fillStyle = lightG;
+  ctx.fillRect(AR.x - 150, ACY - 150, 300, 300); ctx.globalAlpha = 1;
+  gear(AR.x, ACY, 118, 16, T * 0.15, C.brass, 0.06);
+  gear(AR.x, ACY, 40, 8, -T * 0.45, C.brass, 0.08);
   // world
   for (const r of rivals) if (r.alive) drawTail(r);
   drawTail(player);

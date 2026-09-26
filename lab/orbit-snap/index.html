@@ -1,0 +1,1382 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; media-src data: blob:; font-src data:; connect-src 'none'">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Orbit Snap: Sugar Rush</title>
+<style>
+  html,body{margin:0;height:100%;background:#2B1B6B;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+  canvas{display:block;width:100%;height:100%}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+// Sample prototype shipped with Mythic Forge: tap to release the orbiting gumball,
+// catch the next donut. Shows the contract every forged game follows (touch+mouse,
+// instant restart, ?demo=1 self-play for GIF recording).
+(() => {
+  const DEMO = new URLSearchParams(location.search).has('demo');
+  const cv = document.getElementById('c'), cx = cv.getContext('2d');
+  let W = 0, H = 0, dpr = 1, vign = null, vigCol = '25,5,45';
+  function makeVign() {
+    vign = cx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.8);
+    vign.addColorStop(0, 'rgba(' + vigCol + ',0)'); vign.addColorStop(1, 'rgba(' + vigCol + ',.5)');
+  }
+  function resize() {
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    W = innerWidth; H = innerHeight;
+    cv.width = W * dpr; cv.height = H * dpr;
+    cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    makeVign();
+  }
+  addEventListener('resize', resize); resize();
+
+  const TAU = Math.PI * 2;
+  const C = { ink: '#2A0F3A', dough: '#F4B96E', doughDk: '#C98640', gum: '#3FF0D5', gold: '#FFD23F', goldDk: '#C98A12',
+    red: '#FF2A55', lic: '#3B0A2A', cookie: '#D9954F', chip: '#5A2E17', cream: '#FFF4E6', sloppy: '#FFA53A', pink: '#FF5FA8', pinkDk: '#B8307A',
+    violet: '#8A7CFF', violetDk: '#5A4AC8', mint: '#2EC4B6', mintDk: '#178A80', text: '#4A2A5A' };
+  const FROSTS = ['#FF5FA8', '#B77BFF', '#FF8FB1', '#6FCBFF'];
+  const SPRINKLES = ['#FFFFFF', '#FFD23F', '#3FF0D5', '#8A7CFF', '#FF7A59', '#7CFF8A'];
+  const LOGO = ['#FF5FA8', '#FFD23F', '#3FF0D5', '#B77BFF', '#FF7A59'];
+  // Sky palettes (top -> bottom) that blend into each other as you climb.
+  const SKY = [['#2B1B6B', '#7B3FA0', '#E0628F', '#FFB38A'], ['#141A52', '#3D2A8C', '#A24BB5', '#F07AAE'], ['#123B6B', '#2F7DB8', '#8FD3E0', '#FFD9B0']];
+  const FONT = '"Arial Rounded MT Bold","Trebuchet MS","Segoe UI",system-ui,sans-serif';
+  // Cosmetic themes (bought in the shop with coins; every run pays its score in coins).
+  // Each one re-skins the sky, the rings, the crumble ring, the particles and the words.
+  const THEMES = [
+    { id: 'sugar', name: 'Sugar Rush', price: 0, sky: SKY, vig: '25,5,45', frosts: FROSTS, sparks: SPRINKLES,
+      crumb: [C.cookie, C.chip, '#F3C27E'], inner: [C.goldDk, C.gold], mine: '#6A1350',
+      w: { ring: 'donut', spikes: 'licorice spikes', bomb: 'sour bombs', bombTag: 'SOUR BOMB', crumble: 'cookies', crumbleOne: 'COOKIE', arc: 'golden arc',
+        stab: 'Stabbed by licorice!', boom: 'Hit a sour bomb!', crumbled: 'The cookie crumbled!', crash: 'SUGAR CRASH!', tag: '~ a sugar-rush orbit hopper ~' } },
+    { id: 'neon', name: 'Neon Night', price: 150, vig: '10,0,25',
+      sky: [['#0B0221', '#2A0845', '#6A0F6B', '#FF2E88'], ['#050316', '#1B0B4A', '#3E1A8C', '#00A3CC'], ['#12001F', '#3A0057', '#7A00A8', '#FF7A00']],
+      frosts: ['#FF2E88', '#00F0FF', '#B04BFF', '#FFE700'], sparks: ['#FF2E88', '#00F0FF', '#FFE700', '#B04BFF', '#FFFFFF'],
+      crumb: ['#FF7A00', '#FFE700', '#FF2E88'], inner: ['#008C99', '#00F0FF'], mine: '#1A0033',
+      w: { ring: 'neon ring', spikes: 'laser spikes', bomb: 'virus mines', bombTag: 'VIRUS', crumble: 'glitch rings', crumbleOne: 'GLITCH', arc: 'cyan arc',
+        stab: 'Zapped by lasers!', boom: 'Caught a virus!', crumbled: 'The ring glitched out!', crash: 'SYSTEM CRASH!', tag: '~ a synthwave orbit hopper ~' } },
+    { id: 'ocean', name: 'Deep Sea', price: 250, vig: '0,15,35',
+      sky: [['#0A2E5C', '#0F4C81', '#1C7CA8', '#3FB5C9'], ['#061A3A', '#0B3A6B', '#135E8C', '#2A8FB0'], ['#08304A', '#0E5A6E', '#1E8C8C', '#5CC8B8']],
+      frosts: ['#FF4D4D', '#FF8A3D', '#FF5FA8', '#2F80FF'], sparks: ['#FFFFFF', '#9FF3FF', '#FFD23F', '#FF8A3D', '#7CFFD4'],
+      crumb: ['#E9C98B', '#B8894A', '#F7E2B5'], inner: ['#8E9CB8', '#F4F1FF'], mine: '#D9A21E',
+      w: { ring: 'life ring', spikes: 'urchin spikes', bomb: 'pufferfish', bombTag: 'PUFFER', crumble: 'sandcastles', crumbleOne: 'SANDCASTLE', arc: 'pearl arc',
+        stab: 'Pricked by an urchin!', boom: 'Puffed by a pufferfish!', crumbled: 'The sandcastle washed away!', crash: 'WIPEOUT!', tag: '~ a deep-sea orbit hopper ~' } },
+    { id: 'space', name: 'Cosmic Drift', price: 350, vig: '0,0,10',
+      sky: [['#05010F', '#0D0A2E', '#1E1250', '#3B1F6E'], ['#020612', '#081A3A', '#12305E', '#2A1F5C'], ['#0A0214', '#1F0830', '#3D0F4A', '#5A1A4A']],
+      frosts: ['#8AB4FF', '#C58CFF', '#7CFFD4', '#FFB86B'], sparks: ['#FFFFFF', '#8AB4FF', '#C58CFF', '#FFE27A', '#7CFFD4'],
+      crumb: ['#8C84A8', '#4E4868', '#B9B2D6'], inner: ['#B8860B', '#FFE27A'], mine: '#2E2E48',
+      w: { ring: 'orbit ring', spikes: 'plasma spikes', bomb: 'space mines', bombTag: 'SPACE MINE', crumble: 'asteroids', crumbleOne: 'ASTEROID', arc: 'gold arc',
+        stab: 'Fried by plasma!', boom: 'Hit a space mine!', crumbled: 'The asteroid broke apart!', crash: 'LOST IN SPACE!', tag: '~ a cosmic orbit hopper ~' } },
+  ];
+  // Ball skins: `match` = the theme it was designed for (badge in the shop); trail 'rainbow' cycles hue.
+  const SKINS = [
+    { id: 'gum', name: 'Gumball', noun: 'gumball', price: 0, trail: '#3FF0D5', match: 'sugar' },
+    { id: 'hole', name: 'Donut Hole', noun: 'donut hole', price: 40, trail: '#FF8FB1', match: 'sugar' },
+    { id: 'beach', name: 'Beach Ball', noun: 'beach ball', price: 50, trail: '#FFD23F' },
+    { id: 'eye', name: 'Eyeball', noun: 'eyeball', price: 70, trail: '#FFFFFF' },
+    { id: 'neon', name: 'Neon Core', noun: 'neon core', price: 80, trail: '#00F0FF', match: 'neon' },
+    { id: 'pearl', name: 'Pearl', noun: 'pearl', price: 80, trail: '#CFF6FF', match: 'ocean' },
+    { id: 'saturn', name: 'Mini Saturn', noun: 'mini planet', price: 100, trail: '#FFB86B', match: 'space' },
+    { id: 'fire', name: 'Fireball', noun: 'fireball', price: 120, trail: '#FF8A2A' },
+    { id: 'prism', name: 'Prism', noun: 'prism ball', price: 180, trail: 'rainbow' },
+  ];
+  // Clean catch: spark enters r+6. Sloppy catch: spark only grazes the wider grab
+  // zone (r+GRAB) -- it survives, but the streak and multiplier are broken.
+  const CATCH = 6, GRAB = 30, STREAK_PER_MULT = 3, MAX_MULT = 8;
+  // Double ring: a segmented inner ring counter-rotates inside the outer one. A shot
+  // whose line passes within the inner r+6 commits to it on crossing the outer ring:
+  // hit a solid arc for a BULLSEYE (double points), hit a gap and the streak breaks.
+  const SPEED = 520, SEGS = 3, SOLID = 0.55, SLOT = TAU / SEGS;
+  // Spike ring: a red spiked shield orbits just outside the ring (r+SH) and blocks
+  // the spark both ways -- in when landing, out when launching. Crumble ring: breaks
+  // CRUMBLE_T seconds after you land (and shatters behind you). Mines slide on a track.
+  const SH = 12, SPIKE_ARC = TAU * 0.3, SPIKE_PAD = 0.12, CRUMBLE_T = 2.4, MINE_R = 11, GRAV = 1400;
+  // Charge: hold instead of tapping and the spark grips the ring, then winds up along it --
+  // a short pull-back against the spin, then a whip forward past where you pressed. Let go
+  // at any point to fire from there. A quick tap (< TAP_T) still fires right where you
+  // pressed; a full charge auto-fires after CHARGE_HOLD.
+  const TAP_T = 0.12, CHARGE_T = 0.55, CHARGE_HOLD = 0.3, WIND = 0.7;
+  const windShape = k => k - 0.9 * Math.sin(Math.PI * k); // 0 -> dips to ~-0.46 -> 1
+  let WIND_BACK = 0; for (let k = 0; k <= 1; k += 0.01) WIND_BACK = Math.min(WIND_BACK, windShape(k));
+  const hash = n => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+  const hex = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16));
+  const mix = (a, b, f) => { const A = hex(a), B = hex(b); return 'rgb(' + A.map((v, i) => Math.round(v + (B[i] - v) * f)).join(',') + ')'; };
+  const num = n => Math.round(n).toLocaleString('en-US'); // 10000 -> "10,000"
+  const easeOutBack = t => 1 + 2.70158 * Math.pow(t - 1, 3) + 1.70158 * Math.pow(t - 1, 2);
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* storage blocked */ } }
+  };
+
+  // ---------- synthesized sound (WebAudio; unlocked by the first tap/key) ----------
+  const sfx = (() => {
+    let ac = null, out = null, crunch = null, noise = null, wh = null;
+    function unlock() {
+      try {
+        if (!ac) {
+          const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+          ac = new AC(); out = ac.createGain(); out.gain.value = 0.45; out.connect(ac.destination);
+          // Bit-crush style waveshaper: drive the input hard, then quantize it for a crunchy edge.
+          crunch = ac.createGain(); crunch.gain.value = 6;
+          const ws = ac.createWaveShaper(), post = ac.createGain(), curve = new Float32Array(256);
+          for (let i = 0; i < 256; i++) curve[i] = Math.round((i / 127.5 - 1) * 5) / 5;
+          ws.curve = curve; post.gain.value = 0.12;
+          crunch.connect(ws); ws.connect(post); post.connect(out);
+          noise = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate);
+          const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+        }
+        if (ac.state === 'suspended') ac.resume();
+      } catch (e) { ac = null; }
+    }
+    const ok = () => ac && ac.state === 'running';
+    // Enveloped oscillator gliding f0 -> f1 over `dur` seconds, starting `at` seconds from now.
+    function tone(type, f0, f1, dur, vol, at, dest) {
+      const t = ac.currentTime + (at || 0), o = ac.createOscillator(), g = ac.createGain();
+      o.type = type; o.frequency.setValueAtTime(f0, t); if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(dest || out); o.start(t); o.stop(t + dur + 0.03);
+    }
+    // Filtered noise burst.
+    function hiss(dur, vol, type, freq, q, at) {
+      const t = ac.currentTime + (at || 0), s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+      s.buffer = noise; f.type = type; f.frequency.value = freq; f.Q.value = q || 1;
+      g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      s.connect(f); f.connect(g); g.connect(out); s.start(t, Math.random() * 0.8); s.stop(t + dur + 0.03);
+    }
+    return {
+      unlock,
+      // Candy pop: a quick upward blip, one semitone higher per streak step (capped at two octaves).
+      pop(streak) {
+        if (!ok()) return;
+        const f = 480 * Math.pow(2, Math.min(streak, 24) / 12);
+        tone('sine', f * 0.55, f * 1.6, 0.09, 0.55); tone('triangle', f * 2, f * 2.2, 0.05, 0.12);
+        hiss(0.025, 0.25, 'highpass', 3500);
+      },
+      // Crunchy chime: a crushed square-wave arpeggio plus a gritty sparkle.
+      chime() {
+        if (!ok()) return;
+        [1047, 1319, 1568, 2093].forEach((f, i) => { tone('square', f, f, 0.4 - i * 0.05, 0.1, i * 0.045, crunch); tone('sine', f * 2, f * 2, 0.3, 0.05, i * 0.045); });
+        hiss(0.12, 0.35, 'bandpass', 6000, 0.8);
+      },
+      // Flat thud: low, short, no sparkle.
+      thud() {
+        if (!ok()) return;
+        tone('sine', 110, 60, 0.2, 0.8); tone('triangle', 75, 70, 0.1, 0.25);
+        hiss(0.09, 0.5, 'lowpass', 350);
+      },
+      // Death: glass shatter (bright noise + tinkling shards) over a bass drop.
+      crash() {
+        if (!ok()) return;
+        hiss(0.55, 0.6, 'highpass', 3500, 0.7); hiss(0.2, 0.4, 'bandpass', 2200, 2);
+        for (let i = 0; i < 12; i++) { const f = 2400 + Math.random() * 4200; tone('sine', f, f * 0.96, 0.08 + Math.random() * 0.3, 0.07, Math.random() * 0.3); }
+        tone('sine', 170, 28, 1.0, 0.9); tone('triangle', 85, 22, 1.0, 0.3, 0.02);
+      },
+      // Rising whine while the charge meter fills (k 0..1); k = 0 stops it.
+      whine(k) {
+        if (!ok()) return;
+        const t = ac.currentTime;
+        if (k <= 0) { if (wh) { wh.g.gain.setTargetAtTime(0, t, 0.02); wh.o.stop(t + 0.15); wh.o2.stop(t + 0.15); wh = null; } return; }
+        if (!wh) {
+          const o = ac.createOscillator(), o2 = ac.createOscillator(), f = ac.createBiquadFilter(), g = ac.createGain();
+          o.type = 'sawtooth'; o2.type = 'sine'; f.type = 'lowpass'; f.Q.value = 6; g.gain.value = 0;
+          o.connect(f); o2.connect(f); f.connect(g); g.connect(out); o.start(t); o2.start(t);
+          wh = { o, o2, f, g };
+        }
+        const hz = 200 + 700 * k * k;
+        wh.o.frequency.setTargetAtTime(hz, t, 0.02); wh.o2.frequency.setTargetAtTime(hz * 2.01, t, 0.02);
+        wh.f.frequency.setTargetAtTime(600 + 2600 * k, t, 0.03); wh.g.gain.setTargetAtTime(0.04 + 0.07 * k, t, 0.03);
+      }
+    };
+  })();
+
+  let rings, mines, cur, spark, score, state, shake, parts, hint, streak, best, pops, multFlash, why, charge;
+  let trail, waves, flash, flashCol, freeze, shown, bump, deadT, newBest, banner;
+  let clk = 0, tutT = 0, tutPage = 0, btns = [], hintDone = false;
+  let camY = 0, last = performance.now(), demoT = 0;
+  let hiScore = +store.get('orbitSnap.best') || 0, tutSeen = store.get('orbitSnap.tut') === '1';
+  // ---------- shop: coins, owned cosmetics ('th:<id>' / 'sk:<id>'), equipped theme + skin ----------
+  const Q = new URLSearchParams(location.search);
+  let coins = +store.get('orbitSnap.coins') || 0, earned = 0, owned;
+  try { owned = new Set(JSON.parse(store.get('orbitSnap.own') || '[]')); } catch (e) { owned = new Set(); }
+  owned.add('th:sugar'); owned.add('sk:gum');
+  if (Q.has('coins')) coins = Math.max(0, +Q.get('coins') || 0); // designer shortcut: ?coins=999
+  const pick = (list, kind, id) => list.find(i => i.id === id && owned.has(kind + i.id)) || list[0];
+  let T = pick(THEMES, 'th:', store.get('orbitSnap.theme')), S = pick(SKINS, 'sk:', store.get('orbitSnap.skin'));
+  // ?theme=neon&skin=fire previews a look without owning it (handy for demo recordings).
+  T = THEMES.find(i => i.id === Q.get('theme')) || T; S = SKINS.find(i => i.id === Q.get('skin')) || S;
+  let storeTab = 'themes', toast = null, uiParts = [], shakes = {};
+  const saveShop = () => { store.set('orbitSnap.coins', coins); store.set('orbitSnap.own', JSON.stringify([...owned])); };
+  // Designer request: a one-time gift of 10,000 test coins (announced on the title) so every theme
+  // and ball can be tried right away. Not in DEMO, and ?coins= still sets the wallet exactly.
+  const GIFT = 10000, GIFT_POP = 0.35, GIFT_SHOW = 5.5;
+  let giftT = null, coinsShown = coins; // coinsShown: the wallet counter rolls toward `coins`
+  if (!DEMO && !Q.has('coins') && store.get('orbitSnap.gift10k') !== '1') {
+    coins += GIFT; giftT = 0; store.set('orbitSnap.gift10k', '1'); saveShop();
+  }
+  function applyTheme() { vigCol = T.vig; makeVign(); document.body.style.background = T.sky[0][0]; }
+  applyTheme();
+  const shopItems = () => THEMES.map(i => ['th:' + i.id, i]).concat(SKINS.map(i => ['sk:' + i.id, i]));
+  const shopHasNew = () => shopItems().some(([k, i]) => !owned.has(k) && i.price <= coins);
+  const frostOf = r => T.frosts[r.seed % T.frosts.length];
+  const skinCol = i => S.trail === 'rainbow' ? 'hsl(' + Math.round((clk * 120 + (i || 0) * 22) % 360) + ',100%,65%)' : S.trail;
+  function ring(x, y, r, type) {
+    const o = { x, y, r, type: type || 'normal', spin: (Math.random() < .5 ? -1 : 1) * (1.6 + Math.random() * 1.4),
+      rot: Math.random() * TAU, pulse: 0, seed: Math.floor(Math.random() * 97) };
+    o.double = o.type === 'double';
+    if (o.double) { o.rin = r * 0.45; o.inSpin = -Math.sign(o.spin) * (1.8 + Math.random() * 0.8); o.inA = Math.random() * TAU; }
+    if (o.type === 'spike') { o.spA = Math.random() * TAU; o.spSpin = -Math.sign(o.spin) * (0.8 + Math.random() * 0.5); }
+    if (o.type === 'crumble') { o.spin = Math.sign(o.spin) * (2.8 + Math.random() * 0.6); o.t = CRUMBLE_T; }
+    return o;
+  }
+  // Position (0..1) of a world angle within its inner-ring slot; < SOLID means solid arc.
+  function slotFrac(N, ang, ahead) { const rel = ang - N.inA - N.inSpin * (ahead || 0); return (((rel % SLOT) + SLOT) % SLOT) / SLOT; }
+  // Is a world angle covered by a spike ring's shield (optionally `ahead` seconds from now)?
+  function inShield(R, ang, pad, ahead) {
+    const rel = (((ang - R.spA - R.spSpin * (ahead || 0)) % TAU) + TAU) % TAU;
+    return rel < SPIKE_ARC + pad || rel > TAU - pad;
+  }
+  const mineX = (m, t) => m.x0 + m.amp * Math.sin(m.ph + m.w * (t === undefined ? clk : t));
+  const orR = R => spark.onInner ? R.rin : R.r;
+  const orSpin = R => spark.onInner ? R.inSpin : R.spin;
+  const mult = () => Math.min(MAX_MULT, 1 + Math.floor(streak / STREAK_PER_MULT));
+  const windK = () => charge ? Math.max(0, Math.min(1, (charge.t - TAP_T) / CHARGE_T)) : 0;
+  // Offset (radians, along the current ring's spin) the charge has wound the spark by.
+  const windOff = () => charge ? Math.sign(orSpin(rings[cur])) * WIND * windShape(windK()) : 0;
+  const aimA = () => spark.a + windOff();
+  // Does a shot fired from (x, y) at angle a pass within the target's r+6 (a clean snap)?
+  function cleanLine(x, y, a, N) {
+    const dx = N.x - x, dy = N.y - y, along = dx * Math.cos(a) + dy * Math.sin(a);
+    return along > 0 && Math.abs(dx * Math.sin(a) - dy * Math.cos(a)) < N.r + CATCH;
+  }
+  function reset() {
+    rings = [ring(W / 2, H * 0.72, 46)]; mines = [];
+    for (let i = 1; i < 6; i++) addRing();
+    cur = 0; spark = { a: 0, free: false, x: 0, y: 0, vx: 0, vy: 0, pd: Infinity, onInner: false, dive: false, fall: false };
+    score = 0; state = 'play'; shake = 0; parts = []; hint = !DEMO && !hintDone;
+    streak = 0; best = 0; pops = []; multFlash = 0; why = ''; charge = null;
+    trail = []; waves = []; flash = 0; flashCol = '255,255,255'; freeze = 0; shown = 0; bump = 0; deadT = 0; newBest = false; banner = null;
+  }
+  function pop(x, y, text, col, size) { pops.push({ x, y, text, col, size: size || 18, life: 1 }); }
+  function wave(x, y, col) { waves.push({ x, y, r: 8, life: 1, col }); }
+  function addRing() {
+    const last = rings[rings.length - 1];
+    let type = 'normal';
+    if (rings.length >= 3) {
+      const q = Math.random();
+      type = q < 0.2 ? 'double' : q < 0.4 ? 'spike' : q < 0.56 ? 'crumble' : 'normal';
+      if (type === last.type) type = 'normal';
+    }
+    const r = type === 'double' ? 50 + Math.random() * 12 : type === 'normal' ? 30 + Math.random() * 26 : 36 + Math.random() * 14;
+    const x = Math.max(r + 20, Math.min(W - r - 20, last.x + (Math.random() - .5) * W * 0.7));
+    const y = last.y - (150 + Math.random() * 70);
+    rings.push(ring(x, y, r, type));
+    // Mine sliding on a track halfway between the two rings (never next to a spike ring).
+    const gap = (last.y - y) / 2;
+    if (rings.length >= 5 && type !== 'spike' && Math.random() < 0.3 && gap - Math.max(last.r, r) > MINE_R + 14) {
+      const x0 = (last.x + x) / 2;
+      mines.push({ x0, y: (last.y + y) / 2, amp: Math.min(45 + Math.random() * 45, x0 - 15, W - x0 - 15),
+        w: (Math.random() < .5 ? -1 : 1) * (1.5 + Math.random() * 0.9), ph: Math.random() * TAU });
+    }
+  }
+  function die(msg, popText) {
+    state = 'dead'; why = msg; shake = 18; deadT = 0; freeze = 0.1; flash = 0.7; flashCol = '255,42,85';
+    burst(spark.x, spark.y, [C.red, C.lic, '#FFFFFF', C.pink], 48, 1.2); wave(spark.x, spark.y, C.red); sfx.crash();
+    if (popText) pop(spark.x, spark.y - 16, popText, C.red, 24);
+    if (!DEMO && score > hiScore) { hiScore = score; newBest = true; store.set('orbitSnap.best', hiScore); }
+    if (!DEMO) { earned = score; coins += earned; saveShop(); } // every point is a coin for the shop
+    if (DEMO) setTimeout(reset, 700);
+  }
+  function shatter(R) {
+    R.broken = true; shake = Math.max(shake, 8);
+    for (let k = 0; k < 34; k++) {
+      const a = Math.random() * TAU, s = 40 + Math.random() * 140, life = .5 + Math.random() * .4;
+      parts.push({ x: R.x + Math.cos(a) * R.r, y: R.y + Math.sin(a) * R.r, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 40,
+        life, max: life, col: T.crumb[k % 3], kind: 'crumb', g: 700, rot: 0, vr: 0 });
+    }
+  }
+  function release() {
+    if (state === 'dead' || spark.free) return;
+    hint = false; if (!DEMO) hintDone = true;
+    spark.a = aimA(); charge = null; // fire from wherever the charge wound the spark to
+    const R = rings[cur], rr = orR(R);
+    spark.free = true; spark.dive = false; spark.fall = false;
+    spark.x = R.x + Math.cos(spark.a) * rr; spark.y = R.y + Math.sin(spark.a) * rr;
+    // Launch straight out along the ring's normal (radially, away from its center).
+    spark.vx = Math.cos(spark.a) * SPEED; spark.vy = Math.sin(spark.a) * SPEED;
+    spark.pd = Infinity;
+    burst(spark.x, spark.y, [skinCol(), '#FFFFFF'], 8, 0.5);
+    if (R.type === 'spike' && inShield(R, spark.a, SPIKE_PAD)) {
+      spark.x = R.x + Math.cos(spark.a) * (R.r + SH); spark.y = R.y + Math.sin(spark.a) * (R.r + SH);
+      die(T.w.stab, 'SPIKED!');
+    } else if (R.type === 'crumble') shatter(R);
+  }
+  function land(N, clean, inner) {
+    cur++; spark.free = false; spark.dive = false; spark.fall = false; spark.onInner = !!inner;
+    spark.a = Math.atan2(spark.y - N.y, spark.x - N.x);
+    N.pulse = 1; bump = 1;
+    if (clean) {
+      const before = mult();
+      streak++; best = Math.max(best, streak);
+      const m = mult(), pts = inner ? m * 2 : m; score += pts;
+      sfx.pop(streak); if (inner) sfx.chime();
+      if (m > before) { multFlash = 1; banner = { text: 'x' + m + ' COMBO!', life: 1.2 }; flash = Math.max(flash, 0.25); flashCol = '255,210,63'; }
+      if (inner) { pop(spark.x, spark.y - 16, 'BULLSEYE +' + pts, C.gold, 22); flash = Math.max(flash, 0.35); flashCol = '255,210,63'; }
+      else pop(spark.x, spark.y - 16, m > 1 ? '+' + m + '  x' + m : '+1', C.gold);
+      shake = inner ? 11 : 7; freeze = inner ? 0.07 : 0.04;
+      burst(spark.x, spark.y, T.sparks, inner ? 48 : 28); wave(spark.x, spark.y, inner ? C.gold : '#FFFFFF');
+    } else {
+      const lost = streak;
+      streak = 0; score += 1; sfx.thud();
+      const tag = inner ? 'GAP!' : 'SLOPPY!';
+      pop(spark.x, spark.y - 16, lost >= STREAK_PER_MULT ? tag + ' streak ' + lost + ' lost' : tag + ' +1', C.sloppy);
+      shake = 10; burst(spark.x, spark.y, [C.sloppy, '#FFFFFF'], 18); wave(spark.x, spark.y, C.sloppy);
+    }
+    const nr = inner ? N.rin : N.r;
+    spark.x = N.x + Math.cos(spark.a) * nr; spark.y = N.y + Math.sin(spark.a) * nr;
+    addRing();
+  }
+  function finishTut() { tutSeen = true; store.set('orbitSnap.tut', '1'); reset(); }
+  function openShop() { if (state === 'dead') reset(); state = 'store'; toast = null; uiParts = []; }
+  function equip(kind, it) {
+    if (kind === 'th') { T = it; store.set('orbitSnap.theme', it.id); applyTheme(); }
+    else { S = it; store.set('orbitSnap.skin', it.id); }
+  }
+  // Tap a shop card: owned -> equip, affordable -> buy + equip, too pricey -> shake + how much is missing.
+  function shopTap(key) {
+    const kind = key.slice(0, 2), it = (kind === 'th' ? THEMES : SKINS).find(i => i.id === key.slice(3));
+    if (!it) return;
+    if (owned.has(key)) { equip(kind, it); sfx.pop(7); return; }
+    if (coins < it.price) {
+      shakes[key] = 1; sfx.thud();
+      toast = { text: 'Need ' + (it.price - coins) + ' more coins - go play!', life: 1.8, col: C.sloppy };
+      return;
+    }
+    coins -= it.price; owned.add(key); saveShop(); equip(kind, it);
+    const b = btns.find(b => b.id === key);
+    if (b) { burst(b.x + b.w / 2, b.y + b.h * 0.4, [C.gold, '#FFFFFF', C.pink, C.gum, C.violet], 44, 0.9, uiParts); flash = 0.3; flashCol = '255,210,63'; }
+    sfx.chime(); toast = { text: 'Unlocked ' + it.name + '!', life: 1.8, col: C.gold };
+  }
+  function press(x, y) {
+    sfx.unlock(); // browsers only allow audio to start from a user gesture
+    const b = btns.find(b => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h);
+    if (state === 'store') {
+      if (!b) return;
+      if (b.id === 'back') state = 'title';
+      else if (b.id.startsWith('tab:')) { storeTab = b.id.slice(4); sfx.pop(3); }
+      else shopTap(b.id);
+      return;
+    }
+    if (state === 'title') {
+      if (b && b.id === 'shop') openShop();
+      else if ((b && b.id === 'how') || !tutSeen) { state = 'tut'; tutPage = 0; tutT = 0; } else reset();
+      return;
+    }
+    if (state === 'tut') {
+      if (b && b.id === 'skip') finishTut();
+      else if (++tutPage >= TUT.length) finishTut();
+      else tutT = 0;
+      return;
+    }
+    if (state === 'dead') { if (b && b.id === 'shop') openShop(); else reset(); return; }
+    if (spark.free || charge) return;
+    hint = false; charge = { t: 0 };
+  }
+  cv.addEventListener('pointerdown', e => { e.preventDefault(); press(e.clientX, e.clientY); });
+  const letGo = () => { if (charge) release(); };
+  addEventListener('pointerup', letGo); addEventListener('pointercancel', letGo); addEventListener('blur', letGo);
+  addEventListener('keydown', e => {
+    if (e.code === 'Escape' && state === 'store') state = 'title';
+    if ((e.code === 'Space' || e.code === 'Enter') && !e.repeat) { e.preventDefault(); press(-1, -1); }
+  });
+  addEventListener('keyup', e => { if (e.code === 'Space' || e.code === 'Enter') letGo(); });
+
+  function burst(x, y, cols, n, spd, into) {
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * TAU, s = (spd || 1) * (80 + Math.random() * 280), life = .5 + Math.random() * .5;
+      (into || parts).push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life, max: life, col: cols[i % cols.length],
+        kind: Math.random() < .3 ? 'star' : 'conf', g: 420, rot: Math.random() * TAU, vr: (Math.random() - .5) * 16 });
+    }
+  }
+  // Spinning gold coins fountaining up and tumbling down (UI layer).
+  function coinShower(x, y) {
+    for (let i = 0; i < 24; i++) {
+      const a = -Math.PI / 2 + (Math.random() - .5) * 2.6, s = 150 + Math.random() * 300, life = 1 + Math.random() * .6;
+      uiParts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life, max: life, col: C.gold, kind: 'coin', g: 900, rot: Math.random() * TAU, vr: 8 + Math.random() * 8 });
+    }
+  }
+
+  // Demo AI: would a shot fired now clear the spikes (own + target ring) and every mine?
+  function safeShot(R, N, px, py) {
+    const ux = Math.cos(spark.a), uy = Math.sin(spark.a);
+    if (R.type === 'spike' && inShield(R, spark.a, SPIKE_PAD + 0.2)) return false;
+    const D = Math.hypot(N.x - px, N.y - py), T = Math.max(0, (D - N.r) / SPEED);
+    if (N.type === 'spike') {
+      const L = Math.max(0, D - N.r - SH), ex = px + ux * L, ey = py + uy * L;
+      if (inShield(N, Math.atan2(ey - N.y, ex - N.x), SPIKE_PAD + 0.2, T)) return false;
+    }
+    for (const m of mines) for (let t = 0; t <= T + 0.05; t += 0.02)
+      if (Math.hypot(px + ux * SPEED * t - mineX(m, clk + t), py + uy * SPEED * t - m.y) < MINE_R + 9 + 10) return false;
+    return true;
+  }
+
+  function step(dt) {
+    clk += dt; tutT += dt;
+    const R = rings[cur];
+    for (const r of rings) {
+      r.rot += r.spin * dt; r.pulse = Math.max(0, r.pulse - dt * 2);
+      if (r.double) r.inA += r.inSpin * dt;
+      if (r.type === 'spike') r.spA += r.spSpin * dt;
+    }
+    if (!spark.free) {
+      if (charge) { // gripping: the base angle holds still while the wind-up moves the spark
+        charge.t += dt;
+        if (charge.t >= TAP_T + CHARGE_T + CHARGE_HOLD) release();
+      } else spark.a += orSpin(R) * dt;
+      if (!spark.free && R.type === 'crumble' && state === 'play') { // ring gives way: the spark drops off and falls
+        R.t -= dt;
+        if (R.t <= 0) {
+          spark.a = aimA(); charge = null;
+          const rr = orR(R);
+          spark.x = R.x + Math.cos(spark.a) * rr; spark.y = R.y + Math.sin(spark.a) * rr;
+          spark.free = true; spark.fall = true; spark.dive = false; spark.pd = Infinity;
+          spark.vx = -Math.sin(spark.a) * orSpin(R) * rr * 0.3; spark.vy = 0;
+          shatter(R);
+        }
+      }
+    }
+    if (!spark.free && DEMO && !charge) { // demo AI: release when the launch line points at the next ring
+      demoT += dt;
+      const N = rings[cur + 1], rr = orR(R);
+      const px = R.x + Math.cos(spark.a) * rr, py = R.y + Math.sin(spark.a) * rr;
+      let tx = N.x, ty = N.y;
+      if (N.double) { // go for the bullseye only if a solid arc will be there on arrival
+        const D = Math.hypot(px - N.x, py - N.y);
+        const f = slotFrac(N, Math.atan2(py - N.y, px - N.x), (D - N.rin - CATCH) / SPEED);
+        if (!(f > 0.1 && f < SOLID - 0.1)) { // otherwise play safe: aim off-center at the outer ring
+          tx = N.x - (N.y - py) / D * N.r * 0.8; ty = N.y + (N.x - px) / D * N.r * 0.8;
+        }
+      }
+      const want = Math.atan2(ty - py, tx - px);
+      const d = Math.abs(Math.atan2(Math.sin(spark.a - want), Math.cos(spark.a - want)));
+      const hurry = R.type === 'crumble' && R.t < 0.75;
+      if (demoT > 0.35 && ((d < 0.08 && safeShot(R, N, px, py)) || (hurry && d < 0.35))) { demoT = 0; release(); }
+    } else if (spark.free && state === 'play') {
+      if (spark.fall) spark.vy += GRAV * dt;
+      spark.x += spark.vx * dt; spark.y += spark.vy * dt;
+      const N = rings[cur + 1];
+      const d = Math.hypot(spark.x - N.x, spark.y - N.y);
+      if (mines.some(m => Math.hypot(spark.x - mineX(m), spark.y - m.y) < MINE_R + 9)) die(T.w.boom, 'BOOM!');
+      else if (spark.fall) { /* falling from a crumbled ring: nothing can catch it */ }
+      else if (N.type === 'spike' && spark.pd >= N.r + SH && d < N.r + SH && inShield(N, Math.atan2(spark.y - N.y, spark.x - N.x), SPIKE_PAD)) die(T.w.stab, 'SPIKED!');
+      else if (spark.dive) { // committed to the inner ring: solid arc = bullseye, gap = streak lost
+        if (d < N.rin + CATCH || d > spark.pd) land(N, slotFrac(N, Math.atan2(spark.y - N.y, spark.x - N.x)) < SOLID, true);
+      } else if (d < N.r + CATCH) {
+        // Crossing the outer ring: commit to the inner one if the flight line reaches its r+6.
+        const miss = Math.abs((N.x - spark.x) * spark.vy - (N.y - spark.y) * spark.vx) / SPEED;
+        if (N.double && miss < N.rin + CATCH) spark.dive = true;
+        else land(N, true, false);
+      }
+      // Closest approach passed inside the grab zone without touching r+6: sloppy save.
+      else if (d < N.r + GRAB && d > spark.pd) land(N, false, false);
+      if (state === 'play' && spark.free && (spark.y - camY > H + 40 || spark.x < -40 || spark.x > W + 40 || spark.y - camY < -60))
+        die(spark.fall ? T.w.crumbled : 'Missed!');
+      spark.pd = d;
+    }
+    for (const p of pops) { p.y -= 40 * dt; p.life -= dt; }
+    pops = pops.filter(p => p.life > 0);
+    multFlash = Math.max(0, multFlash - dt * 2);
+    if (banner && (banner.life -= dt) <= 0) banner = null;
+    camY += ((rings[cur].y - H * 0.72) - camY) * Math.min(1, dt * 4);
+    mines = mines.filter(m => m.y - camY < H + 80);
+    const damp = Math.pow(0.006, dt);
+    for (const p of parts.concat(uiParts)) { p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= damp; p.vy = p.vy * damp + p.g * dt; p.rot += p.vr * dt; p.life -= dt; }
+    parts = parts.filter(p => p.life > 0); uiParts = uiParts.filter(p => p.life > 0);
+    if (toast && (toast.life -= dt) <= 0) toast = null;
+    if (giftT !== null) { // gift tag on the title: pops with a coin shower, then fades
+      const was = giftT; giftT += dt;
+      if (giftT > GIFT_SHOW || state !== 'title') giftT = null;
+      else if (was < GIFT_POP && giftT >= GIFT_POP) coinShower(W - 105, 72);
+    }
+    if (giftT === null || giftT >= GIFT_POP) {
+      coinsShown += (coins - coinsShown) * Math.min(1, dt * 5); if (Math.abs(coins - coinsShown) < 0.5) coinsShown = coins;
+    }
+    for (const k in shakes) shakes[k] = Math.max(0, shakes[k] - dt * 3);
+    for (const w of waves) { w.r += (40 + 320 * w.life) * dt; w.life -= dt * 2.4; }
+    waves = waves.filter(w => w.life > 0);
+    shake *= Math.pow(1.2e-4, dt);
+    flash = Math.max(0, flash - dt * 2.5); bump = Math.max(0, bump - dt * 4);
+    shown += (score - shown) * Math.min(1, dt * 10); if (Math.abs(score - shown) < 0.5) shown = score;
+    if (state === 'dead') deadT += dt;
+  }
+
+  // ---------- drawing helpers ----------
+  const font = (sz, w) => (w || 'bold') + ' ' + Math.round(sz * 10) / 10 + 'px ' + FONT;
+  function txt(s, x, y, sz, fill, stroke, maxW, weight) {
+    cx.font = font(sz, weight);
+    if (maxW) { const w = cx.measureText(s).width; if (w > maxW) { sz *= maxW / w; cx.font = font(sz, weight); } }
+    if (stroke) { cx.lineJoin = 'round'; cx.strokeStyle = stroke; cx.lineWidth = Math.max(3, sz * 0.22); cx.strokeText(s, x, y); }
+    cx.fillStyle = fill; cx.fillText(s, x, y);
+  }
+  function rrect(x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    cx.beginPath(); cx.moveTo(x + r, y);
+    cx.arcTo(x + w, y, x + w, y + h, r); cx.arcTo(x + w, y + h, x, y + h, r);
+    cx.arcTo(x, y + h, x, y, r); cx.arcTo(x, y, x + w, y, r); cx.closePath();
+  }
+  function wrap(s, maxW, sz) {
+    cx.font = font(sz, '600');
+    const out = []; let line = '';
+    for (const w of s.split(' ')) {
+      const t = line ? line + ' ' + w : w;
+      if (cx.measureText(t).width > maxW && line) { out.push(line); line = w; } else line = t;
+    }
+    if (line) out.push(line);
+    return out;
+  }
+  // Glossy candy pill button; registers its hitbox for press().
+  function button(id, label, x, y, w, h, col, colDk, pulse) {
+    const s = pulse ? 1 + Math.sin(clk * 5) * 0.04 : 1;
+    cx.save(); cx.translate(x, y); cx.scale(s, s);
+    rrect(-w / 2, -h / 2 + 5, w, h, h / 2); cx.fillStyle = colDk; cx.fill();
+    rrect(-w / 2, -h / 2, w, h, h / 2); cx.fillStyle = col; cx.fill();
+    cx.lineWidth = 3; cx.strokeStyle = C.ink; cx.stroke();
+    rrect(-w / 2 + 10, -h / 2 + 4, w - 20, h * 0.32, h * 0.16); cx.fillStyle = 'rgba(255,255,255,.35)'; cx.fill();
+    cx.textAlign = 'center'; cx.textBaseline = 'middle';
+    txt(label, 0, 2, h * 0.42, '#FFFFFF', C.ink, w - 24);
+    cx.restore();
+    btns.push({ id, x: x - w / 2, y: y - h / 2, w, h: h + 5 });
+  }
+  function star4(x, y, s, rot) {
+    cx.beginPath();
+    for (let k = 0; k < 8; k++) { const a = rot + k * TAU / 8, rad = k % 2 ? s * 0.35 : s; k ? cx.lineTo(x + Math.cos(a) * rad, y + Math.sin(a) * rad) : cx.moveTo(x + Math.cos(a) * rad, y + Math.sin(a) * rad); }
+    cx.closePath(); cx.fill();
+  }
+  // twinkling stars (far parallax), `per` per 70px band
+  function skyStars(per, col, alpha) {
+    const sOff = camY * 0.12, cell = 70;
+    cx.fillStyle = col;
+    for (let j = Math.floor(sOff / cell) - 1; j <= Math.floor((sOff + H) / cell) + 1; j++)
+      for (let k = 0; k < per; k++) {
+        const x = hash(j * 3.1 + k * 17.7) * W, y = j * cell + hash(j * 7.3 + k * 5.1) * cell - sOff;
+        const tw = 0.5 + 0.5 * Math.sin(clk * (1.5 + hash(j + k * 9.2) * 3) + j + k), s = 1 + hash(j * 1.7 + k) * 1.8;
+        cx.globalAlpha = Math.max(0, tw * alpha * (1 - y / H));
+        if (s > 2.4) star4(x, y, s * 1.6, 0); else cx.fillRect(x - s / 2, y - s / 2, s, s);
+      }
+    cx.globalAlpha = 1;
+  }
+  // big ringed planet that sinks slowly as you climb
+  function skyPlanet(px, py, pr, c0, c1, c2, glow, band) {
+    if (py - pr * 2 >= H) return;
+    const pg = cx.createRadialGradient(px - pr * 0.35, py - pr * 0.35, pr * 0.1, px, py, pr);
+    pg.addColorStop(0, c0); pg.addColorStop(0.6, c1); pg.addColorStop(1, c2);
+    cx.shadowColor = glow; cx.shadowBlur = 40;
+    cx.fillStyle = pg; cx.beginPath(); cx.arc(px, py, pr, 0, TAU); cx.fill(); cx.shadowBlur = 0;
+    cx.save(); cx.translate(px, py); cx.rotate(-0.35); cx.scale(1, 0.28);
+    cx.strokeStyle = band; cx.lineWidth = pr * 0.3;
+    cx.beginPath(); cx.arc(0, 0, pr * 1.6, 0.05, Math.PI - 0.05); cx.stroke();
+    cx.restore();
+  }
+  // soft drifting clouds (mid parallax)
+  function skyClouds() {
+    const cOff = camY * 0.35, cc = 190;
+    cx.fillStyle = 'rgba(255,255,255,.12)';
+    for (let j = Math.floor(cOff / cc) - 1; j <= Math.floor((cOff + H) / cc) + 1; j++) {
+      const s = 26 + hash(j * 4.7) * 34, span = W + s * 6;
+      const x = ((hash(j * 9.1) * span + clk * (6 + hash(j) * 10)) % span) - s * 3;
+      const y = j * cc + hash(j * 2.3) * cc - cOff;
+      cx.beginPath();
+      for (const [ox, oy, k] of [[0, 0, 1], [0.9, 0.25, 0.7], [-0.9, 0.3, 0.6], [0.2, 0.35, 0.75]]) { cx.moveTo(x + ox * s + k * s, y + oy * s); cx.arc(x + ox * s, y + oy * s, k * s, 0, TAU); }
+      cx.fill();
+    }
+  }
+  // Neon Night: striped synthwave sun + a scrolling laser grid that sinks away as you climb.
+  function skyNeon(h) {
+    skyStars(2, '#9FFBFF', 0.7);
+    const sr = Math.min(W, H) * 0.2, sx = W * 0.5, sy = H * 0.34 + h * 0.04;
+    if (sy - sr < H) {
+      const gl = cx.createRadialGradient(sx, sy, sr * 0.5, sx, sy, sr * 1.7);
+      gl.addColorStop(0, 'rgba(255,46,136,.35)'); gl.addColorStop(1, 'rgba(255,46,136,0)');
+      cx.fillStyle = gl; cx.fillRect(sx - sr * 1.7, sy - sr * 1.7, sr * 3.4, sr * 3.4);
+      cx.save(); cx.beginPath();
+      const n = 12, bh = 2 * sr / n;
+      for (let i = 0; i < n; i++) { const y0 = sy - sr + i * bh, cut = y0 > sy ? bh * 0.75 * (y0 - sy) / sr : 0; cx.rect(sx - sr - 2, y0 + cut, 2 * sr + 4, bh - cut + 0.5); }
+      cx.clip();
+      const g = cx.createLinearGradient(0, sy - sr, 0, sy + sr);
+      g.addColorStop(0, '#FFF36B'); g.addColorStop(0.5, '#FF2E88'); g.addColorStop(1, '#9B00E8');
+      cx.fillStyle = g; cx.beginPath(); cx.arc(sx, sy, sr, 0, TAU); cx.fill();
+      cx.restore();
+    }
+    const hy = H * 0.8 + h * 0.15;
+    if (hy < H) {
+      const gg = cx.createLinearGradient(0, hy, 0, H);
+      gg.addColorStop(0, 'rgba(15,0,35,.2)'); gg.addColorStop(1, 'rgba(15,0,35,.75)');
+      cx.fillStyle = gg; cx.fillRect(0, hy, W, H - hy);
+      cx.strokeStyle = 'rgba(255,46,136,.45)'; cx.lineWidth = 1.5; cx.beginPath();
+      const sc = (clk * 0.5) % 1;
+      for (let k = 0; k < 10; k++) { const t = (k + sc) / 10, y = hy + (H - hy + 60) * t * t; cx.moveTo(0, y); cx.lineTo(W, y); }
+      for (let k = -10; k <= 10; k++) { cx.moveTo(W / 2 + k * 14, hy); cx.lineTo(W / 2 + k * W * 0.16, H + 60); }
+      cx.stroke();
+      cx.strokeStyle = 'rgba(255,140,210,.85)'; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(0, hy); cx.lineTo(W, hy); cx.stroke();
+    }
+  }
+  // Deep Sea: swaying light rays, rising bubbles, schools of fish drifting by.
+  function skyOcean() {
+    cx.fillStyle = 'rgba(200,240,255,.06)';
+    for (let k = 0; k < 5; k++) {
+      const x = W * (k / 4.5) + Math.sin(clk * 0.4 + k * 1.7) * W * 0.05, w = 30 + hash(k) * 40;
+      cx.beginPath(); cx.moveTo(x, 0); cx.lineTo(x + w, 0); cx.lineTo(x + w + W * 0.25, H); cx.lineTo(x + W * 0.25 - w * 0.5, H); cx.fill();
+    }
+    const fOff = camY * 0.35, cc = 200;
+    cx.fillStyle = 'rgba(0,25,50,.28)';
+    for (let j = Math.floor(fOff / cc) - 1; j <= Math.floor((fOff + H) / cc) + 1; j++) {
+      const s = 7 + hash(j * 4.7) * 8, dir = hash(j * 5.3) < .5 ? 1 : -1, span = W + 240;
+      const x = (((hash(j * 9.1) * span + clk * (18 + hash(j) * 20) * dir) % span) + span) % span - 120;
+      const y = j * cc + hash(j * 2.3) * cc - fOff;
+      for (let q = 0; q < 3; q++) {
+        const fx = x - dir * q * s * 2.6, fy = y + (q % 2 ? 1 : -1) * q * s * 0.8 + Math.sin(clk * 3 + j + q) * 2;
+        cx.beginPath(); cx.ellipse(fx, fy, s, s * 0.5, 0, 0, TAU);
+        cx.moveTo(fx - dir * s * 0.8, fy); cx.lineTo(fx - dir * s * 1.6, fy - s * 0.5); cx.lineTo(fx - dir * s * 1.6, fy + s * 0.5); cx.fill();
+      }
+    }
+    cx.strokeStyle = 'rgba(220,250,255,.45)'; cx.lineWidth = 1.2; cx.fillStyle = 'rgba(255,255,255,.5)';
+    for (let i = 0; i < 26; i++) {
+      const spd = 25 + hash(i * 3.3) * 45, m = H + 40, v = (((clk * spd + hash(i * 7.7) * m - camY * 0.25) % m) + m) % m;
+      const y = H + 20 - v, x = hash(i * 1.9) * W + Math.sin(clk * 1.8 + i) * 6, s = 1.5 + hash(i * 5.1) * 4;
+      cx.beginPath(); cx.arc(x, y, s, 0, TAU); cx.stroke();
+      cx.beginPath(); cx.arc(x - s * 0.35, y - s * 0.35, s * 0.3, 0, TAU); cx.fill();
+    }
+  }
+  // Cosmic Drift: nebula clouds, a dense starfield, an orange ringed planet and shooting stars.
+  function skySpace(h) {
+    const neb = ['255,80,180', '90,140,255', '140,90,255'], NR = Math.max(W, H) * 0.45, m = H * 1.6;
+    neb.forEach((c, i) => {
+      const x = W * (0.15 + 0.35 * i) + Math.sin(clk * 0.07 + i * 2) * 30, y = (((i * H * 0.55 - camY * 0.06) % m) + m) % m - H * 0.3;
+      const g = cx.createRadialGradient(x, y, 0, x, y, NR);
+      g.addColorStop(0, 'rgba(' + c + ',.22)'); g.addColorStop(1, 'rgba(' + c + ',0)');
+      cx.fillStyle = g; cx.fillRect(0, 0, W, H);
+    });
+    skyStars(5, '#FFFFFF', 0.95);
+    skyPlanet(W * 0.2, H * 0.2 + h * 0.02, Math.min(W, H) * 0.15, '#FFE9C7', '#F0A35E', '#9A4A26', 'rgba(255,170,90,.6)', 'rgba(255,225,190,.6)');
+    const P = 4.5, n = Math.floor(clk / P), ph = clk - n * P;
+    if (ph < 0.7) {
+      const f = ph / 0.7, x = W * (0.3 + hash(n) * 0.7) - f * W * 0.4, y = H * (0.05 + hash(n * 3.7) * 0.35) + f * W * 0.2, len = 150;
+      const g = cx.createLinearGradient(x, y, x + 0.894 * len, y - 0.447 * len);
+      g.addColorStop(0, 'rgba(255,255,255,' + (1 - f) + ')'); g.addColorStop(1, 'rgba(255,255,255,0)');
+      cx.strokeStyle = g; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(x, y); cx.lineTo(x + 0.894 * len, y - 0.447 * len); cx.stroke();
+    }
+  }
+  function drawSky() {
+    const h = Math.max(0, -camY), t = h / 2200, i = Math.floor(t), f = t - i, e = f * f * (3 - 2 * f), SK = T.sky;
+    const A = SK[i % SK.length], B = SK[(i + 1) % SK.length];
+    const g = cx.createLinearGradient(0, 0, 0, H);
+    A.forEach((c, k) => g.addColorStop(k / (A.length - 1), mix(c, B[k], e)));
+    cx.fillStyle = g; cx.fillRect(0, 0, W, H);
+    if (T.id === 'neon') skyNeon(h);
+    else if (T.id === 'ocean') skyOcean();
+    else if (T.id === 'space') skySpace(h);
+    else {
+      skyStars(3, '#FFFFFF', 0.85);
+      skyPlanet(W * 0.8, H * 0.22 + h * 0.03, Math.min(W, H) * 0.14, '#FFF1F8', '#FFB3D6', '#E27BC0', 'rgba(255,190,230,.8)', 'rgba(255,240,250,.55)');
+      skyClouds();
+    }
+  }
+  // Glazed donut centred on the current origin; sprinkles spin with the ring.
+  function drawDonut(r, lw, glow) {
+    const R = r.r;
+    if (glow) { cx.shadowColor = 'rgba(255,255,255,.95)'; cx.shadowBlur = glow; }
+    cx.strokeStyle = C.dough; cx.lineWidth = lw + 7; cx.beginPath(); cx.arc(0, 0, R, 0, TAU); cx.stroke();
+    cx.shadowBlur = 0;
+    cx.strokeStyle = C.doughDk; cx.lineWidth = 3; cx.beginPath(); cx.arc(0, 0, R + (lw + 7) / 2 - 1.5, 0.35, Math.PI - 0.35); cx.stroke();
+    cx.strokeStyle = frostOf(r); cx.lineWidth = lw; cx.beginPath();
+    for (let k = 0; k <= 48; k++) { const a = k / 48 * TAU + r.rot * 0.2, rr = R + Math.sin(a * 7 + r.seed) * 1.6; k ? cx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr) : cx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr); }
+    cx.stroke();
+    cx.strokeStyle = 'rgba(255,255,255,.75)'; cx.lineWidth = 2.5; cx.lineCap = 'round';
+    cx.beginPath(); cx.arc(0, 0, R - lw * 0.2, Math.PI * 1.1, Math.PI * 1.45); cx.stroke();
+    const n = Math.max(6, Math.floor(R / 4.5));
+    cx.lineWidth = 2.4;
+    for (let k = 0; k < n; k++) {
+      const h1 = hash(r.seed * 31 + k), a = r.rot + k / n * TAU + h1 * 0.3, rr = R + (hash(r.seed * 17 + k) - .5) * lw * 0.6, ang = a + h1 * 3;
+      const x = Math.cos(a) * rr, y = Math.sin(a) * rr, dx = Math.cos(ang) * 2.2, dy = Math.sin(ang) * 2.2;
+      cx.strokeStyle = SPRINKLES[(k + r.seed) % SPRINKLES.length];
+      cx.beginPath(); cx.moveTo(x - dx, y - dy); cx.lineTo(x + dx, y + dy); cx.stroke();
+    }
+    cx.lineCap = 'butt';
+  }
+  // Neon tube: glowing colored ring with a white-hot core and chasing light arcs.
+  function drawNeon(r, lw, glow) {
+    const R = r.r, col = frostOf(r);
+    cx.shadowColor = col; cx.shadowBlur = 14 + (glow || 0);
+    cx.strokeStyle = col; cx.lineWidth = lw; cx.beginPath(); cx.arc(0, 0, R, 0, TAU); cx.stroke(); cx.stroke();
+    cx.shadowBlur = 0;
+    cx.strokeStyle = 'rgba(255,255,255,.85)'; cx.lineWidth = lw * 0.28; cx.beginPath(); cx.arc(0, 0, R, 0, TAU); cx.stroke();
+    cx.strokeStyle = col; cx.lineWidth = 2.5; cx.lineCap = 'round';
+    for (let k = 0; k < 4; k++) { const a = r.rot + k * TAU / 4; cx.beginPath(); cx.arc(0, 0, R + lw / 2 + 5, a, a + 0.4); cx.stroke(); }
+    cx.lineCap = 'butt';
+  }
+  // Life ring: white float with colored stripes, rope loops and a wet highlight.
+  function drawBuoy(r, lw, glow) {
+    const R = r.r, t = lw + 6;
+    if (glow) { cx.shadowColor = 'rgba(255,255,255,.95)'; cx.shadowBlur = glow; }
+    cx.strokeStyle = '#F4F7FA'; cx.lineWidth = t; cx.beginPath(); cx.arc(0, 0, R, 0, TAU); cx.stroke();
+    cx.shadowBlur = 0;
+    cx.strokeStyle = frostOf(r);
+    for (let k = 0; k < 4; k++) { const a = r.rot + k * TAU / 4; cx.beginPath(); cx.arc(0, 0, R, a, a + TAU / 8); cx.stroke(); }
+    cx.strokeStyle = 'rgba(10,40,70,.55)'; cx.lineWidth = 1.5;
+    cx.beginPath(); cx.arc(0, 0, R + t / 2, 0, TAU); cx.stroke(); cx.beginPath(); cx.arc(0, 0, R - t / 2, 0, TAU); cx.stroke();
+    cx.strokeStyle = '#E8D3A6'; cx.lineWidth = 2;
+    for (let k = 0; k < 4; k++) { const a = r.rot + k * TAU / 4 + TAU / 16; cx.beginPath(); cx.arc(Math.cos(a) * (R + t / 2), Math.sin(a) * (R + t / 2), 3.5, a - 1.3, a + 1.3); cx.stroke(); }
+    cx.strokeStyle = 'rgba(255,255,255,.7)'; cx.lineWidth = 2.5; cx.lineCap = 'round';
+    cx.beginPath(); cx.arc(0, 0, R - t * 0.15, Math.PI * 1.1, Math.PI * 1.45); cx.stroke();
+    cx.lineCap = 'butt';
+  }
+  // Orbit ring: a faint glowing band with a bright core and tumbling moonlets.
+  function drawHalo(r, lw, glow) {
+    const R = r.r, col = frostOf(r), ga = cx.globalAlpha;
+    cx.shadowColor = col; cx.shadowBlur = 10 + (glow || 0);
+    cx.globalAlpha = ga * 0.35; cx.strokeStyle = col; cx.lineWidth = lw + 8; cx.beginPath(); cx.arc(0, 0, R, 0, TAU); cx.stroke();
+    cx.globalAlpha = ga; cx.lineWidth = 3; cx.beginPath(); cx.arc(0, 0, R, 0, TAU); cx.stroke();
+    cx.shadowBlur = 0;
+    cx.strokeStyle = '#FFFFFF'; cx.lineWidth = 1; cx.beginPath(); cx.arc(0, 0, R, 0, TAU); cx.stroke();
+    const n = Math.max(8, Math.floor(R / 3.5));
+    for (let k = 0; k < n; k++) {
+      const a = r.rot + k / n * TAU + hash(r.seed * 31 + k) * 0.4, rr = R + (hash(r.seed * 17 + k) - .5) * lw * 0.9, s = 1.4 + hash(r.seed * 7 + k) * 2.6;
+      cx.fillStyle = ['#E8E4FF', '#A9A3C9', '#7B7599'][k % 3];
+      cx.beginPath(); cx.arc(Math.cos(a) * rr, Math.sin(a) * rr, s, 0, TAU); cx.fill();
+    }
+  }
+  // Crumble ring (cookie / glitch / sandcastle / asteroid): chunks that wobble and split apart as the timer runs out.
+  function drawCookie(r, worn, active, glow) {
+    const n = 9, seg = TAU / n, neon = T.id === 'neon';
+    if (glow) { cx.shadowColor = 'rgba(255,255,255,.9)'; cx.shadowBlur = glow; }
+    for (let k = 0; k < n; k++) {
+      const a0 = r.rot + k * seg + 0.05 + worn * 0.12, a1 = r.rot + (k + 1) * seg - 0.05 - worn * 0.12;
+      const jx = (Math.random() - .5) * worn * 5, jy = (Math.random() - .5) * worn * 5 + worn * worn * 4, rr = r.r + (k % 2 ? 1.5 : -1.5);
+      if (neon) { cx.shadowColor = T.crumb[0]; cx.shadowBlur = 10; }
+      cx.strokeStyle = T.crumb[0]; cx.lineWidth = 15; cx.beginPath(); cx.arc(jx, jy, rr, a0, a1); cx.stroke();
+      cx.shadowBlur = 0;
+      cx.fillStyle = T.crumb[1];
+      for (const f of [0.3, 0.72]) { const a = a0 + (a1 - a0) * f, d = rr + (f < .5 ? 2.5 : -2.5); cx.beginPath(); cx.arc(jx + Math.cos(a) * d, jy + Math.sin(a) * d, 2.2, 0, TAU); cx.fill(); }
+    }
+    if (active) { // countdown arc inside the ring, turns red when it's about to go
+      const f = Math.max(0, r.t / CRUMBLE_T);
+      cx.strokeStyle = f < 0.35 ? C.red : 'rgba(255,255,255,.9)'; cx.lineWidth = 3; cx.lineCap = 'round';
+      cx.beginPath(); cx.arc(0, 0, r.r - 14, -Math.PI / 2, -Math.PI / 2 + TAU * f); cx.stroke();
+      cx.lineCap = 'butt';
+    }
+  }
+  // Counter-rotating inner arcs of a double ring (butt caps so the solid part reads true).
+  function drawCaramel(r, on) {
+    const [dk, main] = T.inner;
+    if (T.id === 'neon') { cx.shadowColor = main; cx.shadowBlur = 10; }
+    for (let k = 0; k < SEGS; k++) {
+      const a0 = r.inA + k * SLOT, a1 = a0 + SLOT * SOLID, lw = on ? 11 : 9;
+      cx.strokeStyle = dk; cx.lineWidth = lw; cx.beginPath(); cx.arc(0, 0, r.rin, a0, a1); cx.stroke();
+      cx.strokeStyle = main; cx.lineWidth = lw - 4; cx.beginPath(); cx.arc(0, 0, r.rin, a0 + 0.03, a1 - 0.03); cx.stroke();
+      cx.strokeStyle = 'rgba(255,255,255,.75)'; cx.lineWidth = 1.8; cx.beginPath(); cx.arc(0, 0, r.rin - 1.5, a0 + 0.12, a1 - 0.12); cx.stroke();
+    }
+    cx.shadowBlur = 0;
+    cx.fillStyle = main; star4(0, 0, 7, clk * 2);
+  }
+  // Licorice shield with red spikes pointing both ways.
+  function drawSpikes(r) {
+    const sr = r.r + SH, n = 9, P = (rad, ang) => [Math.cos(ang) * rad, Math.sin(ang) * rad];
+    cx.shadowColor = C.red; cx.shadowBlur = 10 + Math.sin(clk * 6) * 4;
+    cx.fillStyle = C.red; cx.strokeStyle = C.lic; cx.lineWidth = 2; cx.lineJoin = 'round';
+    for (let k = 0; k <= n; k++) {
+      const a = r.spA + SPIKE_ARC * k / n, w = 5 / sr;
+      cx.beginPath();
+      cx.moveTo(...P(sr + 11, a)); cx.lineTo(...P(sr, a - w)); cx.lineTo(...P(sr - 8, a)); cx.lineTo(...P(sr, a + w));
+      cx.closePath(); cx.fill(); cx.stroke();
+    }
+    cx.shadowBlur = 0;
+    cx.strokeStyle = C.lic; cx.lineWidth = 8; cx.beginPath(); cx.arc(0, 0, sr, r.spA, r.spA + SPIKE_ARC); cx.stroke();
+    cx.strokeStyle = C.red; cx.lineWidth = 3; cx.setLineDash([6, 5]); cx.lineDashOffset = -clk * 12;
+    cx.beginPath(); cx.arc(0, 0, sr, r.spA, r.spA + SPIKE_ARC); cx.stroke();
+    cx.setLineDash([]); cx.lineDashOffset = 0;
+  }
+  function drawRing(r, o) {
+    const s = 1 + 0.16 * r.pulse * Math.sin(r.pulse * 12);
+    cx.save(); cx.globalAlpha = o.past ? 0.3 : 1;
+    cx.translate(r.x, r.y); cx.scale(s, s);
+    const glow = o.next ? 14 + 6 * Math.sin(clk * 4) : 0;
+    if (r.type === 'crumble') drawCookie(r, o.worn || 0, o.cur, glow);
+    else (T.id === 'neon' ? drawNeon : T.id === 'ocean' ? drawBuoy : T.id === 'space' ? drawHalo : drawDonut)(r, o.cur ? 12 : 10, glow);
+    if (r.double) drawCaramel(r, o.inner);
+    if (r.type === 'spike') drawSpikes(r);
+    cx.restore();
+  }
+  // Grumpy sour bomb: spinning red spikes around a berry face.
+  function drawMine(x, y, dir) {
+    cx.save(); cx.translate(x, y);
+    cx.save(); cx.rotate(clk * 3 * dir);
+    cx.fillStyle = C.red; cx.shadowColor = C.red; cx.shadowBlur = 12 + Math.sin(clk * 8) * 6;
+    cx.beginPath();
+    for (let k = 0; k < 16; k++) { const rad = k % 2 ? MINE_R - 3 : MINE_R + 5, a = k * TAU / 16; k ? cx.lineTo(Math.cos(a) * rad, Math.sin(a) * rad) : cx.moveTo(rad, 0); }
+    cx.closePath(); cx.fill(); cx.shadowBlur = 0;
+    cx.strokeStyle = C.lic; cx.lineWidth = 1.5; cx.stroke();
+    cx.restore();
+    cx.fillStyle = T.mine; cx.beginPath(); cx.arc(0, 0, 8.5, 0, TAU); cx.fill();
+    cx.strokeStyle = C.lic; cx.lineWidth = 1.5; cx.stroke();
+    cx.fillStyle = '#FFFFFF';
+    cx.beginPath(); cx.arc(-3.2, 0, 2.3, 0, TAU); cx.arc(3.2, 0, 2.3, 0, TAU); cx.fill();
+    cx.fillStyle = C.ink;
+    cx.beginPath(); cx.arc(-2.8, 0.4, 1.1, 0, TAU); cx.arc(3.6, 0.4, 1.1, 0, TAU); cx.fill();
+    cx.strokeStyle = C.ink; cx.lineWidth = 1.6;
+    cx.beginPath(); cx.moveTo(-6, -4.2); cx.lineTo(-1.2, -2.4); cx.moveTo(6, -4.2); cx.lineTo(1.2, -2.4); cx.stroke();
+    cx.restore();
+  }
+  function drawTrack(x0, y, amp) {
+    cx.strokeStyle = 'rgba(255,255,255,.35)'; cx.lineWidth = 2; cx.setLineDash([4, 6]);
+    cx.beginPath(); cx.moveTo(x0 - amp, y); cx.lineTo(x0 + amp, y); cx.stroke(); cx.setLineDash([]);
+    cx.fillStyle = 'rgba(255,255,255,.45)';
+    cx.beginPath(); cx.arc(x0 - amp, y, 3, 0, TAU); cx.arc(x0 + amp, y, 3, 0, TAU); cx.fill();
+  }
+  // ---------- ball skins: each draws at the origin with radius r (t = clock, look = gaze angle, mv = flying) ----------
+  const disc = r => { cx.beginPath(); cx.arc(0, 0, r, 0, TAU); };
+  const rgrad = (r, stops) => { const g = cx.createRadialGradient(-r * .35, -r * .35, 1, 0, 0, r); stops.forEach(([o, c]) => g.addColorStop(o, c)); return g; };
+  function outline(r, col, lw) { cx.shadowBlur = 0; cx.strokeStyle = col; cx.lineWidth = lw; disc(r); cx.stroke(); }
+  function gloss(r) { // soft top-left shine + bottom-right shade, for the painted balls
+    cx.fillStyle = rgrad(r, [[0, 'rgba(255,255,255,.55)'], [.5, 'rgba(255,255,255,0)'], [1, 'rgba(0,0,40,.25)']]); disc(r); cx.fill();
+  }
+  function wedges(r, cols) { cols.forEach((c, k) => { cx.fillStyle = c; cx.beginPath(); cx.moveTo(0, 0); cx.arc(0, 0, r, k * TAU / cols.length, (k + 1) * TAU / cols.length); cx.fill(); }); }
+  const SKIN_DRAW = {
+    gum(r) {
+      cx.shadowColor = C.gum; cx.shadowBlur = 24;
+      cx.fillStyle = rgrad(r, [[0, '#FFFFFF'], [.35, '#9FFFF0'], [1, '#14B8A6']]); disc(r); cx.fill();
+      outline(r, C.ink, 2);
+    },
+    hole(r) {
+      cx.shadowColor = 'rgba(255,190,120,.8)'; cx.shadowBlur = 16;
+      cx.fillStyle = rgrad(r, [[0, '#FFE2B0'], [.5, '#F4B96E'], [1, '#C98640']]); disc(r); cx.fill(); cx.shadowBlur = 0;
+      cx.save(); disc(r); cx.clip();
+      cx.fillStyle = '#FF5FA8'; cx.beginPath(); cx.moveTo(-r, -r * 2);
+      for (let i = 0; i <= 8; i++) cx.lineTo(-r + i * r / 4, (i % 2 ? r * 0.3 : 0) - r * 0.05);
+      cx.lineTo(r, -r * 2); cx.fill();
+      cx.lineWidth = Math.max(1, r * 0.13); cx.lineCap = 'round';
+      for (let k = 0; k < 6; k++) {
+        const x = (hash(k * 3.1) - .5) * r * 1.3, y = -r * 0.25 - hash(k * 5.7) * r * 0.55, a = hash(k) * 3, d = r * 0.16;
+        cx.strokeStyle = SPRINKLES[k % SPRINKLES.length]; cx.beginPath(); cx.moveTo(x - Math.cos(a) * d, y - Math.sin(a) * d); cx.lineTo(x + Math.cos(a) * d, y + Math.sin(a) * d); cx.stroke();
+      }
+      cx.restore();
+      outline(r, C.ink, 2);
+    },
+    beach(r, t) {
+      cx.save(); cx.rotate(t * 3); wedges(r, ['#FF3B3B', '#FFFFFF', '#2F80FF', '#FFFFFF', '#FFD23F', '#FFFFFF']); cx.restore();
+      cx.fillStyle = '#FFFFFF'; disc(r * 0.2); cx.fill();
+      gloss(r); outline(r, C.ink, 2);
+    },
+    eye(r, t, look) {
+      cx.shadowColor = 'rgba(255,255,255,.7)'; cx.shadowBlur = 12;
+      cx.fillStyle = rgrad(r, [[0, '#FFFFFF'], [.7, '#F2E6E6'], [1, '#D9B8B8']]); disc(r); cx.fill(); cx.shadowBlur = 0;
+      cx.strokeStyle = 'rgba(220,40,60,.55)'; cx.lineWidth = 1; cx.beginPath();
+      for (let k = 0; k < 3; k++) { const a = k * 2.1 + 0.4; cx.moveTo(Math.cos(a) * r, Math.sin(a) * r); cx.quadraticCurveTo(Math.cos(a + 0.3) * r * 0.7, Math.sin(a + 0.3) * r * 0.7, Math.cos(a - 0.1) * r * 0.55, Math.sin(a - 0.1) * r * 0.55); }
+      cx.stroke();
+      const ix = Math.cos(look) * r * 0.32, iy = Math.sin(look) * r * 0.32;
+      cx.fillStyle = '#2E9BEA'; cx.beginPath(); cx.arc(ix, iy, r * 0.46, 0, TAU); cx.fill();
+      cx.strokeStyle = '#1A5C99'; cx.lineWidth = 1.2; cx.stroke();
+      cx.fillStyle = C.ink; cx.beginPath(); cx.arc(ix, iy, r * 0.22, 0, TAU); cx.fill();
+      cx.fillStyle = '#FFFFFF'; cx.beginPath(); cx.arc(ix - r * 0.12, iy - r * 0.14, r * 0.1, 0, TAU); cx.fill();
+      if (t % 3.3 < 0.13) { // blink
+        cx.fillStyle = '#F2B8A0'; disc(r); cx.fill();
+        cx.strokeStyle = C.ink; cx.lineWidth = 1.5; cx.beginPath(); cx.moveTo(-r * 0.7, 0); cx.quadraticCurveTo(0, r * 0.35, r * 0.7, 0); cx.stroke();
+      }
+      outline(r, C.ink, 2);
+    },
+    neon(r, t) {
+      const p = 0.5 + 0.5 * Math.sin(t * 8);
+      cx.shadowColor = '#00F0FF'; cx.shadowBlur = 20 + p * 10;
+      cx.fillStyle = '#14002E'; disc(r); cx.fill();
+      cx.strokeStyle = '#00F0FF'; cx.lineWidth = 3; disc(r - 1.5); cx.stroke(); cx.stroke();
+      cx.shadowColor = '#FF2E88'; cx.fillStyle = '#FF2E88'; disc(r * (0.35 + 0.12 * p)); cx.fill();
+      cx.shadowBlur = 0; cx.fillStyle = '#FFFFFF'; disc(r * 0.15); cx.fill();
+      cx.strokeStyle = '#FFFFFF'; cx.lineWidth = 1.5; cx.beginPath(); cx.arc(0, 0, r * 0.68, t * 4, t * 4 + 1); cx.stroke();
+    },
+    pearl(r, t) {
+      cx.shadowColor = 'rgba(200,240,255,.9)'; cx.shadowBlur = 18;
+      cx.fillStyle = rgrad(r, [[0, '#FFFFFF'], [.45, '#F6EEFF'], [.85, '#C9D6EE'], [1, '#9FB0D6']]); disc(r); cx.fill(); cx.shadowBlur = 0;
+      cx.lineWidth = r * 0.35;
+      for (let k = 0; k < 3; k++) { cx.strokeStyle = 'hsla(' + Math.round((t * 60 + k * 120) % 360) + ',100%,75%,.28)'; cx.beginPath(); cx.arc(0, 0, r * 0.62, t + k * 2.1, t + k * 2.1 + 1.4); cx.stroke(); }
+      cx.fillStyle = '#FFFFFF'; cx.beginPath(); cx.ellipse(-r * .35, -r * .4, r * .28, r * .16, -0.6, 0, TAU); cx.fill();
+      outline(r, 'rgba(60,70,110,.7)', 1.5);
+    },
+    saturn(r) {
+      cx.rotate(-0.35);
+      cx.strokeStyle = '#FFE0B0'; cx.lineWidth = 2.5; cx.beginPath(); cx.ellipse(0, 0, r * 1.75, r * 0.5, 0, Math.PI, TAU); cx.stroke();
+      cx.shadowColor = '#FFB070'; cx.shadowBlur = 14;
+      cx.fillStyle = rgrad(r, [[0, '#FFE3B8'], [.55, '#F0A35E'], [1, '#A8522A']]); disc(r); cx.fill(); cx.shadowBlur = 0;
+      cx.save(); disc(r); cx.clip(); cx.fillStyle = 'rgba(150,70,30,.35)';
+      cx.fillRect(-r, -r * 0.3, r * 2, r * 0.18); cx.fillRect(-r, r * 0.18, r * 2, r * 0.14); cx.restore();
+      outline(r, C.ink, 1.5);
+      cx.strokeStyle = '#FFE0B0'; cx.lineWidth = 2.5; cx.beginPath(); cx.ellipse(0, 0, r * 1.75, r * 0.5, 0, 0, Math.PI); cx.stroke();
+      cx.strokeStyle = 'rgba(160,90,40,.6)'; cx.lineWidth = 1; cx.beginPath(); cx.ellipse(0, 0, r * 1.5, r * 0.42, 0, 0, Math.PI); cx.stroke();
+    },
+    fire(r, t, look, mv) {
+      cx.save(); cx.rotate(mv ? Math.PI : -Math.PI / 2); // flames trail behind in flight, rise when orbiting
+      for (let k = 0; k < 3; k++) {
+        const fl = r * (1.5 + 0.35 * Math.sin(t * 22 + k * 2)) * (k === 1 ? 1.2 : 1), off = (k - 1) * r * 0.45;
+        cx.fillStyle = k === 1 ? 'rgba(255,190,0,.85)' : 'rgba(255,80,0,.75)';
+        cx.beginPath(); cx.moveTo(0, off - r * 0.5); cx.quadraticCurveTo(fl * 0.6, off - r * 0.35, fl, off * 0.6); cx.quadraticCurveTo(fl * 0.6, off + r * 0.35, 0, off + r * 0.5); cx.fill();
+      }
+      cx.restore();
+      cx.shadowColor = '#FF7A00'; cx.shadowBlur = 26;
+      cx.fillStyle = rgrad(r, [[0, '#FFFFFF'], [.25, '#FFF3A0'], [.6, '#FFB020'], [1, '#E0401A']]); disc(r); cx.fill();
+      outline(r, 'rgba(120,20,0,.8)', 1.5);
+    },
+    prism(r, t) {
+      const hue = t * 120;
+      cx.shadowColor = 'hsl(' + Math.round(hue % 360) + ',100%,65%)'; cx.shadowBlur = 22;
+      cx.fillStyle = '#FFFFFF'; disc(r); cx.fill(); cx.shadowBlur = 0;
+      cx.save(); cx.rotate(t * 2); wedges(r, [0, 1, 2, 3, 4, 5].map(k => 'hsl(' + Math.round((hue + k * 60) % 360) + ',100%,62%)')); cx.restore();
+      gloss(r); outline(r, 'rgba(255,255,255,.9)', 2);
+    },
+  };
+  // The equipped ball (or `sk`), stretched along its velocity while flying.
+  function drawBall(x, y, r, vx, vy, look, sk) {
+    cx.save(); cx.translate(x, y);
+    const sp = Math.hypot(vx || 0, vy || 0);
+    if (sp > 1) { cx.rotate(Math.atan2(vy, vx)); cx.scale(1 + Math.min(.4, sp / 1400), 1 - Math.min(.25, sp / 2400)); look = 0; }
+    SKIN_DRAW[(sk || S).id](r, clk, look === undefined ? -Math.PI / 2 : look, sp > 1);
+    cx.restore();
+  }
+  function drawAim(x, y, a, len, col) {
+    const n = Math.floor(len / 11);
+    cx.fillStyle = col;
+    for (let j = 1; j <= n; j++) { const d = j * 11; cx.globalAlpha = 1 - j / (n + 1) * 0.7; cx.beginPath(); cx.arc(x + Math.cos(a) * d, y + Math.sin(a) * d, 2.6 - j / n, 0, TAU); cx.fill(); }
+    cx.globalAlpha = 1;
+  }
+
+  function draw() {
+    btns = [];
+    cx.textAlign = 'center'; cx.textBaseline = 'alphabetic';
+    drawSky();
+    cx.save();
+    cx.translate((Math.random() - .5) * shake, (Math.random() - .5) * shake - camY);
+    rings.forEach((r, i) => {
+      if (r.broken || r.y - camY > H + 140) return;
+      drawRing(r, { past: i < cur, cur: i === cur, next: i === cur + 1, inner: i === cur && spark.onInner,
+        worn: i === cur && !spark.free && r.type === 'crumble' ? 1 - r.t / CRUMBLE_T : 0 });
+    });
+    for (const m of mines) { drawTrack(m.x0, m.y, m.amp); drawMine(mineX(m), m.y, Math.sign(m.w)); }
+    const N = rings[cur + 1];
+    if (N) { // sloppy grab zone (dashed, marching) around the target ring
+      cx.strokeStyle = 'rgba(255,255,255,.4)'; cx.lineWidth = 1.5; cx.setLineDash([5, 7]); cx.lineDashOffset = -clk * 20;
+      cx.beginPath(); cx.arc(N.x, N.y, N.r + GRAB, 0, TAU); cx.stroke();
+      cx.setLineDash([]); cx.lineDashOffset = 0;
+      const label = N.double ? ['BULLSEYE x2', C.gold] : N.type === 'crumble' ? [T.w.crumbleOne + ' - leave fast!', '#FFD9A0'] : null;
+      if (label) txt(label[0], N.x, N.y - N.r - GRAB - 8, 13, label[1], C.ink, W - 20);
+    }
+    const R = rings[cur], rr = orR(R), a = aimA();
+    const sx = spark.free ? spark.x : R.x + Math.cos(a) * rr;
+    const sy = spark.free ? spark.y : R.y + Math.sin(a) * rr;
+    if (!spark.free && state !== 'dead') {
+      const k = windK();
+      if (charge) { // wind-up range on the ring + a ghost where you pressed
+        const dir = Math.sign(orSpin(R)), e0 = spark.a + dir * WIND * WIND_BACK, e1 = spark.a + dir * WIND;
+        cx.strokeStyle = 'rgba(255,210,63,.45)'; cx.lineWidth = 10; cx.lineCap = 'round';
+        cx.beginPath(); cx.arc(R.x, R.y, rr, Math.min(e0, e1), Math.max(e0, e1)); cx.stroke();
+        cx.lineCap = 'butt';
+        cx.fillStyle = 'rgba(255,255,255,.5)';
+        cx.beginPath(); cx.arc(R.x + Math.cos(spark.a) * rr, R.y + Math.sin(spark.a) * rr, 4, 0, TAU); cx.fill();
+      }
+      // Aim line: the spark leaves straight out from the ring; it stretches while charging
+      // and turns gold when the shot would snap clean onto the next donut.
+      drawAim(sx, sy, a, 34 + k * 110, N && cleanLine(sx, sy, a, N) ? C.gold : '#FFFFFF');
+      if (charge && k > 0) { // charge meter around the spark; flickers when full (about to auto-fire)
+        const full = k >= 1 && Math.sin(clk * 40) > 0;
+        cx.strokeStyle = full ? '#FFFFFF' : C.gold; cx.lineWidth = 3.5; cx.lineCap = 'round';
+        cx.beginPath(); cx.arc(sx, sy, 16, -Math.PI / 2, -Math.PI / 2 + TAU * k); cx.stroke();
+        cx.lineCap = 'butt';
+      }
+    }
+    if (state !== 'dead') { trail.push({ x: sx, y: sy }); if (trail.length > 14) trail.shift(); } else trail.shift();
+    for (let i = 0; i < trail.length; i++) { const f = (i + 1) / trail.length; cx.fillStyle = skinCol(i); cx.globalAlpha = f * 0.4; cx.beginPath(); cx.arc(trail[i].x, trail[i].y, 9 * f, 0, TAU); cx.fill(); }
+    cx.globalAlpha = 1;
+    if (state !== 'dead') drawBall(sx, sy, 9 + (charge ? windK() * 1.5 : 0), spark.free ? spark.vx : 0, spark.free ? spark.vy : 0, N ? Math.atan2(N.y - sy, N.x - sx) : undefined);
+    for (const w of waves) { cx.globalAlpha = w.life; cx.strokeStyle = w.col; cx.lineWidth = 5 * w.life; cx.beginPath(); cx.arc(w.x, w.y, w.r, 0, TAU); cx.stroke(); }
+    drawParts(parts);
+    for (const p of pops) {
+      const s = 1 + Math.max(0, (p.life - 0.8) / 0.2) * 0.8;
+      cx.globalAlpha = Math.min(1, p.life * 1.5);
+      cx.save(); cx.translate(Math.max(95, Math.min(W - 95, p.x)), p.y); cx.scale(s, s);
+      txt(p.text, 0, 0, p.size, p.col, C.ink, 180); cx.restore();
+    }
+    cx.globalAlpha = 1;
+    cx.restore();
+
+    cx.fillStyle = vign; cx.fillRect(0, 0, W, H);
+    if (flash > 0) { cx.fillStyle = 'rgba(' + flashCol + ',' + Math.min(0.5, flash * 0.5) + ')'; cx.fillRect(0, 0, W, H); }
+    if (state === 'play' || state === 'dead') drawHUD();
+    if (state === 'title') drawTitle();
+    else if (state === 'tut') drawTut();
+    else if (state === 'store') drawStore();
+    else if (state === 'dead' && !DEMO) drawDead();
+  }
+  function drawParts(arr) {
+    for (const p of arr) {
+      const f = Math.max(0, p.life / p.max);
+      cx.globalAlpha = Math.min(1, f * 1.6); cx.fillStyle = p.col;
+      if (p.kind === 'star') star4(p.x, p.y, 3 + 5 * f, p.rot);
+      else if (p.kind === 'crumb') { cx.beginPath(); cx.arc(p.x, p.y, 3.5, 0, TAU); cx.fill(); }
+      else if (p.kind === 'coin') { cx.save(); cx.translate(p.x, p.y); cx.scale(Math.max(0.2, Math.abs(Math.cos(p.rot))), 1); coinIcon(0, 0, 6); cx.restore(); }
+      else { cx.save(); cx.translate(p.x, p.y); cx.rotate(p.rot); cx.fillRect(-4.5, -2, 9, 4); cx.restore(); }
+    }
+    cx.globalAlpha = 1;
+  }
+
+  function drawHUD() {
+    cx.textAlign = 'center';
+    cx.save(); cx.translate(W / 2, 66); cx.scale(1 + bump * 0.3, 1 + bump * 0.3);
+    txt(String(Math.round(shown)), 0, 0, 50, '#FFFFFF', C.ink);
+    cx.restore();
+    const m = mult(), s = 1 + multFlash * 0.5, pw = 62, ph = 28, py = 98;
+    cx.save(); cx.translate(W / 2, py); cx.scale(s, s);
+    rrect(-pw / 2, -ph / 2, pw, ph, ph / 2);
+    cx.fillStyle = m > 1 ? C.gold : 'rgba(255,255,255,.2)'; cx.fill();
+    cx.lineWidth = 2.5; cx.strokeStyle = C.ink; cx.stroke();
+    cx.textBaseline = 'middle';
+    txt('x' + m, 0, 1, 18, m > 1 ? C.ink : '#FFFFFF', m > 1 ? null : C.ink);
+    cx.restore();
+    if (m < MAX_MULT) { // pips: clean catches toward the next multiplier step
+      const got = streak % STREAK_PER_MULT;
+      for (let i = 0; i < STREAK_PER_MULT; i++) {
+        cx.fillStyle = i < got ? C.gold : 'rgba(255,255,255,.3)'; cx.strokeStyle = C.ink; cx.lineWidth = 1.5;
+        cx.beginPath(); cx.arc(W / 2 + (i - (STREAK_PER_MULT - 1) / 2) * 16, 126 + multFlash * 6, 4.5, 0, TAU); cx.fill(); cx.stroke();
+      }
+    }
+    if (!DEMO && hiScore) { cx.textAlign = 'left'; txt('BEST ' + hiScore, 16, 32, 14, C.gold, C.ink); cx.textAlign = 'center'; }
+    if (banner) {
+      const k = easeOutBack(Math.min(1, (1.2 - banner.life) * 4));
+      cx.globalAlpha = Math.min(1, banner.life * 3);
+      cx.save(); cx.translate(W / 2, H * 0.36); cx.scale(k, k); cx.rotate(-0.06);
+      txt(banner.text, 0, 0, 42, C.gold, C.ink, W - 40); cx.restore();
+      cx.globalAlpha = 1;
+    }
+    if (hint && state === 'play') {
+      const bw = Math.min(W - 24, 440), bh = 82, bx = (W - bw) / 2, by = H - bh - 18;
+      rrect(bx, by, bw, bh, 18); cx.fillStyle = 'rgba(42,15,58,.72)'; cx.fill();
+      txt('TAP to shoot straight out - GOLD dots = clean shot', W / 2, by + 26, 17, '#FFFFFF', null, bw - 24);
+      txt('HOLD to wind it along the ' + T.w.ring + ', release to fire', W / 2, by + 48, 14, C.gold, null, bw - 24, '600');
+      txt('Hit the ' + T.w.ring + ' itself for combos. Red spikes kill!', W / 2, by + 68, 14, '#FFC2DD', null, bw - 24, '600');
+    }
+  }
+
+  function logoWord(s, y, sz, off) {
+    cx.font = font(sz, '900');
+    const ch = [...s], ws = ch.map(c => cx.measureText(c).width), gap = sz * 0.04;
+    let px = W / 2 - (ws.reduce((a, b) => a + b, 0) + gap * (ch.length - 1)) / 2;
+    ch.forEach((c, i) => {
+      const bob = Math.sin(clk * 3 + (i + off) * 0.7) * sz * 0.06, rot = Math.sin(clk * 2 + i + off) * 0.06;
+      cx.save(); cx.translate(px + ws[i] / 2, y + bob); cx.rotate(rot);
+      cx.textAlign = 'center'; cx.lineJoin = 'round'; cx.strokeStyle = C.ink; cx.lineWidth = sz * 0.18;
+      cx.strokeText(c, 0, sz * 0.07); cx.strokeText(c, 0, 0);
+      cx.fillStyle = LOGO[(i + off) % LOGO.length]; cx.fillText(c, 0, 0);
+      cx.restore();
+      px += ws[i] + gap;
+    });
+  }
+  function drawTitle() {
+    const g = cx.createLinearGradient(0, 0, 0, H * 0.65);
+    g.addColorStop(0, 'rgba(30,8,50,.55)'); g.addColorStop(1, 'rgba(30,8,50,0)');
+    cx.fillStyle = g; cx.fillRect(0, 0, W, H);
+    const sz = Math.min(92, W / 4.6), y1 = H * 0.17 + sz * 0.5, y2 = y1 + sz * 0.95, ty = y2 + sz * 0.62;
+    logoWord('ORBIT', y1, sz, 0);
+    logoWord('SNAP', y2, sz * 1.1, 2);
+    cx.textAlign = 'center';
+    txt(T.w.tag, W / 2, ty, 17, C.cream, C.ink, W - 40);
+    const py = Math.max(H * 0.47, ty + 50), bw = Math.min(170, (W - 48) / 2);
+    button('play', 'PLAY', W / 2, py, 190, 56, C.pink, C.pinkDk, true);
+    button('how', 'HOW TO PLAY', W / 2 - bw / 2 - 6, py + 66, bw, 40, C.violet, C.violetDk);
+    shopButton(W / 2 + bw / 2 + 6, py + 66, bw, 40);
+    coinPill(W - 14, 30, true);
+    if (hiScore) { cx.textAlign = 'center'; txt('BEST  ' + hiScore, W / 2, H - 26, 16, C.gold, C.ink); }
+    if (giftT !== null && giftT > GIFT_POP) drawGiftTag();
+    drawParts(uiParts);
+  }
+  // "+10,000 TEST COINS!" speech tag that pops out of the title's coin pill, bobs, then fades.
+  function drawGiftTag() {
+    const k = easeOutBack(Math.min(1, (giftT - GIFT_POP) * 3.5)), s = '+' + num(GIFT) + ' TEST COINS!', h = 30;
+    cx.font = font(15); const w = cx.measureText(s).width + 32;
+    cx.save(); cx.globalAlpha = Math.max(0, Math.min(1, (GIFT_SHOW - giftT) * 2));
+    cx.translate(W - 44, 47 + Math.sin(clk * 4) * 1.5); cx.scale(k, k); // pivot on the pointer tip, under the pill
+    rrect(30 - w, 9, w, h, h / 2); cx.fillStyle = C.gold; cx.fill(); cx.lineWidth = 2.5; cx.strokeStyle = C.ink; cx.stroke();
+    cx.beginPath(); cx.moveTo(-8, 10.5); cx.lineTo(0, 0); cx.lineTo(8, 10.5); cx.fill(); cx.stroke();
+    cx.textAlign = 'center'; cx.textBaseline = 'middle'; txt(s, 30 - w / 2, 9 + h / 2 + 1, 15, C.ink, null, w - 20);
+    cx.restore();
+  }
+  function shopButton(x, y, w, h) {
+    const hot = shopHasNew();
+    button('shop', 'SHOP', x, y, w, h, C.gold, C.goldDk, hot);
+    if (hot) { // something new is affordable
+      const bx = x + w / 2 - 6, by = y - h / 2 + 2, s = 1 + Math.sin(clk * 8) * 0.12;
+      cx.save(); cx.translate(bx, by); cx.scale(s, s);
+      cx.fillStyle = C.red; cx.strokeStyle = C.ink; cx.lineWidth = 2; cx.beginPath(); cx.arc(0, 0, 10, 0, TAU); cx.fill(); cx.stroke();
+      cx.textBaseline = 'middle'; cx.textAlign = 'center'; txt('!', 0, 1, 14, '#FFFFFF'); cx.textBaseline = 'alphabetic';
+      cx.restore();
+    }
+  }
+  function coinIcon(x, y, r) {
+    cx.fillStyle = C.goldDk; cx.beginPath(); cx.arc(x, y + 1.5, r, 0, TAU); cx.fill();
+    cx.fillStyle = C.gold; cx.beginPath(); cx.arc(x, y, r, 0, TAU); cx.fill();
+    cx.lineWidth = 2; cx.strokeStyle = C.ink; cx.stroke();
+    cx.fillStyle = '#FFF6C0'; star4(x, y, r * 0.6, 0);
+  }
+  // Coin counter pill; `right` anchors x to the pill's right edge instead of its centre.
+  function coinPill(x, y, right) {
+    const s = num(coinsShown), h = 30;
+    cx.font = font(18); const w = cx.measureText(s).width + 46, x0 = right ? x - w : x - w / 2;
+    rrect(x0, y - h / 2, w, h, h / 2); cx.fillStyle = 'rgba(42,15,58,.78)'; cx.fill();
+    cx.lineWidth = 2.5; cx.strokeStyle = C.ink; cx.stroke();
+    coinIcon(x0 + 16, y, 9);
+    cx.save(); cx.textAlign = 'left'; cx.textBaseline = 'middle'; txt(s, x0 + 31, y + 1, 18, C.gold); cx.restore();
+  }
+
+  // ---------- shop ----------
+  const pv = ring(0, 0, 30); // preview ring drawn in theme cards
+  function shopCard(key, it, x, y, w, h) {
+    const kind = key.slice(0, 2), own = owned.has(key), eq = kind === 'th' ? T === it : S === it, afford = coins >= it.price;
+    const dx = Math.sin(clk * 60) * (shakes[key] || 0) * 6, lift = eq ? Math.sin(clk * 3) * 1.5 : 0;
+    cx.save(); cx.translate(dx, lift);
+    rrect(x, y + 5, w, h, 16); cx.fillStyle = 'rgba(20,0,30,.35)'; cx.fill();
+    rrect(x, y, w, h, 16); cx.fillStyle = C.cream; cx.fill();
+    cx.lineWidth = eq ? 5 : 3; cx.strokeStyle = eq ? C.gold : C.ink; cx.stroke();
+    if (eq) { cx.lineWidth = 1.5; cx.strokeStyle = C.ink; rrect(x - 2.5, y - 2.5, w + 5, h + 5, 18); cx.stroke(); }
+    // preview window
+    const px = x + 6, py = y + 6, pw = w - 12, ph = Math.max(24, h - 50), m = Math.min(pw, ph);
+    cx.save(); rrect(px, py, pw, ph, 11); cx.clip();
+    const sky = kind === 'th' ? it.sky[0] : T.sky[0], g = cx.createLinearGradient(0, py, 0, py + ph);
+    g.addColorStop(0, sky[0]); g.addColorStop(0.6, sky[2]); g.addColorStop(1, sky[3]);
+    cx.fillStyle = g; cx.fillRect(px, py, pw, ph);
+    cx.translate(px + pw / 2, py + ph / 2);
+    if (kind === 'th') {
+      const keep = T; T = it;
+      cx.fillStyle = '#FFFFFF';
+      for (let k = 0; k < 9; k++) { cx.globalAlpha = 0.3 + 0.5 * hash(k * 2.7); cx.fillRect((hash(k * 5.1) - .5) * pw, (hash(k * 8.3) - .5) * ph, 2, 2); }
+      cx.globalAlpha = 1;
+      pv.r = m * 0.3; pv.rot = clk * 1.2; pv.seed = 3; pv.x = 0; pv.y = 0;
+      drawRing(pv, { cur: true });
+      const a = clk * 2.2; drawBall(Math.cos(a) * pv.r, Math.sin(a) * pv.r, Math.max(5, m * 0.07));
+      T = keep;
+    } else {
+      const rad = m * 0.24, bob = Math.sin(clk * 3 + x) * m * 0.04;
+      cx.fillStyle = it.trail === 'rainbow' ? 'hsl(' + Math.round(clk * 120 % 360) + ',100%,65%)' : it.trail;
+      for (let i = 1; i <= 4; i++) { cx.globalAlpha = 0.35 - i * 0.07; cx.beginPath(); cx.arc(-rad * (0.9 + i * 0.75), bob + i * 1.5, rad * (1 - i * 0.18), 0, TAU); cx.fill(); }
+      cx.globalAlpha = 1;
+      drawBall(0, bob, rad, 0, 0, clk * 1.3, it);
+    }
+    cx.restore();
+    if (!own && !afford) { // locked
+      rrect(px, py, pw, ph, 11); cx.fillStyle = 'rgba(30,8,50,.4)'; cx.fill();
+      const lx = px + pw - 13, ly = py + 14;
+      cx.strokeStyle = C.cream; cx.lineWidth = 2.2; cx.beginPath(); cx.arc(lx, ly - 2, 4, Math.PI, TAU); cx.stroke();
+      cx.fillStyle = C.cream; cx.fillRect(lx - 6, ly - 2, 12, 9);
+    }
+    if (kind === 'sk' && it.match && it.match === T.id) { // designed for the current theme
+      rrect(px + 4, py + 4, 46, 16, 8); cx.fillStyle = C.gold; cx.fill(); cx.lineWidth = 1.5; cx.strokeStyle = C.ink; cx.stroke();
+      cx.textAlign = 'center'; cx.textBaseline = 'middle'; txt('MATCH', px + 27, py + 12.5, 10, C.ink); cx.textBaseline = 'alphabetic';
+    }
+    cx.textAlign = 'center';
+    txt(it.name, x + w / 2, y + h - 26, 14, C.text, null, w - 12);
+    if (eq) txt('EQUIPPED', x + w / 2, y + h - 9, 12, C.goldDk, null, w - 12);
+    else if (own) txt('TAP TO EQUIP', x + w / 2, y + h - 9, 12, C.mintDk, null, w - 12);
+    else {
+      cx.font = font(14); const tw = cx.measureText(String(it.price)).width, cxm = x + w / 2 + 8;
+      coinIcon(cxm - tw / 2 - 12, y + h - 14, 6.5);
+      txt(String(it.price), cxm, y + h - 9, 14, afford ? C.pinkDk : '#A58BA0');
+    }
+    cx.restore();
+    btns.push({ id: key, x, y, w, h });
+  }
+  function drawStore() {
+    cx.fillStyle = 'rgba(30,8,50,.55)'; cx.fillRect(0, 0, W, H);
+    cx.textAlign = 'center';
+    txt('SWEET SHOP', W / 2, 50, 34, C.pink, C.ink, W - 40);
+    coinPill(W / 2, 82);
+    const th = storeTab === 'themes', tw = Math.min(140, (W - 40) / 2);
+    button('tab:themes', 'THEMES', W / 2 - tw / 2 - 5, 124, tw, 36, th ? C.pink : C.violet, th ? C.pinkDk : C.violetDk);
+    button('tab:balls', 'BALLS', W / 2 + tw / 2 + 5, 124, tw, 36, th ? C.violet : C.pink, th ? C.violetDk : C.pinkDk);
+    const items = shopItems().filter(([k]) => k.startsWith(th ? 'th:' : 'sk:'));
+    const cols = th ? 2 : 3, rows = Math.ceil(items.length / cols), gap = 10, top = 160, avail = H - top - 116;
+    const gw = Math.min(W - 24, th ? 420 : 460), cw = (gw - gap * (cols - 1)) / cols;
+    const ch = Math.max(84, Math.min(cw * (th ? 1.0 : 1.2), (avail - gap * (rows - 1)) / rows));
+    const gx = (W - gw) / 2;
+    items.forEach(([k, it], i) => shopCard(k, it, gx + (i % cols) * (cw + gap), top + Math.floor(i / cols) * (ch + gap), cw, ch));
+    button('back', 'BACK', W / 2, H - 40, 150, 42, C.mint, C.mintDk);
+    drawParts(uiParts);
+    if (toast) {
+      cx.globalAlpha = Math.min(1, toast.life * 3);
+      cx.font = font(16); const w = Math.min(W - 24, cx.measureText(toast.text).width + 36), y = H - 92;
+      rrect(W / 2 - w / 2, y - 17, w, 34, 17); cx.fillStyle = 'rgba(42,15,58,.9)'; cx.fill(); cx.lineWidth = 2.5; cx.strokeStyle = C.ink; cx.stroke();
+      cx.textBaseline = 'middle'; txt(toast.text, W / 2, y + 1, 16, toast.col, null, w - 20); cx.textBaseline = 'alphabetic';
+      cx.globalAlpha = 1;
+    }
+  }
+
+  // Tutorial pages: each has an animated little scene (tutArt) that loops.
+  // Descriptions are functions so they use the equipped theme's and ball's names.
+  const cap = s => s[0].toUpperCase() + s.slice(1);
+  const TUT = [
+    { t: 'Tap to launch', d: () => 'Your ' + S.noun + ' orbits the ' + T.w.ring + '. Tap and it shoots straight out from the ring. When the aim dots turn GOLD, you are lined up for a clean snap on the next ' + T.w.ring + '!' },
+    { t: 'Hold to wind up', d: () => 'Hold and the ' + S.noun + ' grips the ring: it pulls back, then whips forward past where you pressed. Let go at any moment to fire from there.' },
+    { t: 'Snap clean = combo', d: () => 'Hit the ' + T.w.ring + ' itself: every 3 clean snaps raise your multiplier (up to x8). Grazing the dashed zone saves you but breaks the streak. Double ' + T.w.ring + '? Hit a ' + T.w.arc + ' for BULLSEYE x2 - a gap breaks the streak.' },
+    { t: 'Watch out!', d: () => 'Red ' + T.w.spikes + ' block you going in AND out. ' + cap(T.w.bomb) + ' slide on their tracks. ' + cap(T.w.crumble) + ' crumble soon after you land - leave fast!' },
+    { t: 'Coins & shop', d: () => 'Every point you score is a coin. Spend them in the SHOP on new worlds (Neon Night, Deep Sea, Cosmic Drift) and ball skins - tap one you own to wear it.' },
+  ];
+  const tA = ring(0, 0, 28), tB = ring(0, 0, 26), tW = ring(0, 0, 36), tD = ring(0, 0, 40, 'double'), tS = ring(0, 0, 22, 'spike'), tC = ring(0, 0, 24, 'crumble'), tK = ring(0, 0, 34);
+  tA.spin = tB.spin = tW.spin = 2.2; tD.inSpin = -2;
+  function tutArt(p, ax, ay, aw, ah) {
+    cx.save(); rrect(ax, ay, aw, ah, 16);
+    const g = cx.createLinearGradient(0, ay, 0, ay + ah); g.addColorStop(0, T.sky[0][0]); g.addColorStop(1, T.sky[0][2]);
+    cx.fillStyle = g; cx.fill(); cx.clip();
+    cx.translate(ax + aw / 2, ay + ah / 2); cx.textAlign = 'center';
+    const t = tutT;
+    if (p === 0) { // orbit, tap, fly, land
+      tA.x = -aw * 0.22; tA.y = 30; tB.x = aw * 0.2; tB.y = -24;
+      const la = Math.atan2(tB.y - tA.y, tB.x - tA.x), ux = Math.cos(la), uy = Math.sin(la), ph = t % 2.6;
+      tA.rot = tB.rot = clk * 2.2; tB.pulse = ph > 1.6 ? Math.max(0, 1 - (ph - 1.6) * 2) : 0;
+      drawRing(tA, { cur: ph < 1.2 }); drawRing(tB, { next: ph < 1.6, cur: ph >= 1.6 });
+      let gx, gy;
+      if (ph < 1.2) { const a = la - (1.2 - ph) * 2.2; gx = tA.x + Math.cos(a) * tA.r; gy = tA.y + Math.sin(a) * tA.r; drawAim(gx, gy, a, 34, cleanLine(gx, gy, a, tB) ? C.gold : '#FFFFFF'); }
+      else if (ph < 1.6) {
+        const f = (ph - 1.2) / 0.4, x0 = tA.x + ux * tA.r, y0 = tA.y + uy * tA.r, x1 = tB.x - ux * tB.r, y1 = tB.y - uy * tB.r;
+        gx = x0 + (x1 - x0) * f; gy = y0 + (y1 - y0) * f;
+      } else { const a = la + Math.PI + (ph - 1.6) * 2.2; gx = tB.x + Math.cos(a) * tB.r; gy = tB.y + Math.sin(a) * tB.r; }
+      drawBall(gx, gy, 8);
+      if (ph > 1.0 && ph < 1.7) txt('TAP!', tA.x, tA.y - tA.r - 20, 20, C.gold, C.ink);
+    } else if (p === 1) { // hold: pull back, whip forward, let go
+      tW.x = -aw * 0.12; tW.y = 22; tW.rot = clk * 0.6;
+      const ph = t % 2.4, a0 = -Math.PI / 2 - 0.2;
+      drawRing(tW, { cur: true });
+      let a = null, k = 0;
+      if (ph < 0.5) a = a0 - (0.5 - ph) * 1.8;
+      else if (ph < 1.45) {
+        k = (ph - 0.5) / 0.95; a = a0 + WIND * windShape(k);
+        cx.strokeStyle = 'rgba(255,210,63,.45)'; cx.lineWidth = 10; cx.lineCap = 'round';
+        cx.beginPath(); cx.arc(tW.x, tW.y, tW.r, a0 + WIND * WIND_BACK, a0 + WIND); cx.stroke(); cx.lineCap = 'butt';
+        cx.fillStyle = 'rgba(255,255,255,.5)'; cx.beginPath(); cx.arc(tW.x + Math.cos(a0) * tW.r, tW.y + Math.sin(a0) * tW.r, 4, 0, TAU); cx.fill();
+        txt('HOLD...', tW.x + tW.r + 64, tW.y + 30, 18, C.gold, C.ink);
+      }
+      if (a !== null) {
+        const gx = tW.x + Math.cos(a) * tW.r, gy = tW.y + Math.sin(a) * tW.r;
+        drawAim(gx, gy, a, 30 + k * 60, '#FFFFFF');
+        if (k) { cx.strokeStyle = C.gold; cx.lineWidth = 3.5; cx.beginPath(); cx.arc(gx, gy, 15, -Math.PI / 2, -Math.PI / 2 + TAU * k); cx.stroke(); }
+        drawBall(gx, gy, 8 + k * 1.5);
+      } else if (ph < 2.0) {
+        const fa = a0 + WIND, d = tW.r + (ph - 1.45) * 380;
+        drawBall(tW.x + Math.cos(fa) * d, tW.y + Math.sin(fa) * d, 8, Math.cos(fa) * 500, Math.sin(fa) * 500);
+        txt('LET GO!', tW.x + tW.r + 64, tW.y + 30, 18, C.gum, C.ink);
+      }
+    } else if (p === 2) { // dive into the caramel for a bullseye
+      tD.x = -aw * 0.16; tD.y = 14; tD.rot = clk * tD.spin;
+      const ph = t % 2.2, land = 1.0;
+      tD.inA = Math.PI / 2 - SLOT * SOLID / 2 + tD.inSpin * (ph - land);
+      tD.pulse = ph > land ? Math.max(0, 1 - (ph - land) * 2) : 0;
+      cx.strokeStyle = 'rgba(255,255,255,.4)'; cx.lineWidth = 1.5; cx.setLineDash([5, 7]);
+      cx.beginPath(); cx.arc(tD.x, tD.y, tD.r + GRAB, 0, TAU); cx.stroke(); cx.setLineDash([]);
+      drawRing(tD, { next: ph < land, cur: ph >= land, inner: ph >= land });
+      if (ph >= 0.4 && ph < land) { const f = (ph - 0.4) / (land - 0.4), y0 = ah / 2 + 12, y1 = tD.y + tD.rin; drawBall(tD.x, y0 + (y1 - y0) * f, 8, 0, -500); }
+      else if (ph >= land) { const a = Math.PI / 2 + tD.inSpin * (ph - land); drawBall(tD.x + Math.cos(a) * tD.rin, tD.y + Math.sin(a) * tD.rin, 8); }
+      if (ph >= land && ph < 1.9) {
+        const s = 1 + Math.max(0, 1 - (ph - land) * 5) * 0.6;
+        cx.save(); cx.translate(tD.x, tD.y - tD.r - 14); cx.scale(s, s); txt('BULLSEYE x2', 0, 0, 16, C.gold, C.ink); cx.restore();
+      }
+      const rx = aw * 0.27, got = Math.min(3, Math.floor((t % 3.2) / 0.8));
+      rrect(rx - 30, -26, 60, 28, 14); cx.fillStyle = got === 3 ? C.gold : 'rgba(255,255,255,.2)'; cx.fill();
+      cx.strokeStyle = C.ink; cx.lineWidth = 2.5; cx.stroke();
+      cx.textBaseline = 'middle'; txt(got === 3 ? 'x2' : 'x1', rx, -11, 17, got === 3 ? C.ink : '#FFFFFF', got === 3 ? null : C.ink); cx.textBaseline = 'alphabetic';
+      for (let i = 0; i < 3; i++) { cx.fillStyle = i < got && got < 3 ? C.gold : 'rgba(255,255,255,.3)'; cx.beginPath(); cx.arc(rx + (i - 1) * 16, 18, 4.5, 0, TAU); cx.fill(); }
+      txt('3 clean = combo', rx, 46, 12, '#FFFFFF', C.ink, aw * 0.4);
+    } else if (p === 3) { // hazards line-up
+      const xs = [-aw / 3, 0, aw / 3];
+      tS.x = xs[0]; tS.y = -8; tS.spA = clk * 0.9; tS.rot = clk * 2;
+      drawRing(tS, {});
+      drawTrack(xs[1], -8, Math.min(34, aw / 7)); drawMine(xs[1] + Math.sin(clk * 2) * Math.min(34, aw / 7), -8, 1);
+      const k = (t % 2.4) / 2.4; tC.x = xs[2]; tC.y = -8; tC.t = CRUMBLE_T * (1 - k); tC.rot = clk * 1.5;
+      drawRing(tC, { cur: true, worn: k });
+      [['SPIKES', C.red], [T.w.bombTag, '#FF7AA8'], [T.w.crumbleOne, '#FFD9A0']].forEach(([l, c], i) => txt(l, xs[i], 56, 13, c, C.ink, aw / 3 - 8));
+    } else { // coins pour in, then the ball cycles through skins
+      const ph = t % 3;
+      for (let i = 0; i < 5; i++) {
+        const f = Math.min(1, Math.max(0, (ph - i * 0.15) / 0.5)), x = -aw * 0.3 + i * 13, y = -40 + f * 60 - Math.sin(f * Math.PI) * 30;
+        if (f > 0) coinIcon(x, y, 8);
+      }
+      txt('+' + Math.min(5, Math.floor(ph / 0.15)), -aw * 0.3 + 26, 48, 16, C.gold, C.ink);
+      const sk = SKINS[Math.floor(tutT / 0.9) % SKINS.length], bx = aw * 0.18;
+      tK.x = bx; tK.y = 0; tK.rot = clk;
+      drawRing(tK, { cur: true });
+      const a = clk * 2.2; drawBall(bx + Math.cos(a) * tK.r, Math.sin(a) * tK.r, 10, 0, 0, a, sk);
+      txt(sk.name, bx, 56, 13, '#FFFFFF', C.ink, aw * 0.45);
+    }
+    cx.restore();
+  }
+  function drawTut() {
+    cx.fillStyle = 'rgba(30,8,50,.55)'; cx.fillRect(0, 0, W, H);
+    const P = TUT[tutPage], cw = Math.min(W - 28, 400), pad = 18, artH = 150;
+    const lines = wrap(P.d(), cw - pad * 2, 15), ch = 64 + artH + 14 + lines.length * 21 + 78;
+    const x0 = (W - cw) / 2, y0 = Math.max(60, (H - ch) / 2), k = 0.85 + 0.15 * easeOutBack(Math.min(1, tutT * 4));
+    cx.save(); cx.translate(W / 2, y0 + ch / 2); cx.scale(k, k); cx.translate(-W / 2, -(y0 + ch / 2));
+    rrect(x0, y0 + 8, cw, ch, 24); cx.fillStyle = 'rgba(20,0,30,.35)'; cx.fill();
+    rrect(x0, y0, cw, ch, 24); cx.fillStyle = C.cream; cx.fill(); cx.lineWidth = 4; cx.strokeStyle = C.ink; cx.stroke();
+    cx.textAlign = 'center';
+    txt(P.t, W / 2, y0 + 44, 28, C.pink, C.ink, cw - 40);
+    tutArt(tutPage, x0 + pad, y0 + 60, cw - pad * 2, artH);
+    cx.textAlign = 'center'; cx.fillStyle = C.text; cx.font = font(15, '600');
+    lines.forEach((l, i) => cx.fillText(l, W / 2, y0 + 60 + artH + 30 + i * 21));
+    for (let i = 0; i < TUT.length; i++) {
+      cx.fillStyle = i === tutPage ? C.pink : '#E3C9D9';
+      cx.beginPath(); cx.arc(W / 2 + (i - (TUT.length - 1) / 2) * 16, y0 + ch - 64, i === tutPage ? 5.5 : 4.5, 0, TAU); cx.fill();
+    }
+    button('next', tutPage < TUT.length - 1 ? 'NEXT' : "LET'S GO!", W / 2, y0 + ch - 32, 170, 42, C.pink, C.pinkDk, true);
+    cx.restore();
+    button('skip', 'SKIP', W - 56, 32, 84, 34, C.violet, C.violetDk);
+  }
+  function drawDead() {
+    const a = Math.min(1, deadT * 3), k = easeOutBack(Math.min(1, deadT * 2.6));
+    cx.fillStyle = 'rgba(30,8,50,' + 0.5 * a + ')'; cx.fillRect(0, 0, W, H);
+    const cw = Math.min(W - 40, 330), ch = 226, x0 = (W - cw) / 2, y0 = H * 0.4 - ch / 2;
+    cx.save(); cx.translate(W / 2, y0 + ch / 2); cx.scale(k, k); cx.translate(-W / 2, -(y0 + ch / 2));
+    rrect(x0, y0 + 8, cw, ch, 24); cx.fillStyle = 'rgba(20,0,30,.35)'; cx.fill();
+    rrect(x0, y0, cw, ch, 24); cx.fillStyle = C.cream; cx.fill(); cx.lineWidth = 4; cx.strokeStyle = C.ink; cx.stroke();
+    rrect(x0 + 24, y0 - 24, cw - 48, 48, 22); cx.fillStyle = C.red; cx.fill(); cx.lineWidth = 3.5; cx.stroke();
+    cx.textAlign = 'center';
+    txt(T.w.crash, W / 2, y0 + 10, 26, '#FFFFFF', C.ink, cw - 70);
+    txt(why, W / 2, y0 + 52, 16, '#A0306A', null, cw - 30);
+    txt(String(score), W / 2, y0 + 118, 60, C.pink, C.ink);
+    txt('BEST ' + hiScore + '   ·   STREAK ' + best, W / 2, y0 + 162, 15, C.text, null, cw - 30);
+    { // coins earned this run (every point = 1 coin)
+      const s = '+' + num(earned) + ' coins   (' + num(coins) + ')';
+      cx.font = font(16); const tw = cx.measureText(s).width;
+      coinIcon(W / 2 - tw / 2 - 4, y0 + 196, 8);
+      txt(s, W / 2 + 10, y0 + 202, 16, C.goldDk, null, cw - 50);
+    }
+    if (newBest) {
+      cx.save(); cx.translate(x0 + cw - 18, y0 + 80); cx.rotate(0.3 + Math.sin(clk * 6) * 0.08);
+      cx.fillStyle = C.gold; cx.strokeStyle = C.ink; cx.lineWidth = 3;
+      cx.beginPath(); for (let i = 0; i < 20; i++) { const r = i % 2 ? 26 : 36, t = i * TAU / 20; i ? cx.lineTo(Math.cos(t) * r, Math.sin(t) * r) : cx.moveTo(r, 0); }
+      cx.closePath(); cx.fill(); cx.stroke();
+      txt('NEW', 0, -3, 13, C.ink); txt('BEST!', 0, 12, 13, C.ink);
+      cx.restore();
+    }
+    cx.restore();
+    if (deadT > 0.25) {
+      button('retry', 'TAP TO RETRY', W / 2, y0 + ch + 48, 210, 50, C.mint, C.mintDk, true);
+      shopButton(W / 2, y0 + ch + 106, 150, 40);
+    }
+  }
+
+  function loop(t) {
+    const dt = Math.min(0.033, (t - last) / 1000); last = t;
+    try {
+      if (freeze > 0) { freeze -= dt; step(dt * 0.05); } else step(dt);
+      draw();
+      sfx.whine(charge && state === 'play' ? windK() : 0);
+    } catch (err) { cx.fillStyle = '#FF5A6E'; cx.font = '14px monospace'; cx.textAlign = 'left'; cx.fillText('Error: ' + err.message, 10, 20); return; }
+    requestAnimationFrame(loop);
+  }
+  reset(); if (!DEMO) state = 'title';
+  requestAnimationFrame(loop);
+})();
+</script>
+<a href="../../#lab" style="position:fixed;left:10px;top:10px;z-index:2147483647;padding:6px 10px;border-radius:999px;background:rgba(6,18,31,.72);color:#E8EEFF;font:600 12px/1 system-ui,sans-serif;text-decoration:none;border:1px solid rgba(69,200,255,.35)" aria-label="Back to Mythic Flow Studio">← Mythic Flow Studio</a>
+</body>
+</html>
