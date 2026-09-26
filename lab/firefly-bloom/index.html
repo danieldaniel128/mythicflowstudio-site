@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Firefly Bloom Idle</title>
 <style>
-html,body{margin:0;height:100%;background:#050a18;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#06101f;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
 canvas{display:block;touch-action:none}
 #err{position:fixed;left:8px;right:8px;bottom:8px;padding:8px 10px;background:rgba(160,20,50,.92);color:#fff;font:bold 14px/1.3 sans-serif;border-radius:8px;display:none;z-index:9;white-space:pre-wrap}
 </style>
@@ -27,20 +27,22 @@ window.addEventListener('error',e=>showErr(e.message||e));
 // ---------- layout ----------
 const BX0=16,BX1=344,BY0=102,BY1=460;        // garden bed
 const BAR_Y=482;                              // seed / breeze timers
-const TAB_Y=494,TAB_H=26,TX=[12,182],TW=166;  // UPGRADES / CRITTERS tabs
-const UY=526,UH=98,UW=108,UX=[12,126,240];   // shop buttons
+const TAB_Y=494,TAB_H=26,TX=[24,130,236],TW=100;  // UPGRADES / CRITTERS / MOON tabs
+const UY=526,UH=98,UW=100,UX=[24,130,236];   // shop buttons, three per page
+const PG_X=[12,348];                          // page arrows beside the shop (a tab with more than three items)
 const RX=334,RY=30,HX=334,HY=76;              // restart + help buttons
+const MX=40,MY=38,MOON_BY=410;                // HUD moon (tap: Full Moon card) + the card's RISE button
 const THRESH=16,SAVE_KEY='ffbloom_idle_v4',OLD_KEY='ffbloom_idle_v3',TUT_KEY='ffbloom_tut_v1',AWAY_CAP=8*3600,AWAY_RATE=0.5;
 const CHAIN_WIN=7,CHAIN_STEP=0.35,CHAIN_EXT=0.8; // burst chain: window (s), mult per bloom, time added by a hand merge
 const REGEN=4,BOOST_MAX=5,BOOST_R=1.5,BOOST_T=1.25; // caught fireflies return after REGEN s; tapping boosts glow x1.5, timers x1.25
 const CRX=288,CRY=40;                         // chain readout, right of the glow counter
 const HELP_BY=432;                            // "replay tutorial" button in the help card
-const C={gold:'#ffd75e',petal:'#ff8fb8',leaf:'#3fbf74',white:'#f4f7ff'};
+const C={gold:'#ffd75e',petal:'#ff8fb8',aqua:'#7fd8f6',white:'#f4f7ff'};   // glow, bloom/chain, seeds/water, breeze
 const PX0=BX0-8,PY0=BY0-8,PW=BX1-BX0+16,PH=BY1-BY0+16;
 
 // ---------- quality: steps down automatically when frames run long ----------
 let Q=2,perfEma=1/60,perfBad=0,upT=0;
-const DPR_CAP=[1,1.5,2],PART_CAP=[110,200,320],FX=[0.4,0.7,1],AMB_CAP=[16,30,48],BUG_CAP=[24,40,64],RING_CAP=[14,24,36],TEXT_CAP=[10,16,24];
+const DPR_CAP=[1,1.5,2],PART_CAP=[110,200,320],FX=[0.4,0.7,1],AMB_CAP=[16,30,48],BUG_CAP=[24,40,64],RING_CAP=[14,24,36],TEXT_CAP=[10,16,24],WAVE_CAP=[12,20,32];
 const fxN=n=>Math.max(1,Math.round(n*FX[Q]));
 
 // ---------- helpers ----------
@@ -63,58 +65,112 @@ function fmt(n,dec){
 
 // ---------- pre-rendered sprites (one drawImage instead of gradients/paths/text every frame) ----------
 function mk(w,h){const c=document.createElement('canvas');c.width=Math.max(1,Math.ceil(w));c.height=Math.max(1,Math.ceil(h));return c;}
-function makeGlow(r,g,b,size){
-  const c=mk(size,size),x=c.getContext('2d'),s=size/2;
+function makeGlow(c0,c1,size){                    // soft radial light: c0 at the core, fading out through c1
+  const c=mk(size,size),x=c.getContext('2d'),s=size/2,f=(k,a)=>`rgba(${k[0]},${k[1]},${k[2]},${a})`;
   const gr=x.createRadialGradient(s,s,0,s,s,s);
-  gr.addColorStop(0,`rgba(${r},${g},${b},1)`);gr.addColorStop(0.2,`rgba(${r},${g},${b},0.6)`);
-  gr.addColorStop(0.5,`rgba(${r},${g},${b},0.15)`);gr.addColorStop(1,`rgba(${r},${g},${b},0)`);
+  gr.addColorStop(0,f(c0,1));gr.addColorStop(0.2,f(c0,0.6));gr.addColorStop(0.5,f(c1,0.15));gr.addColorStop(1,f(c1,0));
   x.fillStyle=gr;x.fillRect(0,0,size,size);return c;
 }
-const GLOW=makeGlow(255,215,94,64),PGLOW=makeGlow(255,143,184,64),MGLOW=makeGlow(190,210,255,64);
-const RIM=[0,1,2,3,4].map(l=>{const t=l/4;return `rgb(${Math.round(lerp(63,255,t))},${Math.round(lerp(191,215,t))},${Math.round(lerp(116,94,t))})`;});
+// gold light fades out through amber, so over the blue water it stays warm instead of turning olive
+const GLOW=makeGlow([255,215,94],[255,160,90],64),PGLOW=makeGlow([255,143,184],[255,143,184],64),
+  MGLOW=makeGlow([190,210,255],[190,210,255],64),AGLOW=makeGlow([127,216,246],[127,216,246],64);
+const SHADOW=(()=>{const c=mk(64,64),x=c.getContext('2d'),g=x.createRadialGradient(32,32,17,32,32,32);   // soft shadow on the pond floor
+  g.addColorStop(0,'rgba(2,12,26,0.62)');g.addColorStop(1,'rgba(2,12,26,0)');x.fillStyle=g;x.fillRect(0,0,64,64);return c;})();
+// pods: cool indigo bodies with periwinkle rims at 1, warming through violet and plum to a gold rim at 16
+const RIM=['#9fc4ff','#b9b0ff','#e2a8f2','#ffb38e','#ffd75e'];
+const POD_IN=[[70,84,152],[142,68,116]],POD_OUT=[[22,27,62],[50,20,50]];
+const mixC=(A,t)=>'rgb('+A[0].map((v,i)=>Math.round(lerp(v,A[1][i],t))).join(',')+')';
 const podR=v=>19+4.5*Math.log2(v);
 const prod=v=>0.4*Math.pow(v,1.25);          // glow/s per pod: merging always raises output
 const FFS=(()=>{const c=mk(48,48),x=c.getContext('2d');x.drawImage(GLOW,0,0,48,48);x.fillStyle='#fffbe0';x.beginPath();x.arc(24,24,4.4,0,Math.PI*2);x.fill();return c;})();
 const PET=(()=>{const c=mk(32,16),x=c.getContext('2d');x.fillStyle=C.petal;x.beginPath();x.ellipse(16,8,15.5,7.5,0,0,Math.PI*2);x.fill();return c;})();
 const VIG=(()=>{const c=mk(180,320),x=c.getContext('2d'),g=x.createRadialGradient(90,150,55,90,150,215);
   g.addColorStop(0,'rgba(255,143,184,0.04)');g.addColorStop(1,'rgba(255,143,184,0.42)');x.fillStyle=g;x.fillRect(0,0,180,320);return c;})();
-function flowerSprite(col){
+function flowerSprite(col,heart,glow){            // a water lily: two rings of pointed petals around a gold heart
   const S=128,c=mk(S,S),x=c.getContext('2d'),u=S/4.4;x.translate(S/2,S/2);
-  x.globalAlpha=0.5;x.drawImage(col===C.gold?GLOW:PGLOW,-S/2,-S/2,S,S);x.globalAlpha=1;x.fillStyle=col;
-  for(let i=0;i<5;i++){const a=i*1.2566;x.beginPath();x.ellipse(Math.cos(a)*u*0.55,Math.sin(a)*u*0.55,u*0.55,u*0.3,a,0,Math.PI*2);x.fill();}
-  x.fillStyle=col===C.gold?'#fff4c0':C.gold;x.beginPath();x.arc(0,0,u*0.28,0,Math.PI*2);x.fill();return c;
+  x.globalAlpha=0.5;x.drawImage(glow,-S/2,-S/2,S,S);x.globalAlpha=1;
+  const petal=(a,len,w)=>{const ca=Math.cos(a),sa=Math.sin(a);x.beginPath();x.moveTo(0,0);
+    x.quadraticCurveTo(ca*len*0.55-sa*w,sa*len*0.55+ca*w,ca*len,sa*len);x.quadraticCurveTo(ca*len*0.55+sa*w,sa*len*0.55-ca*w,0,0);x.fill();};
+  x.fillStyle=col;for(let i=0;i<8;i++)petal(i*Math.PI/4,u*1.12,u*0.36);
+  x.fillStyle=heart;for(let i=0;i<6;i++)petal(i*Math.PI/3+0.3,u*0.78,u*0.28);
+  x.fillStyle=C.gold;x.beginPath();x.arc(0,0,u*0.24,0,Math.PI*2);x.fill();
+  x.fillStyle='#fff4c0';x.beginPath();x.arc(-u*0.06,-u*0.06,u*0.1,0,Math.PI*2);x.fill();return c;
 }
-const FLW=[flowerSprite(C.petal),flowerSprite(C.gold)];
+// one palette per Full Moon (cycling): lilies [petals, heart, glow]; floating leaves [base, lit side, veins], a lily pad first
+const MOON_PAL=[
+  {name:'HARVEST MOON',lily:[[C.petal,'#ffd3e4',PGLOW],['#ffe6b0','#fff8ea',GLOW]],
+   leaf:[['#3d6f64','#62978a','rgba(18,50,44,0.55)'],['#b8742f','#e8a85a','rgba(112,60,22,0.6)'],['#9e4a32','#d0714c','rgba(88,32,20,0.6)'],['#86405a','#b9657c','rgba(70,22,40,0.6)']]},
+  {name:'FROST MOON',lily:[['#a9d8ff','#eef8ff',AGLOW],['#d4c6ff','#f5f0ff',MGLOW]],
+   leaf:[['#2f5f74','#5b8ea6','rgba(12,36,52,0.55)'],['#7c93b8','#b3c6e6','rgba(40,52,84,0.6)'],['#5d6aa0','#8d9bd2','rgba(30,36,72,0.6)'],['#8fa9b8','#c9dde6','rgba(50,70,84,0.6)']]},
+  {name:'FLOWER MOON',lily:[['#fff4ec','#ffffff',MGLOW],['#ffb3d9','#ffe4f2',PGLOW]],
+   leaf:[['#3f7a45','#6fae6a','rgba(18,52,22,0.55)'],['#7fa83a','#b1d66a','rgba(48,70,18,0.6)'],['#4f8a5e','#83bd8c','rgba(22,58,32,0.6)'],['#a8b84a','#d6e27c','rgba(70,80,24,0.6)']]},
+  {name:'EMBER MOON',lily:[['#ff7a6b','#ffd0c4',PGLOW],['#ffb14e','#ffe8b8',GLOW]],
+   leaf:[['#5a4a2a','#8a7444','rgba(40,30,12,0.55)'],['#c4502c','#f08050','rgba(100,30,14,0.6)'],['#a8321f','#dc5a3c','rgba(84,20,10,0.6)'],['#d08a2a','#f4bc5a','rgba(110,64,14,0.6)']]},
+  {name:'VIOLET MOON',lily:[['#c79bff','#efe0ff',MGLOW],['#ff9ee8','#ffe0f6',PGLOW]],
+   leaf:[['#3a5a6e','#5f8aa0','rgba(16,34,48,0.55)'],['#6e4a9e','#9c78cc','rgba(40,20,70,0.6)'],['#8a3f8a','#bb6cbb','rgba(60,18,60,0.6)'],['#4d4a9a','#7c78cc','rgba(26,24,70,0.6)']]},
+];
+let PAL=MOON_PAL[0],palKey=0,FLW=PAL.lily.map(a=>flowerSprite(a[0],a[1],a[2]));
+function setPalette(moons){                       // lilies and floating leaves change colour with every Full Moon
+  const k=moons%MOON_PAL.length;if(k===palKey)return;
+  palKey=k;PAL=MOON_PAL[k];FLW=PAL.lily.map(a=>flowerSprite(a[0],a[1],a[2]));LEAF=PAL.leaf.map((c,i)=>leafSprite(i));rimKey=-1;
+}
+function leafSprite(k){                           // points along +x (a lily pad's notch faces +x)
+  const S=Math.ceil(28*K),c=mk(S,S),x=c.getContext('2d'),h=S/2,col=PAL.leaf[k];x.translate(h,h);x.lineCap='round';
+  if(k===0){
+    const R=h*0.86,g=x.createRadialGradient(-R*.3,-R*.35,R*.1,0,0,R);g.addColorStop(0,col[1]);g.addColorStop(1,col[0]);
+    x.fillStyle=g;x.beginPath();x.moveTo(0,0);x.arc(0,0,R,0.32,Math.PI*2-0.32);x.closePath();x.fill();
+    x.strokeStyle=col[2];x.lineWidth=S*0.028;x.beginPath();
+    for(let i=0;i<7;i++){const a=0.75+i*0.79;x.moveTo(0,0);x.lineTo(Math.cos(a)*R*0.8,Math.sin(a)*R*0.8);}
+    x.stroke();x.strokeStyle='rgba(225,255,245,0.3)';x.lineWidth=S*0.035;x.beginPath();x.arc(0,0,R*0.9,Math.PI*0.9,Math.PI*1.6);x.stroke();
+  }else{
+    const L=h*0.94,w=h*0.44,g=x.createLinearGradient(-L,-w,L*0.6,w);g.addColorStop(0,col[1]);g.addColorStop(1,col[0]);
+    x.fillStyle=g;x.beginPath();x.moveTo(-L*0.78,0);x.bezierCurveTo(-L*0.45,-w*1.25,L*0.45,-w*0.95,L,0);x.bezierCurveTo(L*0.45,w*0.95,-L*0.45,w*1.25,-L*0.78,0);x.fill();
+    x.strokeStyle=col[2];x.lineWidth=S*0.03;x.beginPath();x.moveTo(-L,0);x.lineTo(L*0.85,0);
+    for(let i=0;i<3;i++){const px=-L*0.4+i*L*0.42,e=w*(0.62-i*0.14);x.moveTo(px,0);x.lineTo(px+L*0.24,-e);x.moveTo(px,0);x.lineTo(px+L*0.24,e);}
+    x.stroke();x.strokeStyle='rgba(255,240,215,0.32)';x.lineWidth=S*0.035;x.beginPath();x.moveTo(-L*0.5,-w*0.45);x.bezierCurveTo(-L*0.15,-w*0.8,L*0.4,-w*0.66,L*0.85,-w*0.1);x.stroke();
+  }
+  return c;
+}
 
-let dpr=1,scale=1,ox=0,oy=0,K=1,PODS=[],BG=null,BED=null,bgKey=-1,bedKey=-1;
-function buildSprites(){                          // pod bodies + numbers, at the current pixel density
+let dpr=1,scale=1,ox=0,oy=0,K=1,PODS=[],LEAF=[],BG=null,BED=null,bgKey=-1,bedKey=-1,leafFrom=1e9,leafT0=-9;
+function buildSprites(){                          // pod bodies + numbers and the floating leaves, at the current pixel density
   K=Math.min(4,Math.max(1,dpr*scale));PODS=[];
   for(let l=0;l<=4;l++){
-    const v=1<<l,r=podR(v),E=r+3,S=Math.ceil(E*2*K*1.2),f=S/(E*2);
+    const v=1<<l,r=podR(v),E=r+3,S=Math.ceil(E*2*K*1.2),f=S/(E*2),t=l/4;
     const body=mk(S,S),b=body.getContext('2d');b.setTransform(f,0,0,f,S/2,S/2);
-    const g=b.createRadialGradient(-r*.35,-r*.4,r*.1,0,0,r);g.addColorStop(0,'#2f8a57');g.addColorStop(1,'#123b2a');
+    b.strokeStyle='rgba(200,240,255,0.3)';b.lineWidth=1.2;b.beginPath();b.arc(0,0,r+2,0,Math.PI*2);b.stroke();   // waterline
+    const g=b.createRadialGradient(-r*.35,-r*.4,r*.1,0,0,r);g.addColorStop(0,mixC(POD_IN,t));g.addColorStop(1,mixC(POD_OUT,t));
     b.fillStyle=g;b.beginPath();b.arc(0,0,r,0,Math.PI*2);b.fill();
-    b.strokeStyle='rgba(130,235,170,0.28)';b.lineWidth=1.5;b.beginPath();b.moveTo(-r*.15,-r*.88);b.quadraticCurveTo(r*.3,0,-r*.1,r*.88);b.stroke();
+    b.strokeStyle='rgba(255,255,255,0.12)';b.lineWidth=1.5;b.beginPath();b.moveTo(-r*.15,-r*.88);b.quadraticCurveTo(r*.3,0,-r*.1,r*.88);b.stroke();
+    b.fillStyle='rgba(255,255,255,0.14)';b.beginPath();b.ellipse(-r*.4,-r*.45,r*.28,r*.13,-0.7,0,Math.PI*2);b.fill();   // wet sheen
     b.lineWidth=3;b.strokeStyle=RIM[l];b.beginPath();b.arc(0,0,r,0,Math.PI*2);b.stroke();
     const num=mk(S,S),n=num.getContext('2d');n.setTransform(f,0,0,f,S/2,S/2);
     n.font='bold '+Math.round(r*0.75)+'px sans-serif';n.textAlign='center';n.textBaseline='middle';n.lineJoin='round';
-    n.lineWidth=4;n.strokeStyle='rgba(5,15,12,0.85)';n.strokeText(v,0,1);n.fillStyle='#fff';n.fillText(v,0,1);
+    n.lineWidth=4;n.strokeStyle='rgba(14,10,34,0.85)';n.strokeText(v,0,1);n.fillStyle='#fff';n.fillText(v,0,1);
     PODS.push({body,num,E,r});
   }
+  LEAF=PAL.leaf.map((c,k)=>leafSprite(k));
 }
-function buildBg(grow){                           // sky gradient + aura, rebuilt only when the garden grows a step
+function buildBg(grow){                           // deep night water, moonlight and the garden's aura; rebuilt only when the garden grows a step
   if(!BG)BG=document.createElement('canvas');
   BG.width=cv.width;BG.height=cv.height;const x=BG.getContext('2d');
-  const g=x.createLinearGradient(0,0,0,BG.height);g.addColorStop(0,'#0e1d44');g.addColorStop(1,'#03070f');
+  const g=x.createLinearGradient(0,0,0,BG.height);g.addColorStop(0,'#0d2a44');g.addColorStop(0.55,'#0a1d34');g.addColorStop(1,'#050d1c');
   x.fillStyle=g;x.fillRect(0,0,BG.width,BG.height);
-  x.setTransform(dpr*scale,0,0,dpr*scale,dpr*ox,dpr*oy);x.globalAlpha=0.06+grow*0.2;x.drawImage(GLOW,-80,40,520,520);
+  x.setTransform(dpr*scale,0,0,dpr*scale,dpr*ox,dpr*oy);
+  x.globalAlpha=0.18;x.drawImage(MGLOW,-140,-150,360,360);             // moonlight pooled under the moon
+  x.globalAlpha=0.06+grow*0.2;x.drawImage(GLOW,-80,40,520,520);
 }
 
 // ---------- decor ----------
 const STARS=[];for(let i=0;i<90;i++)STARS.push({x:Math.random()*W,y:Math.random()*H*0.95,s:rnd(.8,2),p:rnd(0,6.28)});
-const GRASS=[];for(let i=0;i<34;i++)GRASS.push({x:BX0-4+i*(BX1-BX0+8)/33,h:rnd(10,26),p:rnd(0,6.28)});
+// reeds in two clumps on the near bank, every third one with a cattail
+const REEDS=[];for(let i=0;i<16;i++){const d=hash(i+21)*34;REEDS.push({x:i%2?BX1+2-d:BX0-2+d,h:rnd(16,34)*(1-d/80),p:rnd(0,6.28),cat:i%3===0});}
 const AMB=[];for(let i=0;i<48;i++)AMB.push({x:rnd(10,350),y:rnd(20,620),a:rnd(0,6.28),b:rnd(0,6.28),s1:rnd(.2,.6),s2:rnd(.2,.6),f:rnd(0,6.28)});
-// the bed rim: leaves grow along it with upgrades, flowers with every bloom
+const SWELL=[];for(let i=0;i<12;i++)SWELL.push({x:rnd(12,348),y:rnd(10,88),w:rnd(7,15),p:rnd(0,6.28)});   // slow swell on the deep water up top
+// leaves adrift on the pond: a lazy current moves them, ripples push them out, pods nudge them aside
+const DRIFT=[];for(let i=0;i<6;i++)DRIFT.push({x:rnd(BX0+30,BX1-30),y:rnd(BY0+30,BY1-30),vx:0,vy:0,a:rnd(0,6.28),va:rnd(-0.15,0.15),k:[1,2,0,3,1,2][i],s:rnd(7.5,10),ph:rnd(0,6.28)});
+const MIST=[{y:0.28,v:0.012,w:260,p:0},{y:0.6,v:-0.009,w:300,p:0.45},{y:0.86,v:0.007,w:230,p:0.8}];   // faint mist drifting over the pond
+// the pond rim: leaves grow along it with upgrades, water lilies with every bloom
 function perim(t){
   let d=frac(t)*2*(PW+PH);
   if(d<PW)return {x:PX0+d,y:PY0,a:-Math.PI/2};d-=PW;
@@ -128,18 +184,77 @@ function perimU(t){                              // left, top and right sides on
   if(d<PW)return {x:PX0+d,y:PY0,a:-Math.PI/2};d-=PW;
   return {x:PX0+PW,y:PY0+d,a:0};
 }
-const LEAVES=[];for(let i=0;i<120;i++){const p=perim(i*0.381966+0.02);LEAVES.push({x:p.x,y:p.y,a:p.a+(hash(i+3)-0.5)*1.6,l:5+hash(i+7)*4});}
+const LEAVES=[];for(let i=0;i<120;i++){const p=perim(i*0.381966+0.02);LEAVES.push({x:p.x,y:p.y,a:p.a+(hash(i+3)-0.5)*1.6,l:5.5+hash(i+7)*4.5,k:i%4===1?0:1+i%3,ph:hash(i+13)*6.28});}
 const FLOWERS=[];for(let i=0;i<48;i++){const p=perimU(i*0.618034+0.07);FLOWERS.push({x:p.x+Math.cos(p.a)*hash(i+5)*4,y:p.y+Math.sin(p.a)*hash(i+5)*4,s:7+hash(i+11)*5,g:i%3===2?1:0,ph:hash(i+99)*6.28});}
-function buildBed(nl){                            // bed panel + leafy rim baked into one image
-  const m=16,w=PW+m*2,h=PH+m*2,kb=Math.min(K,2.5);
+const POND_R=24,PEB=['#3a7a88','#4a8a92','#2c6276','#5b9095','#6d8f8c','#35667a'];
+function blob(x,cx,cy,rx,ry,a){x.moveTo(cx+Math.cos(a)*rx,cy+Math.sin(a)*rx);x.ellipse(cx,cy,rx,ry,a,0,Math.PI*2);}
+let BED0=null;                                    // the static pond floor, baked once per size: a purchase only redraws the leaf shadows
+function buildBed(nl){                            // the clear pond, baked: depth, sand, sunken leaves, pebbles, shadows of the rim leaves
+  const m=16,w=PW+m*2,h=PH+m*2,kb=Math.min(K,2.5),bw=Math.ceil(w*kb),bh=Math.ceil(h*kb),sx=bw/w,sy=bh/h;
+  if(!BED0||BED0.width!==bw||BED0.height!==bh){
+    BED0=mk(bw,bh);const x=BED0.getContext('2d');x.setTransform(sx,0,0,sy,(m-PX0)*sx,(m-PY0)*sy);
+    rr(PX0,PY0,PW,PH,POND_R,x);x.clip();
+    const cx=PX0+PW/2,cy=PY0+PH*0.45,g=x.createRadialGradient(cx,cy,20,cx,cy,Math.hypot(PW,PH)*0.62);
+    g.addColorStop(0,'#2d7a90');g.addColorStop(0.55,'#1d5c76');g.addColorStop(1,'#10364f');
+    x.fillStyle=g;x.fillRect(PX0,PY0,PW,PH);
+    for(let i=0;i<520;i++){const s=0.7+hash(i+900)*1.3;x.fillStyle=i&1?'rgba(180,235,245,0.07)':'rgba(3,20,38,0.12)';x.fillRect(PX0+hash(i+100)*PW,PY0+hash(i+2600)*PH,s,s);}
+    x.fillStyle='rgba(72,54,40,0.26)';x.beginPath();              // sunken leaves, soft and brown under the water
+    for(let i=0;i<7;i++){const l=7+hash(i+340)*5;blob(x,PX0+30+hash(i+300)*(PW-60),PY0+30+hash(i+320)*(PH-60),l,l*0.42,hash(i+360)*6.28);}
+    x.fill();
+    for(let i=0;i<52;i++){                        // pebbles, and a few smooth stones near the banks, lit by the moon (top left)
+      const big=i<5,r=big?9+hash(i*7+3)*8:2+Math.pow(hash(i*7+3),2)*6,rot=hash(i*7+4)*3.14;
+      const px=big?PX0+(i%2?PW-30-hash(i+70)*50:30+hash(i+70)*50):PX0+hash(i*7+1)*PW,py=big?PY0+34+hash(i+80)*(PH-68):PY0+hash(i*7+2)*PH;
+      x.fillStyle='rgba(2,14,30,0.3)';x.beginPath();x.ellipse(px+r*0.25,py+r*0.35,r*1.15,r*0.85,rot,0,Math.PI*2);x.fill();
+      x.fillStyle=PEB[i%PEB.length];x.beginPath();x.ellipse(px,py,r*1.15,r*0.85,rot,0,Math.PI*2);x.fill();
+      x.fillStyle='rgba(215,248,255,0.13)';x.beginPath();x.ellipse(px-r*0.3,py-r*0.3,r*0.6,r*0.38,rot,0,Math.PI*2);x.fill();
+    }
+  }
   if(!BED)BED=document.createElement('canvas');
-  BED.width=Math.ceil(w*kb);BED.height=Math.ceil(h*kb);
-  const x=BED.getContext('2d');x.setTransform(BED.width/w,0,0,BED.height/h,(m-PX0)*BED.width/w,(m-PY0)*BED.height/h);
-  rr(PX0,PY0,PW,PH,22,x);x.fillStyle='rgba(10,30,32,0.82)';x.fill();x.strokeStyle='rgba(63,191,116,0.4)';x.lineWidth=2;x.stroke();
-  x.fillStyle='#2f9a5c';x.beginPath();
-  for(let i=0;i<nl;i++){const L=LEAVES[i],a=L.a,cx=L.x+Math.cos(a)*L.l*0.7,cy=L.y+Math.sin(a)*L.l*0.7;x.moveTo(cx+Math.cos(a)*L.l,cy+Math.sin(a)*L.l);x.ellipse(cx,cy,L.l,L.l*0.42,a,0,Math.PI*2);}
+  if(BED.width!==bw||BED.height!==bh){BED.width=bw;BED.height=bh;}
+  const x=BED.getContext('2d');x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,bw,bh);x.drawImage(BED0,0,0);
+  x.setTransform(sx,0,0,sy,(m-PX0)*sx,(m-PY0)*sy);
+  x.save();rr(PX0,PY0,PW,PH,POND_R,x);x.clip();
+  x.fillStyle='rgba(2,14,30,0.3)';x.beginPath();                  // shadows of the floating rim leaves on the sand
+  for(let i=0;i<nl;i++){
+    const L=LEAVES[i],o=L.k?0.62:0.3,lx=L.x+Math.cos(L.a)*L.l*o+4,ly=L.y+Math.sin(L.a)*L.l*o+7;
+    if(L.k)blob(x,lx,ly,L.l*1.05,L.l*0.44,L.a);else blob(x,lx,ly,L.l,L.l,L.a);
+  }
   x.fill();
+  for(let i=0;i<8;i++){rr(PX0+i*2.5,PY0+i*2.5,PW-i*5,PH-i*5,Math.max(6,POND_R-i*2.5),x);x.strokeStyle='rgba(3,16,34,'+(0.32*(1-i/8)).toFixed(3)+')';x.lineWidth=5;x.stroke();}
+  x.restore();
+  rr(PX0,PY0,PW,PH,POND_R,x);x.strokeStyle='rgba(2,10,22,0.55)';x.lineWidth=4;x.stroke();   // the bank, and light on the waterline
+  x.strokeStyle='rgba(165,228,245,0.3)';x.lineWidth=1.5;x.stroke();
 }
+// the rim leaves, baked into one layer (one drawImage a frame instead of one per leaf); rebuilt when the rim grows or the moon changes
+const RIM_M=24;let RIML=null,rimKey=-1;
+function buildRim(n){
+  const w=PW+RIM_M*2,h=PH+RIM_M*2,kr=Math.min(K,3),bw=Math.ceil(w*kr),bh=Math.ceil(h*kr),sx=bw/w,sy=bh/h;
+  if(!RIML)RIML=document.createElement('canvas');
+  if(RIML.width!==bw||RIML.height!==bh){RIML.width=bw;RIML.height=bh;}
+  const x=RIML.getContext('2d');x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,bw,bh);
+  for(let i=0;i<n;i++){
+    const L=LEAVES[i],o=L.k?0.62:0.3,z=L.l*2.3,c=Math.cos(L.a),s=Math.sin(L.a);
+    x.setTransform(c*sx,s*sy,-s*sx,c*sy,(L.x+c*L.l*o-PX0+RIM_M)*sx,(L.y+s*L.l*o-PY0+RIM_M)*sy);
+    x.drawImage(LEAF[L.k],-z/2,-z/2,z,z);
+  }
+  rimKey=n;
+}
+// seamless caustic tile: light gathers along the edges between gently warped cells
+const CAUS=(()=>{
+  const S=128,c=mk(S,S),x=c.getContext('2d'),im=x.createImageData(S,S),d=im.data,P=[],T=Math.PI*4/S;
+  for(let i=0;i<10;i++)P.push(hash(i*3+1)*S,hash(i*3+2)*S);
+  for(let y=0;y<S;y++)for(let i=0;i<S;i++){
+    const u=i+Math.sin(y*T)*5,v=y+Math.sin(i*T+1)*5;let f1=1e9,f2=1e9;
+    for(let k=0;k<P.length;k+=2){
+      let dx=Math.abs(u-P[k])%S,dy=Math.abs(v-P[k+1])%S;if(dx>S/2)dx=S-dx;if(dy>S/2)dy=S-dy;
+      const q=dx*dx+dy*dy;if(q<f1){f2=f1;f1=q;}else if(q<f2)f2=q;
+    }
+    const e=Math.max(0,1-(Math.sqrt(f2)-Math.sqrt(f1))/6),o=(y*S+i)*4;
+    d[o]=205;d[o+1]=242;d[o+2]=255;d[o+3]=Math.round(e*e*255);
+  }
+  x.putImageData(im,0,0);return c;
+})();
+let CAUS_PAT=null;
 
 function resize(){
   dpr=Math.min(window.devicePixelRatio||1,DPR_CAP[Q]);
@@ -147,7 +262,7 @@ function resize(){
   cv.width=Math.round(vw*dpr);cv.height=Math.round(vh*dpr);
   cv.style.width=vw+'px';cv.style.height=vh+'px';
   scale=Math.min(vw/W,vh/H);ox=(vw-W*scale)/2;oy=(vh-H*scale)/2;
-  buildSprites();bgKey=bedKey=-1;
+  buildSprites();bgKey=bedKey=rimKey=-1;
 }
 window.addEventListener('resize',resize);resize();
 
@@ -190,7 +305,8 @@ const lastS={};
 function thr(k,g){if(lastS[k]!=null&&clock-lastS[k]<g)return false;lastS[k]=clock;return true;}
 const sPick=()=>tone(600,0.07,'sine',0.1,1.3);
 const sDrop=()=>tone(240,0.09,'sine',0.1,0.8);
-const sPlant=()=>{if(thr('p',0.3))tone(200,0.1,'sine',0.04,1.8);};
+const sPlant=()=>{if(thr('p',0.12))tone(rnd(380,520),0.1,'sine',0.07,2.4);};   // a seed plops into the water
+const sSkip=()=>{if(thr('k',0.08))tone(rnd(700,900),0.05,'sine',0.035,1.8);};  // ...after skipping once
 const sDeny=()=>tone(130,0.15,'square',0.05,0.9);
 const sCharge=()=>tone(300,0.45,'sine',0.12,3);
 const sTap=c=>tone(semi(523,PENTA[c%PENTA.length]),0.09,'sine',0.1,1.2);
@@ -220,10 +336,16 @@ const seedI=l=>0.25+3.95*Math.pow(0.9,l);
 const mergeI=l=>0.3+6.7*Math.pow(0.88,l);
 const RARE_LV=6,RARE8_LV=10;                  // SEEDS tier 2: plant the rarest value (up to 4, then up to 8)
 const seedTop=l=>l>=RARE8_LV?8:4;
+const netMult=l=>Math.pow(1.3,l);            // NET: every caught firefly carries more glow
+const bloomSec=l=>6+3*l;                     // NECTAR: a bloom pays this many seconds of income
+// shown three per page (`ic` picks the button icon); page 2 opens with the arrows beside the shop
 const UPS=[
-  {name:'FIREFLIES',base:15,g:1.85,max:200,col:C.gold,desc:l=>'x'+fmt(ffMult(l),1)+' glow'},
-  {name:'SEEDS',base:30,g:1.45,max:40,col:C.leaf,desc:l=>(l>=RARE_LV?'rare ':'seed ')+seedI(l).toFixed(2)+'s'},
-  {name:'BREEZE',base:45,g:1.5,max:40,col:C.white,desc:l=>'tidy '+mergeI(l).toFixed(2)+'s'},
+  {name:'FIREFLIES',base:15,g:1.85,max:200,col:C.gold,ic:'ff',desc:l=>'x'+fmt(ffMult(l),1)+' glow'},
+  {name:'SEEDS',base:30,g:1.45,max:40,col:C.aqua,ic:'seed',desc:l=>(l>=RARE_LV?'rare ':'seed ')+seedI(l).toFixed(2)+'s'},
+  {name:'BREEZE',base:45,g:1.5,max:40,col:C.white,ic:'breeze',desc:l=>'tidy '+mergeI(l).toFixed(2)+'s'},
+  {name:'NET',base:100,g:1.55,max:100,col:C.gold,ic:'net',desc:l=>'tap x'+fmt(netMult(l),1)},
+  {name:'LILY PADS',base:600,g:3,max:6,col:C.aqua,ic:'pad',desc:l=>'room +'+l+' pods'},
+  {name:'NECTAR',base:900,g:1.7,max:60,col:C.petal,ic:'bloom',desc:l=>'bloom: '+bloomSec(l)+'s glow'},
 ];
 const DEMO_BOOST=DEMO?3:1;
 // critters: unlocked and levelled with glow; each one only pays if you tap it in time
@@ -236,33 +358,60 @@ const frenzyM=l=>3+0.25*(l-1),frenzyD=l=>10+0.5*(l-1);
 const starI=l=>Math.max(20,75*Math.pow(0.96,l-1));
 const starSec=l=>15+4*(l-1);
 const CRIT=[
-  {name:'GOLD FROG',unlock:800,base:2500,g:1.55,max:30,col:C.gold,lock:'eats fireflies',desc:l=>'pop: '+frogSec(l)+'s glow'},
-  {name:'LUNA MOTH',unlock:20000,base:40000,g:1.6,max:30,col:C.petal,lock:'tap: frenzy',desc:l=>'x'+frenzyM(l).toFixed(2)+' '+Math.round(frenzyD(l))+'s'},
-  {name:'WISH STAR',unlock:300000,base:600000,g:1.65,max:30,col:C.white,lock:'tap: twin 8s',desc:l=>'wish: '+starSec(l)+'s glow'},
+  {name:'GOLD FROG',unlock:800,base:2500,g:1.55,max:30,col:C.gold,ic:'frog',lock:'eats fireflies',desc:l=>'pop: '+frogSec(l)+'s glow'},
+  {name:'LUNA MOTH',unlock:20000,base:40000,g:1.6,max:30,col:C.petal,ic:'moth',lock:'tap: frenzy',desc:l=>'x'+frenzyM(l).toFixed(2)+' '+Math.round(frenzyD(l))+'s'},
+  {name:'WISH STAR',unlock:300000,base:600000,g:1.65,max:30,col:C.white,ic:'star',lock:'tap: twin 8s',desc:l=>'wish: '+starSec(l)+'s glow'},
+];
+// Full Moon prestige: once this moon's glow passes the threshold, reset glow, pods, blooms, UPGRADES and CRITTERS for Moon Petals.
+// Every petal ever earned is a permanent glow bonus; unspent petals buy perks, the only thing kept (start perks grant their levels again)
+const MOON={need:1e6,grow:2.5,unit:5e4,bonus:0.25,bonusUp:0.05,harvest:0.25,breezeLv:10,chainS:1,friendLv:3};
+const moonNeed=n=>MOON.need*Math.pow(MOON.grow,n);           // glow needed this moon for Full Moon #n+1
+const petalsFor=g=>Math.floor(Math.sqrt(g/MOON.unit)*(1+MOON.harvest*st.pk[5]));   // 1M glow = 4 petals, 10M = 14, 100M = 44 (before HARVEST)
+const petalBonus=l=>MOON.bonus+MOON.bonusUp*l;              // glow per petal ever earned, raised by MOONLIGHT
+const seedStart=l=>[0,RARE_LV,RARE8_LV][l];
+const breezeStart=l=>l*MOON.breezeLv;
+const friendStart=(l,i)=>l>i?1+MOON.friendLv*Math.max(0,l-3):0;   // OLD FRIENDS: frog, moth, star join from the start, then start higher
+const PERKS=[
+  {name:'RARE START',max:2,cost:l=>[2,6][l],col:C.gold,ic:'rare',lock:'start RARE',desc:l=>'SEEDS Lv'+seedStart(l)},
+  {name:'BREEZE START',max:3,cost:l=>[3,8,20][l],col:C.white,ic:'breeze',lock:'start Lv '+MOON.breezeLv,desc:l=>'BREEZE Lv'+breezeStart(l)},
+  {name:'LONG CHAIN',max:5,cost:l=>[2,5,9,14,20][l],col:C.petal,ic:'chain',lock:'window +'+MOON.chainS+'s',desc:l=>'window +'+l*MOON.chainS+'s'},
+  {name:'MOONLIGHT',max:40,cost:l=>Math.ceil(3*Math.pow(1.3,l)),col:C.white,ic:'moon',lock:'petal +'+Math.round(petalBonus(1)*100)+'%',desc:l=>'petal +'+Math.round(petalBonus(l)*100)+'%'},
+  {name:'OLD FRIENDS',max:6,cost:l=>[4,10,20,35,55,80][l],col:C.gold,ic:'frog',lock:'start: FROG',desc:l=>'start: '+(l<4?['','FROG','FROG+MOTH','ALL 3'][l]:'all Lv'+friendStart(l,0))},
+  {name:'HARVEST',max:30,cost:l=>Math.ceil(4*Math.pow(1.4,l)),col:C.petal,ic:'petal',lock:'+'+Math.round(MOON.harvest*100)+'% petals',desc:l=>'petals x'+(1+MOON.harvest*l).toFixed(2)},
 ];
 
 // ---------- state ----------
-let st=null,pods=[],parts=[],rings=[],texts=[],seeds=[],merges=[],bugs=[],drag=null,press=null,pid=0,clock=0,pointerId=null,hudX=150;
+let st=null,pods=[],parts=[],rings=[],waves=[],texts=[],seeds=[],merges=[],bugs=[],drag=null,press=null,pid=0,clock=0,pointerId=null,hudX=150;
 const ai={phase:0,t:0,wait:0.5,px:180,py:420,sx:180,sy:420,act:null,lastBuy:0,tap:0,first:true};
 
 const cost=i=>Math.ceil(UPS[i].base*Math.pow(UPS[i].g,st.lv[i]));
 const critCost=i=>{const u=CRIT[i],l=st.cr[i];return l?Math.ceil(u.base*Math.pow(u.g,l-1)):u.unlock;};
-const lvlSum=()=>st.lv[0]+st.lv[1]+st.lv[2]+st.cr[0]+st.cr[1]+st.cr[2];
+const lvlSum=()=>{let s=0;for(const l of st.lv)s+=l;for(const l of st.cr)s+=l;return s;};
 const bloomMult=()=>1+0.2*Math.sqrt(st.blooms);   // diminishing: early blooms matter, late ones don't run away
-const cap=()=>10+Math.min(8,Math.floor(st.blooms/3));
+const cap=()=>10+Math.min(8,Math.floor(st.blooms/3))+st.lv[4];   // LILY PADS add room
 const frenzyNow=()=>st.frenzy>0?st.frenzyM:1;
-const mults=()=>ffMult(st.lv[0])*bloomMult()*DEMO_BOOST*frenzyNow();
+const moonMult=()=>1+petalBonus(st.pk[3])*st.petalsAll;
+const mults=()=>ffMult(st.lv[0])*bloomMult()*moonMult()*DEMO_BOOST*frenzyNow();
 const chainMult=()=>1+CHAIN_STEP*st.chain;       // applies to merges and blooms while a chain runs
+const chainPlus=()=>st.pk[2]*MOON.chainS,chainWin=()=>CHAIN_WIN+chainPlus();
+const moonReady=()=>st.moonG>=moonNeed(st.moons);
+const perkCost=i=>PERKS[i].cost(st.pk[i]);
+const SHOP=[UPS,CRIT,PERKS],pages=t=>Math.ceil(SHOP[t].length/3);   // tab -> items, three buttons per page
+function canBuy(t,j){
+  if(t===0)return st.lv[j]<UPS[j].max&&st.glow>=cost(j);
+  if(t===1)return st.cr[j]<CRIT[j].max&&st.glow>=critCost(j);
+  return st.pk[j]<PERKS[j].max&&st.petals>=perkCost(j);
+}
 function baseRate(){let s=0;for(const p of pods)if(!p.dead)s+=prod(p.v);return s*mults();}
 const rate=()=>baseRate()*(st.boost>0?BOOST_R:1);
-function addGlow(g){st.glow+=g;st.total+=g;}
+function addGlow(g){st.glow+=g;st.total+=g;st.moonG+=g;}
 
 // every pod visibly holds exactly v fireflies; tapping catches one, which flies to the counter and later returns
 function setFF(p){const n=Math.min(p.v,THRESH);if(p.ff.length>n)p.ff.length=n;while(p.ff.length<n)p.ff.push({a:rnd(0,6.28),b:rnd(0,6.28),s1:rnd(.6,1.6),s2:rnd(.6,1.6),f:rnd(0,6.28),cd:0,back:0});}
 function ffPos(p,f,r){return {x:p.x+Math.sin(clock*f.s1+f.a)*r*.6,y:p.y+Math.cos(clock*f.s2+f.b)*r*.6};}
 const ready=p=>{let n=0;for(const f of p.ff)if(f.cd<=0)n++;return n;};
-const catchV=p=>Math.max(1,prod(p.v)/Math.min(p.v,THRESH)*2.5*mults());   // tap income stays proportional to passive income
-function makePod(v,x,y){const p={v,x,y,vx:0,vy:0,r:podR(v),dr:podR(v),born:0,pop:0,id:++pid,busy:false,dead:false,burstT:-1,ff:[]};setFF(p);pods.push(p);return p;}
+const catchV=p=>Math.max(1,prod(p.v)/Math.min(p.v,THRESH)*2.5*mults()*netMult(st.lv[3]));   // tap income stays proportional to passive income
+function makePod(v,x,y){const p={v,x,y,vx:0,vy:0,r:podR(v),dr:podR(v),born:0,pop:0,id:++pid,busy:false,dead:false,burstT:-1,ff:[],wv:rnd(0.5,4)};setFF(p);pods.push(p);return p;}
 const livePods=()=>pods.reduce((n,p)=>n+(p.dead?0:1),0);
 function freeSpot(r,near){                       // open ground; with `near`, prefer a spot beside that pod
   let bestS=null,bs=-1e9;
@@ -276,26 +425,29 @@ function freeSpot(r,near){                       // open ground; with `near`, pr
 }
 
 function blankState(){
-  return {glow:0,total:0,blooms:0,lv:[0,0,0],spawnT:0,mergeT:0,boost:0,shake:0,flash:0,pulse:0,combo:0,comboT:0,
+  return {glow:0,total:0,blooms:0,lv:UPS.map(()=>0),spawnT:0,mergeT:0,boost:0,shake:0,flash:0,pulse:0,combo:0,comboT:0,
           resetArm:0,welcome:null,saveT:0,bugAcc:0,btnP:[0,0,0],btnS:[0,0,0],flowerT:1,
           chain:0,chainT:0,chainG:0,chainPop:0,chainEnd:0,chainLast:1,tint:0,
           tut:-1,tutT:0,tf:{},tp:null,tpod:null,help:false,banner:null,
-          cr:[0,0,0],tab:0,frog:null,moth:null,star:null,frogT:4,mothT:8,starT:8,frenzy:0,frenzyM:1,frenzyD:1};
+          cr:[0,0,0],tab:0,pg:[0,0,0],pgFx:0,pgDir:1,frog:null,moth:null,star:null,frogT:4,mothT:8,starT:8,frenzy:0,frenzyM:1,frenzyD:1,
+          moons:0,moonG:0,petals:0,petalsAll:0,pk:PERKS.map(()=>0),moonCard:false,moonHint:false,moonFx:0};
 }
 function save(){
   if(DEMO||!st)return;
   try{localStorage.setItem(SAVE_KEY,JSON.stringify({g:st.glow,tot:st.total,b:st.blooms,lv:st.lv,c:st.cr,
+    m:st.moons,mg:st.moonG,pe:st.petals,pa:st.petalsAll,pk:st.pk,
     p:pods.filter(p=>!p.dead).map(p=>[p.v,Math.round(p.x),Math.round(p.y)]),t:Date.now()}));}catch(e){}
 }
+function starterPods(){for(const v of [1,1,2,1]){const s=freeSpot(podR(v));makePod(v,s.x,s.y);}}
 function load(){try{const d=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');return d&&Array.isArray(d.p)?d:null;}catch(e){return null;}}
 function tutSeen(){try{return !!(localStorage.getItem(TUT_KEY)||localStorage.getItem(OLD_KEY));}catch(e){return false;}}
 function tutSave(){try{localStorage.setItem(TUT_KEY,'1');}catch(e){}}
 
 function newGame(fresh){
-  pods=[];parts=[];rings=[];texts=[];seeds=[];merges=[];bugs=[];drag=null;press=null;
+  pods=[];parts=[];rings=[];waves=[];texts=[];seeds=[];merges=[];bugs=[];drag=null;press=null;
   st=blankState();
   if(DEMO){
-    st.lv=[3,RARE_LV,4];st.blooms=6;st.glow=40;st.total=400;
+    st.lv[0]=3;st.lv[1]=RARE_LV;st.lv[2]=4;st.blooms=6;st.glow=40;st.total=st.moonG=400;
     st.cr=[5,0,0];st.frogT=1.2;                   // the golden frog hops in, eats her fill, and the AI pops her
     // four 8s: the AI drags them together for two blooms that start a chain, then the 4s and 2s feed it higher
     const L=[[8,110,290],[8,200,290],[8,280,400],[8,80,400],[4,90,180],[4,260,180],[4,180,390],[2,55,320],[2,300,300],[2,175,440],[1,180,160],[1,310,250],[1,40,240]];
@@ -304,8 +456,12 @@ function newGame(fresh){
     const d=fresh?null:load();
     if(d){
       st.glow=Math.max(0,+d.g||0);st.total=Math.max(st.glow,+d.tot||0);st.blooms=Math.max(0,d.b|0);
-      if(Array.isArray(d.lv))for(let i=0;i<3;i++)st.lv[i]=clamp(d.lv[i]|0,0,UPS[i].max);
+      if(Array.isArray(d.lv))for(let i=0;i<UPS.length;i++)st.lv[i]=clamp(d.lv[i]|0,0,UPS[i].max);
       if(Array.isArray(d.c))for(let i=0;i<3;i++)st.cr[i]=clamp(d.c[i]|0,0,CRIT[i].max);
+      st.moons=Math.max(0,d.m|0);st.petals=Math.max(0,d.pe|0);st.petalsAll=Math.max(st.petals,d.pa|0);
+      st.moonG=d.mg!=null?Math.max(0,+d.mg||0):st.total;   // saves from before the Full Moon count all their glow
+      if(Array.isArray(d.pk))for(let i=0;i<PERKS.length;i++)st.pk[i]=clamp(d.pk[i]|0,0,PERKS[i].max);
+      applyStarts();
       for(const a of d.p.slice(0,40)){
         if(!Array.isArray(a))continue;
         const v=Math.pow(2,clamp(Math.round(Math.log2(+a[0]||1)),0,4));
@@ -314,9 +470,10 @@ function newGame(fresh){
       }
       if(d.t)awardAway((Date.now()-d.t)/1000);
     }
-    if(!pods.length)for(const v of [1,1,2,1]){const s=freeSpot(podR(v));makePod(v,s.x,s.y);}
+    if(!pods.length)starterPods();
     st.tut=tutSeen()?-1:0;
   }
+  setPalette(st.moons);
   ai.phase=0;ai.t=0;ai.wait=0.5;ai.act=null;ai.lastBuy=0;ai.first=true;
 }
 function awardAway(sec){
@@ -331,23 +488,59 @@ function awardAway(sec){
 // ---------- effects (all capped by the quality level) ----------
 function spark(x,y,sp){if(parts.length>=PART_CAP[Q])return;const a=rnd(0,6.28);parts.push({k:0,x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:rnd(.4,.9),t:0,s:rnd(6,14)});}
 function petal(x,y){if(parts.length>=PART_CAP[Q])return;const a=rnd(0,6.28),sp=rnd(80,300);parts.push({k:1,x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-60,life:rnd(.9,1.6),t:0,s:rnd(5,9),rot:rnd(0,6.28),vr:rnd(-8,8)});}
-function addText(x,y,s,c,size,life){if(texts.length<TEXT_CAP[Q])texts.push({x,y,s,c,size:size||20,t:0,life:life||0.9});}
+// floating texts are rendered once into pooled sprites: outlined text is too costly to redraw every frame
+const TXT_POOL=[];
+function textSprite(s,c,size){
+  const img=TXT_POOL.pop()||document.createElement('canvas'),x=img.getContext('2d'),k=Math.min(K,3),f='bold '+size+'px sans-serif';
+  x.font=f;const w=Math.ceil(x.measureText(s).width)+10,h=Math.ceil(size*1.3)+8;
+  img.width=Math.ceil(w*k);img.height=Math.ceil(h*k);   // resizing clears it and resets the context
+  x.setTransform(k,0,0,k,0,0);x.font=f;x.textAlign='center';x.textBaseline='middle';x.lineWidth=4;x.lineJoin='round';
+  x.strokeStyle='rgba(3,8,20,0.9)';x.strokeText(s,w/2,h/2);x.fillStyle=c;x.fillText(s,w/2,h/2);
+  return {img,w,h};
+}
+function addText(x,y,s,c,size,life){if(texts.length<TEXT_CAP[Q])texts.push({x,y,t:0,life:life||0.9,spr:textSprite(s,c,size||20)});}
 function ring(x,y,max,w,col){if(rings.length<RING_CAP[Q])rings.push({x,y,t:0,max,w,col});}
+// water: rings roll out across the surface, droplets hop up and fall back
+function wave(x,y,r0,r1,a,life){if(waves.length<WAVE_CAP[Q])waves.push({x,y,r0,r1,a,t:0,life:life||1.2});}
+function drop(x,y,r){
+  if(parts.length>=PART_CAP[Q])return;const a=rnd(0,6.28),sp=rnd(15,55);
+  parts.push({k:3,x:x+Math.cos(a)*r,y:y+Math.sin(a)*r*0.7,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp*0.5-rnd(70,120),life:rnd(0.32,0.5),t:0,s:rnd(1.3,2.4)});
+}
+function splash(x,y,size,r0){                     // something meets the water: a ring or two and a few droplets
+  r0=r0||2;wave(x,y,r0,r0+12+size*26,0.5+size*0.35,0.8+size*0.4);
+  if(size>0.6)wave(x,y,r0*0.6,r0+6+size*12,0.4,0.6);
+  for(let i=fxN(2+size*6);i>0;i--)drop(x,y,r0*0.8);
+}
+const inPond=(x,y)=>x>PX0&&x<PX0+PW&&y>PY0&&y<PY0+PH;
+// seeds fly most of the way in a high arc, touch the water, then skip once to their spot
+const SKIP=0.74;
+function seedPos(s,k){
+  const mx=lerp(s.x0,s.x1,0.84),my=lerp(s.y0,s.y1,0.84);
+  if(k<SKIP){const u=k/SKIP;return {x:lerp(s.x0,mx,u),y:lerp(s.y0,my,u),h:Math.sin(Math.PI*u)*80};}
+  const u=(k-SKIP)/(1-SKIP);return {x:lerp(mx,s.x1,u),y:lerp(my,s.y1,u),h:Math.sin(Math.PI*u)*14};
+}
+function moment(l){try{if(window.forgeMoment)window.forgeMoment(l);}catch(e){}}   // exciting moment (1-3) for the demo recorder
 function banner(s,c,life){st.banner={s,c,t:0,life:life||1.8};}
 function spawnBug(p){if(bugs.length<Math.min(20,BUG_CAP[Q]))bugs.push({x0:p.x+rnd(-8,8),y0:p.y+rnd(-8,8),t:0,dur:rnd(0.9,1.4),bend:rnd(-90,90),g:0});}
 // caught fireflies carry their glow: it lands in the counter when they arrive (instantly if the sky is too busy)
 function sendFly(x,y,g,dur,bend){if(bugs.length>=BUG_CAP[Q]){addGlow(g);st.pulse=Math.min(1,st.pulse+0.3);return;}bugs.push({x0:x,y0:y,t:0,dur,bend,g});}
+const BQ={x:0,y:0};                               // scratch point: no allocation per firefly per frame
 function bugPos(b,t){
   const u=Math.pow(clamp(t,0,1),1.6),v=1-u,tx=hudX,ty=38,cx=(b.x0+tx)/2+b.bend,cy=(b.y0+ty)/2-40;
-  return {x:v*v*b.x0+2*v*u*cx+u*u*tx,y:v*v*b.y0+2*v*u*cy+u*u*ty};
+  BQ.x=v*v*b.x0+2*v*u*cx+u*u*tx;BQ.y=v*v*b.y0+2*v*u*cy+u*u*ty;return BQ;
 }
-function ripple(b,v){
-  ring(b.x,b.y,70+v*7,4,st.chain?'255,143,184':'255,215,94');
+function ripple(b,v,soft){                       // the light pulse pulls pods in; its wave on the water pushes drifting leaves out
+  if(!soft)ring(b.x,b.y,70+v*7,4,st.chain?'255,143,184':'255,215,94');
+  wave(b.x,b.y,(b.r||4)+2,60+v*3,0.7,1.1);
   const R=150;
   for(const q of pods){
     if(q===b||q.dead||q.busy||(drag&&drag.p===q))continue;
     const dx=b.x-q.x,dy=b.y-q.y,d=Math.hypot(dx,dy)||1;
     if(d<R){const f=(1-d/R)*(60+v*4);q.vx+=dx/d*f;q.vy+=dy/d*f;q.pop=Math.max(q.pop,0.25*(1-d/R));}
+  }
+  for(const L of DRIFT){
+    const dx=L.x-b.x,dy=L.y-b.y,d=Math.hypot(dx,dy)||1;
+    if(d<R){const f=(1-d/R)*(30+v*2);L.vx+=dx/d*f;L.vy+=dy/d*f;L.va+=rnd(-1,1)*(1-d/R);}
   }
 }
 
@@ -364,10 +557,10 @@ function finishMerge(m){
   if(!m.auto)st.tf.merge=true;
   if(st.chain){                                   // mid-chain merges pay the multiplier; hand merges keep it alive
     st.chainG+=g;st.chainPop=Math.max(st.chainPop,0.5);
-    if(!m.auto)st.chainT=Math.min(CHAIN_WIN,st.chainT+CHAIN_EXT);
+    if(!m.auto)st.chainT=Math.min(chainWin(),st.chainT+CHAIN_EXT);
     addText(b.x,b.y-b.r-8,'+'+fmt(g)+' x'+chainMult().toFixed(2),C.petal,20,0.9);
   }else addText(b.x,b.y-b.r-8,'+'+fmt(g),C.white,18,0.8);
-  ripple(b,b.v);
+  ripple(b,b.v);if(b.v>=8)moment(1);
   for(let i=fxN(6+b.v);i>0;i--)spark(b.x,b.y,rnd(40,140+b.v*6));
   if(thr('m',0.08)){if(st.chain)sChainMerge(b.v,st.chain);else sMerge(b.v);}
   st.shake=Math.max(st.shake,1+Math.log2(b.v)*0.8);
@@ -389,13 +582,13 @@ function autoMerge(){                             // the breeze tidies the small
 function doBurst(p){
   p.dead=true;st.blooms++;st.tf.bloom=true;
   const cm=chainMult(),was=st.chain>0;           // a bloom inside a running chain pays the current multiplier
-  const g=Math.max(20*bloomMult(),baseRate()*6)*cm;
+  const g=Math.max(20*bloomMult(),baseRate()*bloomSec(st.lv[5]))*cm;
   // the whole swarm breaks free and streams up to the counter, each firefly carrying a share of the bloom
   const n=p.ff.length||1;
   for(const f of p.ff){const q=ffPos(p,f,p.dr*1.4);sendFly(q.x,q.y,g/n,rnd(0.9,1.6),rnd(-170,170));}
   if(!p.ff.length)addGlow(g);
   if(!was)st.chainG=0;
-  st.chain++;st.chainT=Math.max(3.5,CHAIN_WIN-0.7*(st.chain-1));   // each link gives a shorter window
+  st.chain++;st.chainT=Math.max(3.5,CHAIN_WIN-0.7*(st.chain-1))+chainPlus();   // each link gives a shorter window
   st.chainG+=g;st.chainPop=1;st.chainEnd=0;
   addText(clamp(p.x,140,220),p.y-44,was?'CHAIN x'+cm.toFixed(2)+'!':n+' FIREFLIES FREE!',was?C.petal:C.gold,was?34:26,1.4);
   addText(p.x,p.y-8,'+'+fmt(g),C.white,24,1.3);
@@ -403,10 +596,11 @@ function doBurst(p){
   st.shake=Math.max(st.shake,Math.min(16,9+(was?st.chain*2:0)));st.flash=0.45;st.flowerT=0;
   ring(p.x,p.y,200,10,'255,143,184');
   if(was)ring(CRX,CRY,60,6,'255,143,184');
+  wave(p.x,p.y,p.r,210,0.9,1.6);splash(p.x,p.y,1,p.r*0.8);
   for(let i=fxN(28);i>0;i--)petal(p.x,p.y);
   for(let i=fxN(18);i>0;i--)spark(p.x,p.y,rnd(100,320));
-  ripple(p,32);sBurst(st.chain);
-  [1,1,2].forEach((sv,i)=>{const f=freeSpot(podR(sv));seeds.push({x0:p.x,y0:p.y,x1:f.x,y1:f.y,v:sv,t:-i*0.1,dur:0.55,pink:true});});
+  ripple(p,32);sBurst(st.chain);moment(was?3:2);
+  [1,1,2].forEach((sv,i)=>{const f=freeSpot(podR(sv));seeds.push({x0:p.x,y0:p.y,x1:f.x,y1:f.y,v:sv,t:-i*0.1,dur:0.72,pink:true});});
 }
 function endChain(){
   if(st.chain>=2)banner('CHAIN x'+chainMult().toFixed(2)+'  +'+fmt(st.chainG),C.petal,2);
@@ -428,7 +622,7 @@ function plantSeed(){
   let tw=null;
   if(rare)for(const p of pods)if(!p.dead&&!p.busy&&p.v===v&&(!tw||p.id<tw.id))tw=p;
   const f=freeSpot(podR(v),tw);
-  seeds.push({x0:36,y0:BAR_Y,x1:f.x,y1:f.y,v,t:0,dur:0.5,pink:false,rare,tw});
+  seeds.push({x0:36,y0:BAR_Y,x1:f.x,y1:f.y,v,t:0,dur:0.66,pink:false,rare,tw});
 }
 function boostTap(){st.boost=Math.min(BOOST_MAX,st.boost+0.2);st.combo++;st.comboT=0.8;}
 function tapPod(p){                               // catch one firefly: it flies to the counter carrying its glow
@@ -448,19 +642,20 @@ function tapPod(p){                               // catch one firefly: it flies
   st.shake=Math.max(st.shake,1.5);sTap(st.combo);
   return true;
 }
-function tapEmpty(x,y){                           // a soft pulse that draws nearby pods together (no free glow)
-  ripple({x,y},1);
-  for(let i=fxN(5);i>0;i--)spark(x,y,rnd(40,100));
-  tone(330,0.14,'sine',0.06,1.4);
+function tapEmpty(x,y){                           // a ripple on the water: draws nearby pods together, pushes leaves away (no free glow)
+  ripple({x,y},1,true);splash(x,y,0.5);
+  for(let i=fxN(3);i>0;i--)spark(x,y,rnd(40,100));
+  tone(300,0.16,'sine',0.07,2.2);
 }
-function buy(i){
-  const u=UPS[i];st.btnP[i]=1;
-  if(st.lv[i]>=u.max||st.glow<cost(i)){sDeny();st.btnS[i]=1;return;}
+function buy(i){                                  // i: item index; its button slot is i%3
+  const u=UPS[i],b=i%3;st.btnP[b]=1;
+  if(st.lv[i]>=u.max||st.glow<cost(i)){sDeny();st.btnS[b]=1;return;}
   st.glow-=cost(i);st.lv[i]++;sBuy(st.lv[i]);st.tf.buy=true;
-  const bx=UX[i]+UW/2;
+  const bx=UX[b]+UW/2;
   addText(bx,UY-16,'Lv '+st.lv[i]+'!',u.col,22,1);
   if(i===1&&(st.lv[1]===RARE_LV||st.lv[1]===RARE8_LV))
     banner(st.lv[1]===RARE_LV?'RARE SEEDS: twins for loners!':'RARE SEEDS now reach 8!',C.gold,2.4);
+  if(i===4)banner('Room for '+cap()+' pods',C.aqua,1.8);
   for(let k=fxN(14);k>0;k--)spark(bx,UY+30,rnd(60,180));
   ring(bx,UY+30,70,5,'255,215,94');
   st.flash=Math.max(st.flash,0.1);st.shake=Math.max(st.shake,3);
@@ -471,10 +666,10 @@ function resetTap(){
   else{st.resetArm=2.5;sPick();}
 }
 function buyCrit(i){
-  const u=CRIT[i],l=st.cr[i];st.btnP[i]=1;
-  if(l>=u.max||st.glow<critCost(i)){sDeny();st.btnS[i]=1;return;}
+  const u=CRIT[i],l=st.cr[i];st.btnP[i%3]=1;
+  if(l>=u.max||st.glow<critCost(i)){sDeny();st.btnS[i%3]=1;return;}
   st.glow-=critCost(i);st.cr[i]++;sBuy(st.cr[i]+4);st.tf.buy=true;
-  const bx=UX[i]+UW/2;
+  const bx=UX[i%3]+UW/2;
   if(l===0){                                      // first unlock: the critter shows up soon
     banner(['GOLD FROG unlocked! Watch the bed','LUNA MOTH unlocked! Tap it','WISH STAR unlocked! Tap it'][i],u.col,2.6);
     if(i===0)st.frogT=Math.min(st.frogT,3);else if(i===1)st.mothT=Math.min(st.mothT,6);else st.starT=Math.min(st.starT,6);
@@ -483,6 +678,43 @@ function buyCrit(i){
   for(let k=fxN(14);k>0;k--)spark(bx,UY+30,rnd(60,180));
   ring(bx,UY+30,70,5,'255,143,184');
   st.flash=Math.max(st.flash,0.12);st.shake=Math.max(st.shake,3);
+  save();
+}
+function applyStarts(){                           // start perks: SEEDS / BREEZE levels and critters never sit below what they grant
+  st.lv[1]=Math.max(st.lv[1],seedStart(st.pk[0]));st.lv[2]=Math.max(st.lv[2],breezeStart(st.pk[1]));
+  for(let i=0;i<3;i++)st.cr[i]=Math.max(st.cr[i],friendStart(st.pk[4],i));
+}
+function buyPerk(i){                              // Moon Petal perks: the only thing kept through every Full Moon
+  const u=PERKS[i],l=st.pk[i],b=i%3;st.btnP[b]=1;
+  if(l>=u.max||st.petals<perkCost(i)){sDeny();st.btnS[b]=1;return;}
+  st.petals-=perkCost(i);st.pk[i]++;sBuy(st.pk[i]+8);
+  applyStarts();                                  // a start perk applies right away
+  const bx=UX[b]+UW/2;
+  addText(bx,UY-16,'Lv '+st.pk[i]+'!',u.col,22,1);banner(u.name+': '+u.desc(st.pk[i]),C.petal,2.2);
+  for(let k=fxN(18);k>0;k--)petal(bx,UY+20);
+  ring(bx,UY+30,70,5,'255,143,184');
+  st.flash=Math.max(st.flash,0.12);st.shake=Math.max(st.shake,3);
+  save();
+}
+function flipPage(d){                             // the arrows beside the shop: pages wrap around
+  const t=st.tab,n=pages(t);if(n<2)return;
+  st.pg[t]=(st.pg[t]+d+n)%n;st.pgDir=d;st.pgFx=1;st.tf.page=true;sPick();
+}
+function riseMoon(){                              // Full Moon: glow, pods, blooms, UPGRADES and CRITTERS reset for Moon Petals
+  if(!moonReady())return;
+  const n=petalsFor(st.moonG);
+  st.moons++;st.petals+=n;st.petalsAll+=n;st.moonG=0;st.glow=0;st.blooms=0;
+  st.lv=UPS.map(()=>0);st.cr=[0,0,0];applyStarts();st.spawnT=st.mergeT=0;   // only the start perks' levels come back
+  pods=[];seeds=[];merges=[];bugs=[];drag=null;press=null;
+  st.chain=st.chainT=st.chainEnd=st.boost=st.combo=st.frenzy=0;
+  st.frog=st.moth=st.star=null;st.frogT=4;st.mothT=8;st.starT=8;   // critters from OLD FRIENDS come back soon
+  starterPods();setPalette(st.moons);
+  st.tab=2;st.pg[2]=0;st.moonHint=false;st.moonFx=1;
+  banner(PAL.name+'!  +'+n+' Moon Petals',C.petal,3);
+  addText(180,260,'+'+Math.round((moonMult()-1)*100)+'% GLOW FOREVER',C.gold,26,2.2);
+  for(let i=fxN(40);i>0;i--)petal(rnd(40,320),rnd(140,420));
+  ring(MX,MY,240,12,'244,247,255');ring(180,280,200,10,'255,143,184');
+  st.flash=0.8;st.shake=Math.max(st.shake,14);sWelcome();moment(3);
   save();
 }
 
@@ -503,7 +735,7 @@ function frogStep(dt){
   const f=st.frog;f.pop=Math.max(0,f.pop-dt*3);f.gulp=Math.max(0,f.gulp-dt*3);
   if(f.hop>=0){
     f.hop+=dt/f.hd;const k=Math.min(1,f.hop);f.x=lerp(f.x0,f.x1,k);f.y=lerp(f.y0,f.y1,k);
-    if(f.hop>=1){f.hop=-1;if(f.s==='out'){st.frog=null;st.frogT=frogI(st.cr[0]);return;}ring(f.x,f.y+10,40,3,'255,215,94');}
+    if(f.hop>=1){f.hop=-1;if(f.s==='out'){st.frog=null;st.frogT=frogI(st.cr[0]);return;}ring(f.x,f.y+10,40,3,'255,215,94');splash(f.x,f.y+10,0.8,12);}
     return;
   }
   if(f.s==='full'){                               // she waits for a tap... but not forever
@@ -541,8 +773,8 @@ function frogPop(){                               // the golden frog bursts: eve
   ring(f.x,f.y,220,12,'255,215,94');ring(f.x,f.y,140,6,'255,143,184');
   for(let i=fxN(30);i>0;i--)spark(f.x,f.y,rnd(120,380));
   for(let i=fxN(18);i>0;i--)petal(f.x,f.y);
-  ripple(f,24);sFrogPop();
-  [4,4].forEach((sv,i)=>{const s=freeSpot(podR(sv));seeds.push({x0:f.x,y0:f.y,x1:s.x,y1:s.y,v:sv,t:-i*0.12,dur:0.55,pink:true});});
+  ripple(f,24);sFrogPop();moment(3);
+  [4,4].forEach((sv,i)=>{const s=freeSpot(podR(sv));seeds.push({x0:f.x,y0:f.y,x1:s.x,y1:s.y,v:sv,t:-i*0.12,dur:0.72,pink:true});});
   st.frog=null;st.frogT=frogI(l);
 }
 function frogTap(){
@@ -556,7 +788,7 @@ function catchMoth(){
   addText(clamp(m.x,110,250),m.y-30,'FRENZY x'+st.frenzyM.toFixed(2)+'!',C.petal,30,1.4);
   banner('All glow x'+st.frenzyM.toFixed(2)+' for '+Math.round(st.frenzyD)+'s',C.petal,2.2);
   for(let i=fxN(20);i>0;i--)petal(m.x,m.y);
-  ring(m.x,m.y,160,8,'244,247,255');st.flash=0.35;st.shake=Math.max(st.shake,8);sMoth();
+  ring(m.x,m.y,160,8,'244,247,255');st.flash=0.35;st.shake=Math.max(st.shake,8);sMoth();moment(2);
   st.moth=null;st.mothT=mothI(l);
 }
 function starIn(){const x=rnd(60,300);st.star={t:0,dur:6,x0:x,vx:(x<180?1:-1)*rnd(10,30),x,y:BY0-10};tone(1400,0.4,'sine',0.03,1.5);}
@@ -566,9 +798,9 @@ function catchStar(){                             // a wish: glow now plus twin 
   addText(clamp(s.x,110,250),s.y-30,'WISH! +'+fmt(g),C.white,28,1.4);
   banner('Twin 8s fell: merge them to BLOOM!',C.gold,2.4);
   const a=freeSpot(podR(8)),b=freeSpot(podR(8),a);
-  seeds.push({x0:s.x,y0:s.y,x1:a.x,y1:a.y,v:8,t:0,dur:0.6,pink:true},{x0:s.x,y0:s.y,x1:b.x,y1:b.y,v:8,t:-0.12,dur:0.6,pink:true});
+  seeds.push({x0:s.x,y0:s.y,x1:a.x,y1:a.y,v:8,t:0,dur:0.78,pink:true},{x0:s.x,y0:s.y,x1:b.x,y1:b.y,v:8,t:-0.12,dur:0.78,pink:true});
   for(let i=fxN(24);i>0;i--)spark(s.x,s.y,rnd(100,300));
-  ring(s.x,s.y,180,8,'255,215,94');st.flash=0.4;st.shake=Math.max(st.shake,10);sStar();
+  ring(s.x,s.y,180,8,'255,215,94');st.flash=0.4;st.shake=Math.max(st.shake,10);sStar();moment(2);
   st.star=null;st.starT=starI(l);
 }
 function critUpdate(dt){
@@ -602,17 +834,24 @@ function critterTap(q){                           // moth and star always win; a
   return false;
 }
 
-// ---------- tutorial: six short steps, each advances when the player does the thing ----------
+// ---------- tutorial: eight short steps, each advances when the player does the thing (k: its st.tf flag, or null for OK) ----------
 const TUT=[
-  {k:'catch',t:'TAP a glowing pod',s:()=>'Catch fireflies to earn glow'},
-  {k:'merge',t:'DRAG a pod onto its twin',s:()=>'Same number merges: 1+1 = 2'},
-  {k:'buy',t:'BUY an upgrade below',s:()=>{const c=cost(tutBtn());return st.glow>=c?'Tap the glowing button':'Save up: '+fmt(st.glow)+' / '+fmt(c)+' glow';}},
-  {k:'bloom',t:'Merge up to 16 to BLOOM',s:()=>'Biggest pod: '+bigV()+' / 16'},
-  {k:null,t:'Bloom again = CHAIN!',s:()=>'Beat the pink timer for a bonus'},
-  {k:'tab',t:'Open CRITTERS below',s:()=>'Unlock a golden frog: '+fmt(CRIT[0].unlock)+' glow'},
+  {id:'catch',k:'catch',t:'TAP a glowing pod',s:()=>'Catch fireflies to earn glow'},
+  {id:'merge',k:'merge',t:'DRAG a pod onto its twin',s:()=>'Same number merges: 1+1 = 2'},
+  {id:'buy',k:'buy',t:'BUY an upgrade below',s:()=>{const c=cost(tutBtn());return st.glow>=c?'Tap the glowing button':'Save up: '+fmt(st.glow)+' / '+fmt(c)+' glow';}},
+  {id:'page',k:'page',t:'TAP the arrow for more',s:()=>'Page 2: NET, LILY PADS, NECTAR'},
+  {id:'bloom',k:'bloom',t:'Merge up to 16 to BLOOM',s:()=>'Biggest pod: '+bigV()+' / 16'},
+  {id:'chain',k:null,t:'Bloom again = CHAIN!',s:()=>'Beat the pink timer for a bonus'},
+  {id:'tab',k:'tab',t:'Open CRITTERS below',s:()=>'Unlock a golden frog: '+fmt(CRIT[0].unlock)+' glow'},
+  {id:'moon',k:null,t:'Fill the MOON, then tap it',s:()=>'Full Moon at '+fmt(moonNeed(st.moons))+' glow: PETALS'},
 ];
+const tutAt=id=>st.tut>=0&&TUT[st.tut].id===id;
 function bigV(){let m=1;for(const p of pods)if(!p.dead&&p.v>m)m=p.v;return m;}
-function tutBtn(){let bi=0,bc=Infinity;for(let i=0;i<3;i++){if(st.lv[i]>=UPS[i].max)continue;const c=cost(i);if(c<bc){bc=c;bi=i;}}return bi;}
+function tutBtn(){                                // cheapest upgrade on the page being shown
+  const p0=st.pg[0]*3;let bi=p0,bc=Infinity;
+  for(let i=p0;i<p0+3;i++){if(st.lv[i]>=UPS[i].max)continue;const c=cost(i);if(c<bc){bc=c;bi=i;}}
+  return bi;
+}
 function tutPod(){                                // stick with one target pod while it still has fireflies home
   const p=st.tpod;if(p&&!p.dead&&!p.busy&&ready(p)>0)return p;
   let b=null,bs=-1;for(const q of pods){if(q.dead||q.busy)continue;const s=ready(q)*10+q.v;if(s>bs){bs=s;b=q;}}
@@ -635,19 +874,22 @@ function nextTut(){
 function skipTut(){st.tut=-1;tutSave();sDrop();}
 
 // ---------- drag (shared by player and demo AI) ----------
-function grabPod(p,x,y,lift){if(p.dead||p.busy)return false;drag={p,x,y,offx:p.x-x,offy:p.y-y,lift};p.vx=p.vy=0;sPick();return true;}
+function grabPod(p,x,y,lift){                     // lifted off the water: a ring where it floated
+  if(p.dead||p.busy)return false;drag={p,x,y,offx:p.x-x,offy:p.y-y,lift};p.vx=p.vy=0;wave(p.x,p.y,p.r,p.r+18,0.5,0.7);sPick();return true;
+}
 function moveDrag(x,y){if(drag){drag.x=x;drag.y=y;}}
 function releaseDrag(){
   if(!drag)return;const p=drag.p;drag=null;
   if(p.dead||p.busy)return;
   const t=findTarget(p,p.x,p.y,p.v,p.r);
-  if(t)startMerge(p,t,0.1);else sDrop();
+  if(t)startMerge(p,t,0.1);else{splash(p.x,p.y,0.7,p.r);sDrop();}   // no twin: it drops back in with a splash
   p.vx=p.vy=0;
 }
 
 // ---------- input ----------
 function toLocal(e){const b=cv.getBoundingClientRect();return {x:(e.clientX-b.left-ox)/scale,y:(e.clientY-b.top-oy)/scale};}
-function btnAt(q){if(q.y<UY||q.y>UY+UH)return -1;for(let i=0;i<3;i++)if(q.x>=UX[i]&&q.x<=UX[i]+UW)return i;return -1;}
+function btnAt(q){if(q.y<UY||q.y>UY+UH)return -1;for(let i=0;i<3;i++)if(q.x>=UX[i]-3&&q.x<=UX[i]+UW+3)return i;return -1;}
+const pageAt=q=>q.y>=UY&&q.y<=UY+UH&&pages(st.tab)>1&&(q.x<UX[0]-3?-1:q.x>UX[2]+UW+3?1:0);   // -1 / 1: an arrow beside the shop
 function podAt(q){let hit=null,hd=1e9;for(const p of pods){if(p.dead||p.busy)continue;const d=Math.hypot(p.x-q.x,p.y-q.y);if(d<p.r+8&&d/p.r<hd){hd=d/p.r;hit=p;}}return hit;}
 cv.addEventListener('pointerdown',e=>{
   e.preventDefault();
@@ -659,13 +901,20 @@ cv.addEventListener('pointerdown',e=>{
     if(q.x>=80&&q.x<=280&&q.y>=HELP_BY&&q.y<=HELP_BY+44){st.tut=0;st.tutT=0;st.tf={};st.tp=st.tpod=null;sStep();}else sDrop();
     st.help=false;return;
   }
+  if(st.moonCard){                                // Full Moon card: rise (when the moon is full) or close
+    if(moonReady()&&q.x>=80&&q.x<=280&&q.y>=MOON_BY&&q.y<=MOON_BY+48)riseMoon();else sDrop();
+    st.moonCard=false;return;
+  }
   if(Math.hypot(q.x-RX,q.y-RY)<22){resetTap();return;}
   if(Math.hypot(q.x-HX,q.y-HY)<20){st.help=true;sPick();return;}
+  if(Math.hypot(q.x-MX,q.y-MY)<28){st.moonCard=true;sPick();return;}
   if(q.y>=TAB_Y-3&&q.y<=TAB_Y+TAB_H+2){
-    const t=q.x<180?0:1;if(t!==st.tab){st.tab=t;sPick();}
+    const t=q.x<TX[1]-3?0:q.x<TX[2]-3?1:2;if(t!==st.tab){st.tab=t;sPick();}
     if(t===1)st.tf.tab=true;return;
   }
-  const bi=btnAt(q);if(bi>=0){if(st.tab)buyCrit(bi);else buy(bi);return;}
+  const pa=pageAt(q);if(pa){flipPage(pa);return;}
+  const bi=btnAt(q);
+  if(bi>=0){const j=st.pg[st.tab]*3+bi;if(st.tab===2)buyPerk(j);else if(st.tab)buyCrit(j);else buy(j);return;}
   if(st.tut>=0&&q.x>=292&&q.x<=342&&q.y>=BY0+4&&q.y<=BY0+58){if(TUT[st.tut].k===null)nextTut();else skipTut();return;}
   if(critterTap(q))return;
   if(pointerId!==null)return;
@@ -771,6 +1020,21 @@ function physics(dt){
   }
   for(const p of pods){if(p.dead||p.busy||p===dp)continue;p.x=clamp(p.x,BX0+p.r*0.8,BX1-p.r*0.8);p.y=clamp(p.y,BY0+p.r*0.8,BY1-p.r*0.8);}
 }
+function driftUpdate(dt){                         // leaves adrift: a lazy current, nudged aside by pods, kept on the pond
+  const damp=Math.exp(-1.2*dt),spin=Math.exp(-0.6*dt);
+  for(const L of DRIFT){
+    L.vx+=Math.sin(clock*0.15+L.ph)*4*dt;L.vy+=Math.cos(clock*0.12+L.ph*1.7)*4*dt;L.va+=Math.sin(clock*0.2+L.ph)*0.02*dt;
+    for(const p of pods){
+      if(p.dead)continue;const dx=L.x-p.x,dy=L.y-p.y,mn=p.dr+L.s*0.5;
+      if(dx>mn||dx<-mn||dy>mn||dy<-mn)continue;
+      const d=Math.hypot(dx,dy);if(d>=mn||d<0.01)continue;
+      const f=(mn-d)*8*dt/d;L.vx+=dx*f;L.vy+=dy*f;
+    }
+    L.x+=L.vx*dt;L.y+=L.vy*dt;L.vx*=damp;L.vy*=damp;L.a+=L.va*dt;L.va*=spin;
+    if(L.x<BX0){L.x=BX0;L.vx=Math.abs(L.vx)*0.5;}else if(L.x>BX1){L.x=BX1;L.vx=-Math.abs(L.vx)*0.5;}
+    if(L.y<BY0){L.y=BY0;L.vy=Math.abs(L.vy)*0.5;}else if(L.y>BY1){L.y=BY1;L.vy=-Math.abs(L.vy)*0.5;}
+  }
+}
 
 function update(dt){
   clock+=dt;
@@ -780,6 +1044,8 @@ function update(dt){
   st.boost=Math.max(0,st.boost-dt);
   st.comboT-=dt;if(st.comboT<=0)st.combo=0;
   st.resetArm=Math.max(0,st.resetArm-dt);st.pulse=Math.max(0,st.pulse-dt*4);st.flowerT=Math.min(1,st.flowerT+dt*1.2);
+  st.moonFx=Math.max(0,st.moonFx-dt*0.8);st.pgFx=Math.max(0,st.pgFx-dt*5);
+  if(!st.moonHint&&moonReady()){st.moonHint=true;banner('FULL MOON! Tap the moon for petals',C.white,3);ring(MX,MY,90,6,'244,247,255');sStar();}
   for(let i=0;i<3;i++){st.btnP[i]=Math.max(0,st.btnP[i]-dt*5);st.btnS[i]=Math.max(0,st.btnS[i]-dt*3);}
   if(st.welcome){st.welcome.t+=dt;if(st.welcome.t>4.2)st.welcome=null;}
   if(st.banner){st.banner.t+=dt;if(st.banner.t>st.banner.life)st.banner=null;}
@@ -807,12 +1073,14 @@ function update(dt){
     if(p.dead||p.busy)drag=null;
     else{p.x=clamp(drag.x+drag.offx,BX0-10,BX1+10);p.y=clamp(drag.y+drag.offy,BY0-10,BY1+10);}
   }
-  physics(dt);
+  physics(dt);driftUpdate(dt);
+  const dp=drag&&drag.p,calm=waves.length<WAVE_CAP[Q]-8;
   for(const p of pods){
     if(p.dead)continue;
     p.born=Math.min(1,p.born+dt*4);p.pop=Math.max(0,p.pop-dt*3);p.dr+=(p.r-p.dr)*Math.min(1,dt*10);
     for(const f of p.ff)if(f.cd>0){f.cd-=dt;if(f.cd<=0)f.back=0.4;}else if(f.back>0)f.back-=dt;
     if(p.burstT>=0){p.burstT+=dt;if(p.burstT>=0.45)doBurst(p);}
+    else if(p!==dp&&(p.wv-=dt)<=0){p.wv=rnd(2.5,5);if(calm)wave(p.x,p.y,p.dr+1,p.dr+14,0.2,1.6);}   // floating pods bob: faint rings
   }
   // lists are compacted in place (no per-frame array allocations)
   let j=0;
@@ -824,9 +1092,11 @@ function update(dt){
   merges.length=j;j=0;
   for(let i=0;i<seeds.length;i++){
     const s=seeds[i];s.t+=dt;
+    if(!s.sk&&s.t>=s.dur*SKIP){s.sk=true;const q=seedPos(s,SKIP);splash(q.x,q.y,0.25);sSkip();}   // first touch: a skip
     if(s.t<s.dur){seeds[j++]=s;continue;}
     const r=podR(s.v),p=makePod(s.v,clamp(s.x1,BX0+r*0.8,BX1-r*0.8),clamp(s.y1,BY0+r*0.8,BY1-r*0.8));p.born=0.3;
-    for(let k=fxN(6);k>0;k--)spark(p.x,p.y,rnd(30,90));
+    splash(p.x,p.y,0.9,r*0.5);                    // ...then it plops in and floats up as a pod
+    for(let k=fxN(3);k>0;k--)spark(p.x,p.y,rnd(30,90));
     if(s.rare&&s.v>1){                          // a rare seed flags the twin it was grown for
       ring(p.x,p.y,p.r+26,4,'255,215,94');
       if(s.tw&&!s.tw.dead&&s.tw.v===s.v){s.tw.pop=Math.max(s.tw.pop,0.6);ring(s.tw.x,s.tw.y,s.tw.r+26,4,'255,215,94');}
@@ -838,9 +1108,10 @@ function update(dt){
   pods.length=j;j=0;
   const dm=Math.exp(-2*dt);
   for(let i=0;i<parts.length;i++){
-    const p=parts[i];p.t+=dt;if(p.t>=p.life)continue;
+    const p=parts[i];p.t+=dt;
+    if(p.t>=p.life){if(p.k===1&&Math.random()<0.35&&inPond(p.x,p.y))wave(p.x,p.y,1,10,0.35,0.7);continue;}   // petals settle on the water
     if(p.k!==2){p.vx*=dm;p.vy*=dm;}
-    if(p.k===1){p.vy+=70*dt;p.rot+=p.vr*dt;}
+    if(p.k===1){p.vy+=70*dt;p.rot+=p.vr*dt;}else if(p.k===3)p.vy+=420*dt;
     p.x+=p.vx*dt;p.y+=p.vy*dt;parts[j++]=p;
   }
   parts.length=j;j=0;
@@ -853,7 +1124,9 @@ function update(dt){
   bugs.length=j;j=0;
   for(let i=0;i<rings.length;i++){const r=rings[i];r.t+=dt;if(r.t<0.7)rings[j++]=r;}
   rings.length=j;j=0;
-  for(let i=0;i<texts.length;i++){const t=texts[i];t.t+=dt;t.y-=28*dt;if(t.t<t.life)texts[j++]=t;}
+  for(let i=0;i<waves.length;i++){const w=waves[i];w.t+=dt;if(w.t<w.life)waves[j++]=w;}
+  waves.length=j;j=0;
+  for(let i=0;i<texts.length;i++){const t=texts[i];t.t+=dt;t.y-=28*dt;if(t.t<t.life)texts[j++]=t;else if(TXT_POOL.length<TEXT_CAP[2])TXT_POOL.push(t.spr.img);}
   texts.length=j;
   st.shake=Math.max(0,st.shake-dt*40);st.flash=Math.max(0,st.flash-dt*2);
   if(!DEMO){st.saveT+=dt;if(st.saveT>5){st.saveT=0;save();}}
@@ -867,9 +1140,9 @@ function drawPod(p,mode){
   const lvl=Math.min(4,Math.round(Math.log2(p.v))),P=PODS[lvl],base=mode===1?0.4:1,bo=st.boost>0;
   let s=(p.born<1?Math.max(0.01,easeOutBack(p.born)):1)*(1+p.pop*0.22);
   if(p.burstT>=0)s*=1+p.burstT*0.7+Math.sin(p.burstT*60)*0.04;
-  if(mode===4)s*=1.12;
+  s*=mode===4?1.12:1+0.015*Math.sin(clock*1.8+p.id*1.3);   // lifted by the finger, or bobbing on the water
   const r=p.dr*s,x=p.x,y=p.y,n=p.ff.length,rf=n?ready(p)/n:0,e=P.E*r/P.r;
-  if(mode===4){ctx.globalAlpha=0.35;ctx.fillStyle='#000';ctx.beginPath();ctx.ellipse(x,y+r*0.9,r*0.9,r*0.3,0,0,Math.PI*2);ctx.fill();}
+  if(mode===4){ctx.globalAlpha=0.45;ctx.drawImage(SHADOW,x+12-r*1.3,y+22-r*1.3,r*2.6,r*2.6);}   // out of the water: its shadow falls further away
   // pod aura brightness follows how many fireflies are home
   ctx.globalAlpha=base*Math.min(1,0.08+rf*(0.14+lvl*0.12)+(bo?0.15:0)+Math.max(0,p.burstT));
   ctx.drawImage(GLOW,x-r*2.1,y-r*2.1,r*4.2,r*4.2);
@@ -910,7 +1183,7 @@ function frogBody(x,y,s,face,full){               // front view: legs, body, bel
   for(const e of [-1,1]){
     ctx.fillStyle=C.gold;circ(x+e*9*s,y-12*s,6*s);ctx.fill();
     ctx.fillStyle='#fff';circ(x+e*9*s,y-12*s,4.2*s);ctx.fill();
-    ctx.fillStyle='#10261c';circ(x+e*9*s+face*1.2*s,y-12*s,full?1.4*s:2.3*s);ctx.fill();
+    ctx.fillStyle='#1a1426';circ(x+e*9*s+face*1.2*s,y-12*s,full?1.4*s:2.3*s);ctx.fill();
   }
   ctx.strokeStyle='#7a5a12';ctx.lineWidth=1.8*s;ctx.beginPath();ctx.arc(x,y-5*s,7*s,0.2*Math.PI,0.8*Math.PI);ctx.stroke();
 }
@@ -924,28 +1197,53 @@ function mothBody(x,y,s,flap){
   ctx.fillStyle='#9fb0d8';ctx.beginPath();ctx.ellipse(x,y+1*s,3*s,11*s,0,0,Math.PI*2);ctx.fill();
   ctx.strokeStyle='#e8eeff';ctx.lineWidth=1.5*s;ctx.beginPath();ctx.moveTo(x-1,y-9*s);ctx.lineTo(x-6*s,y-18*s);ctx.moveTo(x+1,y-9*s);ctx.lineTo(x+6*s,y-18*s);ctx.stroke();
 }
-function btnInfo(i){
-  if(st.tab===0){const u=UPS[i],l=st.lv[i],mx=l>=u.max;return {u,l,top:'Lv'+l,desc:u.desc(l),mx,c:mx?0:cost(i),lock:false};}
-  const u=CRIT[i],l=st.cr[i],mx=l>=u.max;return {u,l,top:l?'Lv'+l:'',desc:l?u.desc(l):u.lock,mx,c:mx?0:critCost(i),lock:!l};
+const TABS=[{name:'UPGRADES',col:C.gold,fill:'#123650',glow:GLOW},{name:'CRITTERS',col:C.petal,fill:'#2e1530',glow:PGLOW},
+  {name:'MOON',col:C.white,fill:'#1f2448',glow:MGLOW}];
+function btnInfo(b){                              // button slot b shows item j of the current tab's page
+  const j=st.pg[st.tab]*3+b;
+  if(st.tab===0){const u=UPS[j],l=st.lv[j],mx=l>=u.max;return {u,l,top:'Lv'+l,desc:u.desc(l),mx,c:mx?0:cost(j),have:st.glow,lock:false};}
+  if(st.tab===1){const u=CRIT[j],l=st.cr[j],mx=l>=u.max;return {u,l,top:l?'Lv'+l:'',desc:l?u.desc(l):u.lock,mx,c:mx?0:critCost(j),have:st.glow,lock:!l};}
+  const u=PERKS[j],l=st.pk[j],mx=l>=u.max;return {u,l,top:l?'Lv'+l:'',desc:l?u.desc(l):u.lock,mx,c:mx?0:perkCost(j),have:st.petals,lock:false};
+}
+function seedIcon(cx,iy,col){                     // a seed dropping into rippling water
+  ctx.strokeStyle=col;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(cx,iy+8,15,4.5,0,0,Math.PI*2);ctx.stroke();
+  ctx.fillStyle=col;circ(cx,iy-3,7);ctx.fill();ctx.fillStyle='rgba(255,255,255,0.7)';circ(cx-2.5,iy-5.5,2.2);ctx.fill();
+}
+function breezeIcon(cx,iy){ctx.strokeStyle=C.white;ctx.lineWidth=2.5;ctx.lineCap='round';for(let k=0;k<3;k++){ctx.beginPath();ctx.arc(cx-4+k*3,iy+2-k*4,9-k*2,Math.PI*1.1,Math.PI*1.9);ctx.stroke();}}
+function drawIcon(k,cx,iy){                       // shop icons, picked by the item's `ic`
+  if(k==='ff'){ctx.drawImage(GLOW,cx-16,iy-16,32,32);ctx.fillStyle='#fff';circ(cx,iy,3.5);ctx.fill();ctx.drawImage(GLOW,cx+8,iy-10,14,14);ctx.drawImage(GLOW,cx-20,iy-2,12,12);}
+  else if(k==='seed')seedIcon(cx,iy,C.aqua);
+  else if(k==='rare')seedIcon(cx,iy,C.gold);
+  else if(k==='breeze')breezeIcon(cx,iy);
+  else if(k==='net'){                             // a hoop net with a firefly in it
+    ctx.strokeStyle=C.white;ctx.lineWidth=2.5;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(cx-6,iy+6);ctx.lineTo(cx-14,iy+14);ctx.stroke();
+    ctx.drawImage(FFS,cx-11,iy-15,26,26);ctx.lineWidth=2;circ(cx+2,iy-2,10);ctx.stroke();
+  }
+  else if(k==='pad')ctx.drawImage(LEAF[0],cx-16,iy-16,32,32);
+  else if(k==='bloom')ctx.drawImage(FLW[0],cx-21,iy-21,42,42);
+  else if(k==='frog'){ctx.drawImage(GLOW,cx-18,iy-18,36,36);frogBody(cx,iy+2,0.62,1,false);}
+  else if(k==='moth'){ctx.drawImage(MGLOW,cx-18,iy-18,36,36);mothBody(cx,iy+1,0.7,0.6+0.4*Math.abs(Math.sin(clock*6)));}
+  else if(k==='star'){ctx.drawImage(GLOW,cx-18,iy-18,36,36);starPath(cx,iy,11,5,clock);ctx.fillStyle=C.gold;ctx.fill();ctx.fillStyle='#fff';circ(cx,iy,2.5);ctx.fill();}
+  else if(k==='chain'){ctx.lineWidth=4;ctx.strokeStyle='rgba(255,143,184,0.3)';circ(cx,iy,11);ctx.stroke();
+    ctx.strokeStyle=C.petal;ctx.lineCap='round';ctx.beginPath();ctx.arc(cx,iy,11,-Math.PI/2,Math.PI*0.9);ctx.stroke();}
+  else if(k==='moon')drawMoon(cx,iy,11,1);
+  else if(k==='petal'){                           // five Moon Petals around a gold heart
+    ctx.save();ctx.translate(cx,iy);for(let a=0;a<5;a++){ctx.rotate(Math.PI*0.4);ctx.drawImage(PET,1,-4,16,8);}ctx.restore();
+    ctx.fillStyle=C.gold;circ(cx,iy,3.5);ctx.fill();
+  }
 }
 function drawButton(i){
-  const B=btnInfo(i),u=B.u,maxed=B.mx,c=B.c,can=!maxed&&st.glow>=c;
-  const x=UX[i]+Math.sin(clock*60)*4*st.btnS[i],y=UY,cx=x+UW/2,sc=1-0.06*st.btnP[i];
+  const B=btnInfo(i),u=B.u,maxed=B.mx,c=B.c,can=!maxed&&B.have>=c,T=TABS[st.tab],pk=st.tab===2;
+  const x=UX[i]+Math.sin(clock*60)*4*st.btnS[i]+st.pgDir*30*st.pgFx*st.pgFx,y=UY,cx=x+UW/2,sc=1-0.06*st.btnP[i];   // a flipped page slides in
   ctx.save();ctx.translate(cx,y+UH/2);ctx.scale(sc,sc);ctx.translate(-cx,-(y+UH/2));
-  if(can){ctx.globalAlpha=0.25+0.2*Math.sin(clock*5);ctx.drawImage(st.tab?PGLOW:GLOW,x-20,y-20,UW+40,UH+40);ctx.globalAlpha=1;}
-  rr(x,y,UW,UH,14);ctx.fillStyle=can?(st.tab?'#2e1530':'#173a2c'):'#0c1a24';ctx.fill();
+  if(can){ctx.globalAlpha=0.25+0.2*Math.sin(clock*5);ctx.drawImage(T.glow,x-20,y-20,UW+40,UH+40);ctx.globalAlpha=1;}
+  rr(x,y,UW,UH,14);ctx.fillStyle=can?T.fill:'#0b1726';ctx.fill();
   ctx.lineWidth=can?3:2;ctx.strokeStyle=can?u.col:'rgba(255,255,255,0.18)';ctx.stroke();
-  // icon
+  // icon (perks sit on a moonlit or pink glow)
   const iy=y+22;
   if(B.lock)ctx.globalAlpha=0.45;
-  if(st.tab===1){
-    if(i===0){ctx.drawImage(GLOW,cx-18,iy-18,36,36);frogBody(cx,iy+2,0.62,1,false);}
-    else if(i===1){ctx.drawImage(MGLOW,cx-18,iy-18,36,36);mothBody(cx,iy+1,0.7,0.6+0.4*Math.abs(Math.sin(clock*6)));}
-    else{ctx.drawImage(GLOW,cx-18,iy-18,36,36);starPath(cx,iy,11,5,clock);ctx.fillStyle=C.gold;ctx.fill();ctx.fillStyle='#fff';circ(cx,iy,2.5);ctx.fill();}
-  }
-  else if(i===0){ctx.drawImage(GLOW,cx-16,iy-16,32,32);ctx.fillStyle='#fff';circ(cx,iy,3.5);ctx.fill();ctx.drawImage(GLOW,cx+8,iy-10,14,14);ctx.drawImage(GLOW,cx-20,iy-2,12,12);}
-  else if(i===1){ctx.fillStyle='#1f6242';circ(cx,iy,10);ctx.fill();ctx.strokeStyle=C.leaf;ctx.lineWidth=2.5;ctx.stroke();ctx.fillStyle=C.leaf;ctx.beginPath();ctx.ellipse(cx+7,iy-11,7,3.5,-0.6,0,Math.PI*2);ctx.fill();}
-  else{ctx.strokeStyle=C.white;ctx.lineWidth=2.5;ctx.lineCap='round';for(let k=0;k<3;k++){ctx.beginPath();ctx.arc(cx-4+k*3,iy+2-k*4,9-k*2,Math.PI*1.1,Math.PI*1.9);ctx.stroke();}}
+  if(pk)ctx.drawImage(u.col===C.petal?PGLOW:MGLOW,cx-18,iy-18,36,36);
+  drawIcon(u.ic,cx,iy);
   ctx.globalAlpha=1;
   if(B.lock){                                     // padlock in the corner
     const lx=x+16,ly=y+16;ctx.strokeStyle=C.white;ctx.lineWidth=2;ctx.beginPath();ctx.arc(lx,ly-3,4,Math.PI,0);ctx.stroke();
@@ -954,26 +1252,44 @@ function drawButton(i){
   ctx.textAlign='left';ctx.textBaseline='middle';ctx.font='bold 13px sans-serif';ctx.fillStyle='rgba(244,247,255,0.6)';ctx.fillText(B.top,x+8,y+14);
   ctx.textAlign='center';ctx.font='bold 15px sans-serif';ctx.fillStyle='#fff';ctx.fillText(u.name,cx,y+44,UW-8);
   ctx.font='bold 13px sans-serif';ctx.fillStyle='rgba(244,247,255,0.75)';ctx.fillText(B.desc,cx,y+61,UW-8);
-  ctx.font='bold 18px sans-serif';ctx.fillStyle=maxed?C.leaf:can?C.gold:'rgba(244,247,255,0.45)';ctx.fillText(maxed?'MAX':fmt(c),cx,y+78,UW-8);
-  if(!maxed)drawBar(x+10,y+91,UW-20,st.glow/c,can?C.gold:'rgba(255,215,94,0.5)');
+  ctx.font='bold 18px sans-serif';ctx.fillStyle=maxed?C.aqua:can?(pk?C.petal:C.gold):'rgba(244,247,255,0.45)';
+  if(pk&&!maxed){const s=fmt(c),tw=ctx.measureText(s).width;ctx.drawImage(PET,cx-10-tw/2,y+74,16,8);ctx.fillText(s,cx+10,y+78);}   // price in petals
+  else ctx.fillText(maxed?'MAX':fmt(c),cx,y+78,UW-8);
+  if(!maxed)drawBar(x+10,y+91,UW-20,B.have/c,pk?(can?C.petal:'rgba(255,143,184,0.5)'):can?C.gold:'rgba(255,215,94,0.5)');
   ctx.restore();
 }
-function canAfford(t){
-  for(let i=0;i<3;i++){
-    if(t===0){if(st.lv[i]<UPS[i].max&&st.glow>=cost(i))return true;}
-    else if(st.cr[i]<CRIT[i].max&&st.glow>=critCost(i))return true;
-  }
+function canAfford(t,p0){                         // anything to buy on tab t (only on the page starting at item p0, when given)?
+  if(p0==null&&t===2&&moonReady())return true;
+  const L=SHOP[t],a=p0==null?0:p0,b=p0==null?L.length:Math.min(L.length,p0+3);
+  for(let j=a;j<b;j++)if(canBuy(t,j))return true;
   return false;
 }
 function drawTabs(){
   ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 14px sans-serif';
-  for(let t=0;t<2;t++){
-    const x=TX[t],on=st.tab===t,col=t?C.petal:C.gold;
-    rr(x,TAB_Y,TW,TAB_H,13);ctx.fillStyle=on?(t?'#2e1530':'#173a2c'):'rgba(8,14,34,0.8)';ctx.fill();
-    ctx.lineWidth=on?2.5:1.5;ctx.strokeStyle=on?col:'rgba(244,247,255,0.25)';ctx.stroke();
-    ctx.fillStyle=on?'#fff':'rgba(244,247,255,0.6)';ctx.fillText(t?'CRITTERS':'UPGRADES',x+TW/2,TAB_Y+TAB_H/2+1);
-    if(!on&&canAfford(t)){ctx.globalAlpha=0.6+0.4*Math.sin(clock*6);ctx.fillStyle=col;circ(x+TW-16,TAB_Y+TAB_H/2,5);ctx.fill();ctx.globalAlpha=1;}
+  for(let t=0;t<3;t++){
+    const x=TX[t],on=st.tab===t,T=TABS[t],pc=t===2&&st.petalsAll>0,ty=TAB_Y+TAB_H/2+1;
+    rr(x,TAB_Y,TW,TAB_H,13);ctx.fillStyle=on?T.fill:'rgba(8,14,34,0.8)';ctx.fill();
+    ctx.lineWidth=on?2.5:1.5;ctx.strokeStyle=on?T.col:'rgba(244,247,255,0.25)';ctx.stroke();
+    ctx.fillStyle=on?'#fff':'rgba(244,247,255,0.6)';
+    if(pc){                                       // unspent Moon Petals beside the name, centred as one group
+      const s=fmt(st.petals),lw=ctx.measureText(T.name).width,cw=ctx.measureText(s).width,x0=x+Math.max(4,TW/2-(lw+22+cw)/2);
+      ctx.textAlign='left';ctx.fillText(T.name,x0,ty);ctx.drawImage(PET,x0+lw+5,ty-5,14,7);
+      ctx.fillStyle=C.petal;ctx.fillText(s,x0+lw+22,ty,x+TW-4-(x0+lw+22));ctx.textAlign='center';
+    }else ctx.fillText(T.name,x+TW/2,ty);
+    if(!on&&canAfford(t)){ctx.globalAlpha=0.6+0.4*Math.sin(clock*6);ctx.fillStyle=T.col;circ(x+TW-7,TAB_Y+3,5);ctx.fill();ctx.globalAlpha=1;}
   }
+}
+function drawPager(){                             // arrows beside the shop and page dots under it, when the tab has more than 3 items
+  const t=st.tab,n=pages(t);if(n<2)return;
+  const T=TABS[t],p=st.pg[t],hot=canAfford(t,((p+1)%n)*3),cy=UY+UH/2,nudge=hot?2+2*Math.sin(clock*6):0;   // the other page has something to buy
+  for(let s=0;s<2;s++){
+    const d=s?1:-1,x=PG_X[s]+d*nudge;
+    rr(x-9,UY+8,18,UH-16,9);ctx.fillStyle=hot?T.fill:'rgba(8,14,34,0.8)';ctx.fill();
+    ctx.lineWidth=1.5;ctx.strokeStyle=hot?T.col:'rgba(244,247,255,0.3)';ctx.stroke();
+    ctx.strokeStyle=hot?T.col:C.white;ctx.lineWidth=3;ctx.lineCap='round';ctx.lineJoin='round';
+    ctx.beginPath();ctx.moveTo(x-d*3,cy-9);ctx.lineTo(x+d*3,cy);ctx.lineTo(x-d*3,cy+9);ctx.stroke();ctx.lineJoin='miter';
+  }
+  for(let k=0;k<n;k++){ctx.fillStyle=k===p?T.col:'rgba(244,247,255,0.3)';circ(180+(k-(n-1)/2)*14,UY+UH+8,k===p?3.5:2.5);ctx.fill();}
 }
 function drawFrog(){
   const f=st.frog;if(!f)return;
@@ -1026,7 +1342,7 @@ function drawStar(){
 }
 function drawChain(){                            // persistent multiplier + countdown ring while a chain runs
   const on=st.chain>0;if(!on&&st.chainEnd<=0)return;
-  const m=on?chainMult():st.chainLast,f=on?clamp(st.chainT/CHAIN_WIN,0,1):0,low=on&&st.chainT<2;
+  const m=on?chainMult():st.chainLast,f=on?clamp(st.chainT/chainWin(),0,1):0,low=on&&st.chainT<2;
   const s=on?1+st.chainPop*0.25:Math.max(0.01,st.chainEnd/0.4),R=21;
   ctx.save();ctx.translate(CRX,CRY);ctx.scale(s,s);ctx.globalAlpha=on?1:st.chainEnd/0.4;
   const ga=ctx.globalAlpha;
@@ -1056,7 +1372,7 @@ function drawIconButtons(){
   const ex=RX+Math.cos(a1)*R,ey=RY+Math.sin(a1)*R,tx=-Math.sin(a1),ty=Math.cos(a1),nx=Math.cos(a1),ny=Math.sin(a1);
   ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(ex+tx*5.5,ey+ty*5.5);ctx.lineTo(ex+nx*4.5-tx*1.5,ey+ny*4.5-ty*1.5);ctx.lineTo(ex-nx*4.5-tx*1.5,ey-ny*4.5-ty*1.5);ctx.closePath();ctx.fill();
   // help
-  circ(HX,HY,15);ctx.fillStyle=st.help?'#173a2c':'rgba(8,14,34,0.8)';ctx.fill();ctx.lineWidth=2;ctx.strokeStyle='rgba(244,247,255,0.45)';ctx.stroke();
+  circ(HX,HY,15);ctx.fillStyle=st.help?'#123650':'rgba(8,14,34,0.8)';ctx.fill();ctx.lineWidth=2;ctx.strokeStyle='rgba(244,247,255,0.45)';ctx.stroke();
   ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 18px sans-serif';ctx.fillStyle=C.white;ctx.fillText('?',HX,HY+1);
 }
 function drawTutWorld(){                          // pointers drawn on the bed itself
@@ -1074,8 +1390,10 @@ function drawTutWorld(){                          // pointers drawn on the bed i
     ctx.fillStyle=C.gold;ctx.beginPath();ctx.moveTo(hx+ux*8,hy+uy*8);ctx.lineTo(hx-ux*4-uy*7,hy-uy*4+ux*7);ctx.lineTo(hx-ux*4+uy*7,hy-uy*4-ux*7);ctx.closePath();ctx.fill();
     ctx.lineWidth=3;circ(a.x,a.y,a.r+6);ctx.stroke();circ(b.x,b.y,b.r+6);ctx.stroke();
     ctx.globalAlpha=1;if(k<0.9)drawFinger(lerp(a.x,b.x,m),lerp(a.y,b.y,m),k>0.1&&k<0.75);
-  }else if(st.tut===4&&st.chain){
+  }else if(tutAt('chain')&&st.chain){
     const k=(clock%1)/1;ctx.globalAlpha=1-k;ctx.strokeStyle=C.petal;ctx.lineWidth=3;circ(CRX,CRY,24+k*16);ctx.stroke();
+  }else if(tutAt('moon')){                        // the moon up top: it waxes toward the next Full Moon
+    const k=(clock%1.1)/1.1;ctx.globalAlpha=1-k;ctx.strokeStyle=C.white;ctx.lineWidth=3;circ(MX,MY,24+k*18);ctx.stroke();
   }
   ctx.globalAlpha=1;
 }
@@ -1085,14 +1403,14 @@ function drawTutCard(){
   ctx.globalAlpha=Math.min(1,st.tutT*5);
   rr(18,y,324,54,16);ctx.fillStyle='rgba(3,8,20,0.9)';ctx.fill();ctx.strokeStyle=C.gold;ctx.lineWidth=2;ctx.stroke();
   ctx.fillStyle=C.gold;circ(40,y+27,14);ctx.fill();
-  ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 13px sans-serif';ctx.fillStyle='#10261c';ctx.fillText((st.tut+1)+'/'+TUT.length,40,y+28);
+  ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 13px sans-serif';ctx.fillStyle='#1c1430';ctx.fillText((st.tut+1)+'/'+TUT.length,40,y+28);
   ctx.textAlign='left';ctx.font='bold 16px sans-serif';ctx.fillStyle='#fff';ctx.fillText(T.t,62,y+18,224);
   ctx.font='bold 14px sans-serif';ctx.fillStyle='rgba(244,247,255,0.72)';ctx.fillText(T.s(),62,y+39,224);
   ctx.strokeStyle='rgba(244,247,255,0.18)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(292,y+12);ctx.lineTo(292,y+42);ctx.stroke();
   ctx.textAlign='center';ctx.fillStyle='rgba(244,247,255,0.6)';ctx.fillText(T.k===null?'OK':'SKIP',317,y+28);
-  if(st.tut===2||st.tut===5){                     // bouncing arrow over the upgrade to buy / the CRITTERS tab
-    const i=tutBtn(),onTab=st.tut===5||st.tab!==0;
-    const bx=onTab?TX[st.tut===5?1:0]+TW/2:UX[i]+UW/2,by=(onTab?TAB_Y-2:UY-4)-Math.abs(Math.sin(clock*4))*8;
+  if(T.id==='buy'||T.id==='page'||T.id==='tab'){  // bouncing arrow over the upgrade to buy / the page arrow / the CRITTERS tab
+    const crit=T.id==='tab',onTab=crit||st.tab!==0,pg=!onTab&&T.id==='page';
+    const bx=onTab?TX[crit?1:0]+TW/2:pg?PG_X[1]:UX[tutBtn()%3]+UW/2,by=(onTab?TAB_Y-2:UY-4)-Math.abs(Math.sin(clock*4))*8;
     ctx.fillStyle=C.gold;ctx.beginPath();ctx.moveTo(bx,by);ctx.lineTo(bx-11,by-13);ctx.lineTo(bx+11,by-13);ctx.closePath();ctx.fill();
     ctx.strokeStyle='rgba(3,8,20,0.9)';ctx.lineWidth=2;ctx.stroke();
   }
@@ -1107,37 +1425,119 @@ function drawBanner(){
   ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=b.c;ctx.fillText(b.s,0,1,w-20);
   ctx.restore();
 }
-const HELP=[[C.gold,'TAP a pod to catch a firefly'],[C.leaf,'DRAG twins together to merge'],[C.petal,'16 fireflies BLOOM: +3 seeds'],
-  [C.petal,'Bloom again fast for a CHAIN'],[C.leaf,'SEEDS plant, BREEZE merges'],
-  [C.gold,'CRITTERS: tap FULL frog to POP'],[C.petal,'Tap moth / falling star fast'],[C.gold,'Glow keeps growing offline']];
+const HELP=[[C.gold,'TAP a pod to catch a firefly'],[C.aqua,'DRAG twins together to merge'],[C.petal,'16 fireflies BLOOM: +3 seeds'],
+  [C.petal,'Bloom again fast for a CHAIN'],[C.aqua,'SEEDS plant, BREEZE merges'],[C.aqua,'Arrows by the shop: page 2'],
+  [C.gold,'CRITTERS: tap FULL frog to POP'],[C.petal,'Tap moth / falling star fast'],[C.petal,'Full MOON: reset for PETALS'],
+  [C.gold,'Glow keeps growing offline']];
 function drawHelp(){
   ctx.globalAlpha=0.7;ctx.fillStyle='#02050c';ctx.fillRect(-500,-500,W+1000,H+1000);ctx.globalAlpha=1;
   rr(20,104,320,420,22);ctx.fillStyle='rgba(8,14,34,0.97)';ctx.fill();ctx.strokeStyle=C.gold;ctx.lineWidth=3;ctx.stroke();
   ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 24px sans-serif';ctx.fillStyle=C.gold;ctx.fillText('HOW TO PLAY',180,140);
   ctx.textAlign='left';ctx.font='bold 15px sans-serif';
-  HELP.forEach((h,i)=>{const y=180+i*31;ctx.globalAlpha=0.6;ctx.drawImage(h[0]===C.petal?PGLOW:GLOW,34,y-16,32,32);ctx.globalAlpha=1;
+  HELP.forEach((h,i)=>{const y=172+i*26;ctx.globalAlpha=0.6;ctx.drawImage(h[0]===C.petal?PGLOW:h[0]===C.aqua?AGLOW:GLOW,34,y-16,32,32);ctx.globalAlpha=1;
     ctx.fillStyle=h[0];circ(50,y,7);ctx.fill();ctx.fillStyle='#fff';ctx.fillText(h[1],72,y+1,252);});
-  rr(80,HELP_BY,200,44,22);ctx.fillStyle='#173a2c';ctx.fill();ctx.strokeStyle=C.leaf;ctx.lineWidth=2.5;ctx.stroke();
+  rr(80,HELP_BY,200,44,22);ctx.fillStyle='#123650';ctx.fill();ctx.strokeStyle=C.aqua;ctx.lineWidth=2.5;ctx.stroke();
   ctx.textAlign='center';ctx.font='bold 16px sans-serif';ctx.fillStyle='#fff';ctx.fillText('REPLAY TUTORIAL',180,HELP_BY+23);
   ctx.font='bold 14px sans-serif';ctx.fillStyle='rgba(244,247,255,0.55)';ctx.fillText('Tap anywhere to close',180,500);
 }
+function drawMoonCard(){                          // progress to the next Full Moon, and what rising it gives and resets
+  const mr=moonReady(),need=moonNeed(st.moons),n=petalsFor(st.moonG);
+  ctx.globalAlpha=0.7;ctx.fillStyle='#02050c';ctx.fillRect(-500,-500,W+1000,H+1000);ctx.globalAlpha=1;
+  rr(20,104,320,420,22);ctx.fillStyle='rgba(8,14,34,0.97)';ctx.fill();ctx.strokeStyle=mr?C.white:'rgba(244,247,255,0.35)';ctx.lineWidth=3;ctx.stroke();
+  drawMoon(180,196,30,0.08+0.92*Math.min(1,st.moonG/need));
+  ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 24px sans-serif';ctx.fillStyle=C.gold;
+  ctx.fillText(mr?'FULL MOON!':'NEXT FULL MOON',180,136);
+  ctx.font='bold 15px sans-serif';ctx.fillStyle='rgba(244,247,255,0.7)';ctx.fillText('Glow this moon',180,254);
+  ctx.font='bold 22px sans-serif';ctx.fillStyle=C.gold;ctx.fillText(fmt(st.moonG)+' / '+fmt(need),180,280,290);
+  ctx.font='bold 17px sans-serif';ctx.fillStyle=C.petal;
+  ctx.fillText(mr?'Rise now: +'+n+' Moon Petals':'Moon glow bonus x'+moonMult().toFixed(2),180,314,290);
+  ctx.font='bold 14px sans-serif';ctx.fillStyle='rgba(244,247,255,0.8)';
+  ctx.fillText('Each petal: +'+Math.round(petalBonus(st.pk[3])*100)+'% glow forever',180,344,290);
+  ctx.fillText('Resets glow, pods, blooms, UPGRADES',180,366,290);
+  ctx.fillText('and CRITTERS. MOON perks stay',180,386,290);
+  rr(80,MOON_BY,200,48,24);ctx.fillStyle=mr?'#1f2448':'rgba(255,255,255,0.06)';ctx.fill();
+  ctx.strokeStyle=mr?C.white:'rgba(244,247,255,0.25)';ctx.lineWidth=2.5;ctx.stroke();
+  ctx.font='bold 17px sans-serif';ctx.fillStyle=mr?'#fff':'rgba(244,247,255,0.4)';ctx.fillText(mr?'RISE, FULL MOON':'NOT FULL YET',180,MOON_BY+25);
+  ctx.font='bold 14px sans-serif';ctx.fillStyle='rgba(244,247,255,0.55)';ctx.fillText('Tap anywhere to close',180,500);
+}
+function drawCaustics(){                          // moving light on the pond floor: the caustic tile in drifting layers, added as light
+  if(!CAUS_PAT)CAUS_PAT=ctx.createPattern(CAUS,'repeat');
+  ctx.globalCompositeOperation='lighter';ctx.fillStyle=CAUS_PAT;
+  for(let i=0,n=Q>1?2:1;i<n;i++){                 // the second, slower layer only at full quality
+    const s=i?1.5:1,T=128*s,dx=(i?-clock*6:clock*8)%T,dy=(i?clock*4:clock*3)%T;
+    ctx.globalAlpha=i?0.11:0.16;ctx.setTransform(BS*s,0,0,BS*s,BXo+BS*dx,BYo+BS*dy);
+    rr((PX0-dx)/s,(PY0-dy)/s,PW/s,PH/s,POND_R/s);ctx.fill();
+  }
+  ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;baseT();
+}
+function drawWater(dex){                          // the pond surface, under the pods
+  // shadows on the clear floor: pods, drifting leaves, seeds flying over
+  ctx.globalAlpha=0.42;
+  for(const p of pods){if(p===dex)continue;const r=p.dr*(p.born<1?Math.max(0.01,easeOutBack(p.born)):1);ctx.drawImage(SHADOW,p.x+4-r*1.2,p.y+8-r*1.2,r*2.4,r*2.4);}
+  ctx.globalAlpha=0.3;for(const L of DRIFT)ctx.drawImage(SHADOW,L.x+4-L.s,L.y+7-L.s,L.s*2,L.s*2);
+  for(const s of seeds){
+    if(s.t<0)continue;const q=seedPos(s,Math.min(1,s.t/s.dur));if(!inPond(q.x,q.y))continue;
+    const lo=1-Math.min(1,q.h/80),z=5+lo*7;ctx.globalAlpha=0.15+0.3*lo;ctx.drawImage(SHADOW,q.x+3-z,q.y+5-z,z*2,z*2);
+  }
+  // waves: a dark trough under a bright crest
+  for(const w of waves){
+    const k=w.t/w.life,r=w.r0+(w.r1-w.r0)*(1-(1-k)*(1-k)),a=w.a*(1-k);
+    ctx.globalAlpha=a*0.5;ctx.strokeStyle='#04182c';ctx.lineWidth=2.5;circ(w.x+0.8,w.y+1.6,r);ctx.stroke();
+    ctx.globalAlpha=a;ctx.strokeStyle='#c6f0ff';ctx.lineWidth=1.6;circ(w.x,w.y,r);ctx.stroke();
+  }
+  // moonlight glints: each twinkle lands on a new spot
+  ctx.fillStyle='#fff';
+  for(let i=0,n=fxN(12);i<n;i++){
+    const c=clock*(0.3+hash(i+40)*0.25)+hash(i+60),cy=Math.floor(c),f=c-cy;if(f>0.22)continue;
+    const a=Math.sin(f/0.22*Math.PI),gx=PX0+16+hash(i*13+cy*7.31)*(PW-32),gy=PY0+16+hash(i*17+cy*3.17)*(PH-32),w=1.5+a*4;
+    ctx.globalAlpha=a*0.6;ctx.fillRect(gx-w,gy-0.6,w*2,1.2);ctx.fillRect(gx-0.6,gy-w*0.6,1.2,w*1.2);
+  }
+  if(Q)for(const m of MIST){const w=m.w,mx=PX0-w/2+frac(m.p+clock*m.v)*(PW+w);ctx.globalAlpha=0.07;ctx.drawImage(MGLOW,mx-w/2,PY0+m.y*PH-w*0.14,w,w*0.28);}
+  ctx.globalAlpha=1;
+  for(const L of DRIFT)drawRot(LEAF[L.k],L.x,L.y,L.s*2.3,L.s*2.3,L.a);
+  baseT();
+}
 function render(){
-  const ls=lvlSum(),grow=Math.min(1,(st.blooms*2+ls)/60),bo=st.boost>0;
+  const ls=lvlSum(),grow=Math.min(1,(st.blooms*2+ls)/60),bo=st.boost>0,dex=drag?drag.p:null;
   const gk=Math.round(grow*20);if(gk!==bgKey){bgKey=gk;buildBg(grow);}
-  const nl=Math.min(LEAVES.length,6+ls*4);if(nl!==bedKey){bedKey=nl;buildBed(nl);}
+  const nl=Math.min(LEAVES.length,6+ls*4);
+  if(nl!==bedKey){if(bedKey>=0&&nl>bedKey){leafFrom=bedKey;leafT0=clock;}bedKey=nl;buildBed(nl);}
   ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;ctx.drawImage(BG,0,0);
   const sh=st.shake,sx=sh?rnd(-sh,sh)*0.6:0,sy=sh?rnd(-sh,sh)*0.6:0;
   BS=dpr*scale;BXo=dpr*(ox+sx*scale);BYo=dpr*(oy+sy*scale);baseT();
-  // sky: more stars as the garden grows
-  ctx.fillStyle='#fff';const ns=Math.round(40+grow*50);
-  for(let i=0;i<ns;i++){const s=STARS[i];ctx.globalAlpha=0.35+0.35*Math.sin(clock*2+s.p);ctx.fillRect(s.x,s.y,s.s,s.s);}
+  // deep water: starlight reflections shimmer sideways (more as the garden grows), a slow swell up top
+  ctx.fillStyle='#e4f0ff';const ns=Math.round((40+grow*50)*(Q?1:0.6));
+  for(let i=0;i<ns;i++){
+    const s=STARS[i],w=s.s*(1.8+Math.sin(clock*1.6+s.p)*0.9);
+    ctx.globalAlpha=0.3+0.28*Math.sin(clock*2+s.p);ctx.fillRect(s.x-w/2+Math.sin(clock*0.8+s.p*3)*1.5,s.y,w,Math.max(0.8,s.s*0.55));
+  }
+  ctx.strokeStyle='#a8cdf5';ctx.lineWidth=1.5;ctx.lineCap='round';
+  for(const m of SWELL){
+    const x=m.x+Math.sin(clock*0.35+m.p)*6;ctx.globalAlpha=0.08+0.1*(0.5+0.5*Math.sin(clock*0.9+m.p));
+    ctx.beginPath();ctx.moveTo(x-m.w,m.y);ctx.quadraticCurveTo(x,m.y-3.5,x+m.w,m.y);ctx.stroke();
+  }
   ctx.globalAlpha=1;
-  // garden bed (panel + leaves are one cached image), swaying grass
+  // the clear pond: baked floor, moving caustics, then everything on its surface
   ctx.drawImage(BED,PX0-16,PY0-16,PW+32,PH+32);
-  ctx.strokeStyle='#1d5a3a';ctx.lineWidth=3;ctx.lineCap='round';ctx.beginPath();
-  for(const g of GRASS){const h=g.h*(1+grow*0.8);ctx.moveTo(g.x,BY1+8);ctx.quadraticCurveTo(g.x,BY1+8-h*0.6,g.x+Math.sin(clock*1.5+g.p)*5,BY1+8-h);}
-  ctx.stroke();
-  // flowers along the rim, one per bloom
+  drawCaustics();drawWater(dex);
+  // leaves floating along the bank come from the baked rim layer; the ones an upgrade just grew pop open live, then join it
+  const lk=clamp((clock-leafT0)*2.5,0,1),nb=lk<1?Math.min(nl,leafFrom):nl;
+  if(nb!==rimKey)buildRim(nb);
+  ctx.drawImage(RIML,PX0-RIM_M,PY0-RIM_M,PW+RIM_M*2,PH+RIM_M*2);
+  for(let i=nb;i<nl;i++){
+    const L=LEAVES[i],o=L.k?0.62:0.3,z=L.l*2.3*Math.max(0.01,easeOutBack(clamp(lk*1.6-(i-leafFrom)*0.12,0,1)));
+    drawRot(LEAF[L.k],L.x+Math.cos(L.a)*L.l*o,L.y+Math.sin(L.a)*L.l*o,z,z,L.a);
+  }
+  baseT();
+  // reeds on the near bank: dark silhouettes over the water, taller as the garden grows
+  ctx.strokeStyle='#0b2031';ctx.lineWidth=2.4;ctx.beginPath();
+  for(const g of REEDS){const h=g.h*(1+grow*0.6),w=Math.sin(clock*1.2+g.p)*4;ctx.moveTo(g.x,BY1+12);ctx.quadraticCurveTo(g.x,BY1+12-h*0.6,g.x+w,BY1+12-h);}
+  ctx.stroke();ctx.fillStyle='#5e3c2c';
+  for(const g of REEDS){
+    if(!g.cat)continue;const h=g.h*(1+grow*0.6),w=Math.sin(clock*1.2+g.p)*4;
+    ctx.beginPath();ctx.ellipse(g.x+w*0.9,BY1+12-h*0.86,2.6,6,w*0.04,0,Math.PI*2);ctx.fill();
+  }
+  // water lilies along the rim, one per bloom
   const nf=Math.min(FLOWERS.length,st.blooms),fBig=1+Math.min(0.6,Math.max(0,st.blooms-FLOWERS.length)*0.02);
   for(let i=0;i<nf;i++){
     const F=FLOWERS[i],k=i===nf-1&&st.blooms<=FLOWERS.length?Math.max(0.01,easeOutBack(st.flowerT)):1,z=F.s*k*fBig*4.4;
@@ -1158,26 +1558,27 @@ function render(){
   for(const m of merges){if(!m.auto)continue;const k=Math.min(1,m.t/m.dur);ctx.globalAlpha=0.35*(1-k);ctx.lineWidth=m.a.r*0.8;ctx.beginPath();ctx.moveTo(m.ax,m.ay);ctx.lineTo(m.a.x,m.a.y);ctx.stroke();}
   ctx.globalAlpha=1;
   // pods
-  let dex=null,hov=null;
-  if(drag){dex=drag.p;hov=findTarget(dex,dex.x,dex.y,dex.v,dex.r);}
+  const hov=dex?findTarget(dex,dex.x,dex.y,dex.v,dex.r):null;
   for(const p of pods){if(p!==dex)drawPod(p,dex&&!p.busy?(p.v===dex.v?(p===hov?3:2):1):0);}
-  // seeds in flight
+  // seeds in flight: a high arc, one skip on the water, then they plop in
   ctx.textAlign='center';ctx.textBaseline='middle';
   for(const s of seeds){
-    if(s.t<0)continue;const k=Math.min(1,s.t/s.dur);
-    const x=lerp(s.x0,s.x1,k),y=lerp(s.y0,s.y1,k)-Math.sin(Math.PI*k)*80;
-    ctx.drawImage(s.pink?PGLOW:GLOW,x-18,y-18,36,36);
+    if(s.t<0)continue;const k=Math.min(1,s.t/s.dur),q=seedPos(s,k),x=q.x,y=q.y-q.h;
+    ctx.drawImage(s.pink?PGLOW:s.rare?GLOW:AGLOW,x-18,y-18,36,36);
     const sr=7+k*5+(s.rare?3:0);
-    ctx.fillStyle=s.pink?C.petal:s.rare?C.gold:C.leaf;circ(x,y,sr);ctx.fill();
-    if(s.rare){ctx.font='bold '+Math.round(sr*1.3)+'px sans-serif';ctx.fillStyle='#10261c';ctx.fillText(s.v,x,y+1);}
+    ctx.fillStyle=s.pink?C.petal:s.rare?C.gold:C.aqua;circ(x,y,sr);ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.55)';circ(x-sr*0.32,y-sr*0.32,sr*0.3);ctx.fill();
+    if(s.rare){ctx.font='bold '+Math.round(sr*1.3)+'px sans-serif';ctx.fillStyle='#3a2606';ctx.fillText(s.v,x,y+1);}
   }
   drawFrog();
   if(dex)drawPod(dex,4);
   drawTutWorld();
   // particles: glows first, then rotated petals (sprites, no paths)
+  ctx.fillStyle='#d6f5ff';
   for(const p of parts){
     if(p.k===1)continue;const a=1-p.t/p.life;
     if(p.k===0){ctx.globalAlpha=a;ctx.drawImage(GLOW,p.x-p.s,p.y-p.s,p.s*2,p.s*2);}
+    else if(p.k===3){ctx.globalAlpha=a*0.9;circ(p.x,p.y,p.s);ctx.fill();}   // splash droplets
     else{ctx.globalAlpha=a*Math.min(1,p.t*4)*0.8;ctx.drawImage(PGLOW,p.x-p.s,p.y-p.s,p.s*2,p.s*2);}
   }
   for(const p of parts){if(p.k!==1)continue;ctx.globalAlpha=1-p.t/p.life;drawRot(PET,p.x,p.y,p.s*2,p.s,p.rot);}
@@ -1185,10 +1586,10 @@ function render(){
   drawMoth();drawStar();
   // fireflies flying glow up to the counter: glows + trails, then all wings in one path
   for(const b of bugs){
-    const k=b.t/b.dur,q=bugPos(b,k);b.qx=q.x;b.qy=q.y;
-    if(!b.g){ctx.globalAlpha=0.5;ctx.drawImage(GLOW,q.x-6,q.y-6,12,12);continue;}
+    const k=b.t/b.dur,q=bugPos(b,k);b.qx=q.x;b.qy=q.y;   // q is a shared scratch point: keep the copy
+    if(!b.g){ctx.globalAlpha=0.5;ctx.drawImage(GLOW,b.qx-6,b.qy-6,12,12);continue;}
     if(Q>=2)for(let i=2;i>=1;i--){const o=bugPos(b,k-i*0.06);ctx.globalAlpha=0.45-i*0.12;ctx.drawImage(GLOW,o.x-8+i*1.5,o.y-8+i*1.5,16-i*3,16-i*3);}
-    ctx.globalAlpha=1;ctx.drawImage(FFS,q.x-13,q.y-13,26,26);
+    ctx.globalAlpha=1;ctx.drawImage(FFS,b.qx-13,b.qy-13,26,26);
   }
   if(Q>=1&&bugs.length){
     ctx.globalAlpha=0.55;ctx.fillStyle='#fff';ctx.beginPath();
@@ -1200,14 +1601,12 @@ function render(){
     ctx.fill();
   }
   ctx.globalAlpha=1;
-  // floating texts
-  ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineWidth=4;ctx.lineJoin='round';ctx.strokeStyle='rgba(3,8,20,0.9)';
+  // floating texts: pre-rendered sprites, popping in
   for(const t of texts){
-    const k=t.t/t.life,pop=t.t<0.15?easeOutBack(t.t/0.15):1;
-    ctx.globalAlpha=k>0.7?(1-k)/0.3:1;ctx.font='bold '+Math.max(1,Math.round(t.size*pop))+'px sans-serif';
-    ctx.strokeText(t.s,t.x,t.y);ctx.fillStyle=t.c;ctx.fillText(t.s,t.x,t.y);
+    const k=t.t/t.life,z=t.t<0.15?Math.max(0.01,easeOutBack(t.t/0.15)):1,S=t.spr,w=S.w*z,h=S.h*z;
+    ctx.globalAlpha=k>0.7?(1-k)/0.3:1;ctx.drawImage(S.img,t.x-w/2,t.y-h/2,w,h);
   }
-  ctx.globalAlpha=1;ctx.lineJoin='miter';
+  ctx.globalAlpha=1;
   // chain tint: a pulsing pink vignette (cached image) that deepens with every bloom in the chain
   if(st.tint>0.01){
     ctx.globalAlpha=st.tint*(0.8+0.2*Math.sin(clock*(4+st.chain*1.5)));
@@ -1234,18 +1633,24 @@ function render(){
   else if(bo)drawBar(120,86,120,st.boost/BOOST_MAX,C.petal);
   else if(fz)drawBar(120,86,120,st.frenzy/st.frenzyD,C.white);
   drawChain();
-  drawMoon(40,38,20,Math.min(1,0.25+st.blooms/16));
-  drawRot(FLW[0],26,80,26,26,clock*0.5);baseT();
-  ctx.textAlign='left';ctx.textBaseline='middle';ctx.font='bold 16px sans-serif';ctx.fillStyle=C.white;ctx.fillText(String(st.blooms),38,81);
+  // the moon waxes toward the next Full Moon; once full it pulses and asks for a tap
+  const mr=moonReady(),ms=1+0.5*st.moonFx*st.moonFx+(mr?0.06*Math.sin(clock*5):0);
+  drawMoon(MX,MY,20*ms,0.08+0.92*Math.min(1,st.moonG/moonNeed(st.moons)));
+  if(mr){
+    const k=(clock%1.2)/1.2;ctx.globalAlpha=1-k;ctx.strokeStyle=C.white;ctx.lineWidth=3;circ(MX,MY,24+k*18);ctx.stroke();ctx.globalAlpha=1;
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 14px sans-serif';ctx.lineWidth=4;ctx.lineJoin='round';ctx.strokeStyle='rgba(3,8,20,0.9)';
+    ctx.strokeText('TAP!',MX,MY+34);ctx.fillStyle=C.white;ctx.fillText('TAP!',MX,MY+34);ctx.lineJoin='miter';
+  }
   drawIconButtons();
   // timers row
   const full=livePods()+seeds.length>=cap(),paused=st.tut===0||st.tut===1;
-  ctx.textAlign='left';ctx.font='bold 13px sans-serif';ctx.fillStyle=full?C.petal:st.lv[1]>=RARE_LV?C.gold:C.leaf;ctx.fillText(full?'FULL':st.lv[1]>=RARE_LV?'RARE':'SEED',16,BAR_Y+1);
-  drawBar(58,BAR_Y,112,full?1:st.spawnT/seedI(st.lv[1]),full?'rgba(255,143,184,0.6)':C.leaf);
+  ctx.textAlign='left';ctx.font='bold 13px sans-serif';ctx.fillStyle=full?C.petal:st.lv[1]>=RARE_LV?C.gold:C.aqua;ctx.fillText(full?'FULL':st.lv[1]>=RARE_LV?'RARE':'SEED',16,BAR_Y+1);
+  drawBar(58,BAR_Y,112,full?1:st.spawnT/seedI(st.lv[1]),full?'rgba(255,143,184,0.6)':C.aqua);
   ctx.fillStyle=paused?'rgba(244,247,255,0.4)':C.white;ctx.fillText('BREEZE',186,BAR_Y+1);
   drawBar(246,BAR_Y,98,st.mergeT/mergeI(st.lv[2]),C.white);
   drawTabs();
   for(let i=0;i<3;i++)drawButton(i);
+  drawPager();
   drawTutCard();
   drawBanner();
   if(st.resetArm>0){rr(176,100,164,30,15);ctx.fillStyle='rgba(30,6,26,0.95)';ctx.fill();ctx.strokeStyle=C.petal;ctx.lineWidth=1.5;ctx.stroke();ctx.font='bold 14px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=C.petal;ctx.fillText('Tap again to restart',258,116);}
@@ -1262,6 +1667,7 @@ function render(){
     ctx.restore();
   }
   if(st.help)drawHelp();
+  if(st.moonCard)drawMoonCard();
   if(DEMO)drawFinger(ai.px,ai.py,ai.phase===2||ai.tap>0);
   if(st.flash>0){ctx.globalAlpha=1;ctx.fillStyle=`rgba(255,238,248,${st.flash*0.55})`;ctx.fillRect(-500,-500,W+1000,H+1000);}
 }

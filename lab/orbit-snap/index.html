@@ -18,20 +18,51 @@
 // instant restart, ?demo=1 self-play for GIF recording).
 (() => {
   const DEMO = new URLSearchParams(location.search).has('demo');
-  const cv = document.getElementById('c'), cx = cv.getContext('2d');
+  // Demo recordings: flag exciting moments (1 = nice .. 3 = big) for the clip recorder.
+  const moment = lv => DEMO && window.forgeMoment && window.forgeMoment(lv);
+  const cv = document.getElementById('c'), cx = cv.getContext('2d', { alpha: false }); // the sky covers every pixel
   let W = 0, H = 0, dpr = 1, vign = null, vigCol = '25,5,45';
+  // Performance: shadowBlur runs a blur pass per shape per frame (it was the main source of lag), so the
+  // steady glows are baked once into small offscreen sprites (at most `sprites` cached) and stamped with
+  // drawImage; only the pulsing target ring and the ball still blur live. If frames keep averaging over
+  // `slowMs`, the pixel ratio steps down by 0.5 (from `maxDpr`, never below 1).
+  const PERF = { maxDpr: 2, slowMs: 22, sprites: 48 };
+  let dprCap = PERF.maxDpr, frameMs = 16.7;
+  const sprites = new Map();
   function makeVign() {
     vign = cx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.8);
     vign.addColorStop(0, 'rgba(' + vigCol + ',0)'); vign.addColorStop(1, 'rgba(' + vigCol + ',.5)');
   }
   function resize() {
-    dpr = Math.min(2, window.devicePixelRatio || 1);
+    dpr = Math.min(dprCap, window.devicePixelRatio || 1);
     W = innerWidth; H = innerHeight;
     cv.width = W * dpr; cv.height = H * dpr;
     cx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    makeVign();
+    makeVign(); sprites.clear(); // glow sizes depend on dpr, the planet on the screen size
   }
   addEventListener('resize', resize); resize();
+  // Offscreen sprite `key`: a (2 * half) px square painted once by paint(c) around its centre at `scale`
+  // bitmap px per px, then cached (least recently used goes first). stamp() draws it centred on (x, y).
+  function sprite(key, half, scale, paint) {
+    let s = sprites.get(key);
+    if (s) sprites.delete(key); // re-set below as the most recent
+    else {
+      if (sprites.size >= PERF.sprites) sprites.delete(sprites.keys().next().value);
+      s = document.createElement('canvas'); s.width = s.height = Math.ceil(half * 2 * scale); s.half = s.width / scale / 2;
+      const c = s.getContext('2d'); c.setTransform(scale, 0, 0, scale, s.width / 2, s.width / 2);
+      paint(c);
+    }
+    sprites.set(key, s);
+    return s;
+  }
+  const stamp = (s, x, y) => cx.drawImage(s, x - s.half, y - s.half, s.half * 2, s.half * 2);
+  // Just the glow shape(c) casts with shadowBlur `blur` (bitmap px, like the live shadows): the shape is
+  // drawn far off the sprite and only its shadow lands on it. Soft, so 1x resolution is plenty.
+  function glowSprite(key, half, col, blur, shape) {
+    return sprite(key + '|' + col + '|' + blur, half, 1, c => {
+      c.shadowColor = col; c.shadowBlur = blur / dpr; c.shadowOffsetX = 1e4; c.translate(-1e4, 0); shape(c);
+    });
+  }
 
   const TAU = Math.PI * 2;
   const C = { ink: '#2A0F3A', dough: '#F4B96E', doughDk: '#C98640', gum: '#3FF0D5', gold: '#FFD23F', goldDk: '#C98A12',
@@ -84,6 +115,17 @@
   // Clean catch: spark enters r+6. Sloppy catch: spark only grazes the wider grab
   // zone (r+GRAB) -- it survives, but the streak and multiplier are broken.
   const CATCH = 6, GRAB = 30, STREAK_PER_MULT = 3, MAX_MULT = 8;
+  // Called miss: once the spark moves away from the target outside r+GRAB, time drops to `slow`x for
+  // `time` real seconds on a red gap showing how far it missed the grab zone by, then the crash. A gap
+  // under `heartbreak` px is flagged as a demo highlight.
+  const MISS = { slow: 0.25, time: 0.4, heartbreak: 10 };
+  // Combo hype, all driven by mult(): the trail keeps `trail` + `trailPer` samples per step and glows
+  // brighter, the camera zooms in `zoomPer` per step, and from x`beatMult` the next ring's glow pulses on a
+  // beat (`bpm`, + `bpmPer` per step) with a soft kick. From x`fireMult` the ball wears its skin's on-fire
+  // aura (`fireMin` .. 1 at MAX_MULT). A SLOPPY/GAP that ends a streak of `breakMin`+ hits a `breakFreeze`
+  // hit-stop, drains the screen's color for `grayT` seconds and plays a record scratch.
+  const HYPE = { trail: 14, trailPer: 5, zoomPer: 0.012, beatMult: 4, bpm: 120, bpmPer: 8, fireMult: 2, fireMin: 0.45,
+    breakMin: 3, breakFreeze: 0.1, grayT: 0.9 };
   // Double ring: a segmented inner ring counter-rotates inside the outer one. A shot
   // whose line passes within the inner r+6 commits to it on crossing the outer ring:
   // hit a solid arc for a BULLSEYE (double points), hit a gap and the streak breaks.
@@ -92,6 +134,9 @@
   // the spark both ways -- in when landing, out when launching. Crumble ring: breaks
   // CRUMBLE_T seconds after you land (and shatters behind you). Mines slide on a track.
   const SH = 12, SPIKE_ARC = TAU * 0.3, SPIKE_PAD = 0.12, CRUMBLE_T = 2.4, MINE_R = 11, GRAV = 1400;
+  // Near miss: skimming a spike shield or a mine by under NEAR px (and living) pops a white CLOSE!.
+  // The demo AI keeps AI_PAD px clear of every hazard -- little enough to still skim some.
+  const NEAR = 8, AI_PAD = 3;
   // Charge: hold instead of tapping and the spark grips the ring, then winds up along it --
   // a short pull-back against the spin, then a whip forward past where you pressed. Let go
   // at any point to fire from there. A quick tap (< TAP_T) still fires right where you
@@ -104,6 +149,8 @@
   const mix = (a, b, f) => { const A = hex(a), B = hex(b); return 'rgb(' + A.map((v, i) => Math.round(v + (B[i] - v) * f)).join(',') + ')'; };
   const num = n => Math.round(n).toLocaleString('en-US'); // 10000 -> "10,000"
   const easeOutBack = t => 1 + 2.70158 * Math.pow(t - 1, 3) + 1.70158 * Math.pow(t - 1, 2);
+  // Keep the entries that pass `keep`, compacting the array in place (no fresh array every frame).
+  const prune = (arr, keep) => { let n = 0; for (const x of arr) if (keep(x)) arr[n++] = x; arr.length = n; };
   const store = {
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* storage blocked */ } }
@@ -147,11 +194,35 @@
     return {
       unlock,
       // Candy pop: a quick upward blip, one semitone higher per streak step (capped at two octaves).
-      pop(streak) {
+      // From x2 (`m`) a bass note lands under it, climbing a minor pentatonic and getting louder per step.
+      pop(streak, m) {
         if (!ok()) return;
         const f = 480 * Math.pow(2, Math.min(streak, 24) / 12);
         tone('sine', f * 0.55, f * 1.6, 0.09, 0.55); tone('triangle', f * 2, f * 2.2, 0.05, 0.12);
         hiss(0.025, 0.25, 'highpass', 3500);
+        if (m > 1) {
+          const b = 110 * Math.pow(2, [0, 3, 5, 7, 10, 12, 15][Math.min(m - 2, 6)] / 12);
+          tone('sine', b * 1.03, b, 0.32, 0.3 + 0.05 * m); tone('triangle', b * 2, b * 2, 0.2, 0.06 + 0.02 * m);
+        }
+      },
+      // Soft heartbeat kick on the x4+ beat, a touch harder each multiplier step.
+      beat(m) {
+        if (!ok()) return;
+        tone('sine', 150, 48, 0.16, 0.2 + 0.04 * m); tone('triangle', 320, 180, 0.05, 0.05);
+      },
+      // Record scratch for a lost streak: a noisy back-and-forth rub, then everything winds down in pitch.
+      scratch() {
+        if (!ok()) return;
+        const t = ac.currentTime, s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+        s.buffer = noise; f.type = 'bandpass'; f.Q.value = 3;
+        f.frequency.setValueAtTime(1800, t); f.frequency.exponentialRampToValueAtTime(3400, t + 0.07);
+        f.frequency.exponentialRampToValueAtTime(900, t + 0.15); f.frequency.exponentialRampToValueAtTime(2600, t + 0.21);
+        f.frequency.exponentialRampToValueAtTime(220, t + 0.55);
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.9, t + 0.02); g.gain.exponentialRampToValueAtTime(0.25, t + 0.15);
+        g.gain.exponentialRampToValueAtTime(0.7, t + 0.19); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+        s.connect(f); f.connect(g); g.connect(out); s.start(t, Math.random() * 0.8); s.stop(t + 0.6);
+        tone('sawtooth', 700, 1100, 0.07, 0.08, 0, crunch); tone('sawtooth', 1100, 80, 0.5, 0.08, 0.07, crunch);
+        tone('sine', 196, 41, 0.6, 0.55);
       },
       // Crunchy chime: a crushed square-wave arpeggio plus a gritty sparkle.
       chime() {
@@ -171,6 +242,16 @@
         hiss(0.55, 0.6, 'highpass', 3500, 0.7); hiss(0.2, 0.4, 'bandpass', 2200, 2);
         for (let i = 0; i < 12; i++) { const f = 2400 + Math.random() * 4200; tone('sine', f, f * 0.96, 0.08 + Math.random() * 0.3, 0.07, Math.random() * 0.3); }
         tone('sine', 170, 28, 1.0, 0.9); tone('triangle', 85, 22, 1.0, 0.3, 0.02);
+      },
+      // Near-miss whoosh: a noise swell whose band sweeps up and back down (a fly-by), plus a bright glint.
+      whoosh() {
+        if (!ok()) return;
+        const t = ac.currentTime, s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+        s.buffer = noise; f.type = 'bandpass'; f.Q.value = 1.5;
+        f.frequency.setValueAtTime(500, t); f.frequency.exponentialRampToValueAtTime(3600, t + 0.14); f.frequency.exponentialRampToValueAtTime(700, t + 0.38);
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.9, t + 0.1); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.4);
+        s.connect(f); f.connect(g); g.connect(out); s.start(t, Math.random() * 0.8); s.stop(t + 0.45);
+        tone('triangle', 1400, 2800, 0.14, 0.06, 0.08);
       },
       // Rising whine while the charge meter fills (k 0..1); k = 0 stops it.
       whine(k) {
@@ -192,6 +273,7 @@
 
   let rings, mines, cur, spark, score, state, shake, parts, hint, streak, best, pops, multFlash, why, charge;
   let trail, waves, flash, flashCol, freeze, shown, bump, deadT, newBest, banner;
+  let zoom, beatPh, beatK, gray, ignite; // combo hype: camera zoom, x4+ beat phase + pulse, lost-streak desaturation, fire flare
   let clk = 0, tutT = 0, tutPage = 0, btns = [], hintDone = false;
   let camY = 0, last = performance.now(), demoT = 0;
   let hiScore = +store.get('orbitSnap.best') || 0, tutSeen = store.get('orbitSnap.tut') === '1';
@@ -240,6 +322,8 @@
   const orR = R => spark.onInner ? R.rin : R.r;
   const orSpin = R => spark.onInner ? R.inSpin : R.spin;
   const mult = () => Math.min(MAX_MULT, 1 + Math.floor(streak / STREAK_PER_MULT));
+  // How hard the ball is "on fire": 0 below x`fireMult`, then fireMin .. 1 at MAX_MULT.
+  const fireK = () => { const m = mult(); return m < HYPE.fireMult ? 0 : HYPE.fireMin + (1 - HYPE.fireMin) * (m - HYPE.fireMult) / (MAX_MULT - HYPE.fireMult); };
   const windK = () => charge ? Math.max(0, Math.min(1, (charge.t - TAP_T) / CHARGE_T)) : 0;
   // Offset (radians, along the current ring's spin) the charge has wound the spark by.
   const windOff = () => charge ? Math.sign(orSpin(rings[cur])) * WIND * windShape(windK()) : 0;
@@ -252,13 +336,31 @@
   function reset() {
     rings = [ring(W / 2, H * 0.72, 46)]; mines = [];
     for (let i = 1; i < 6; i++) addRing();
-    cur = 0; spark = { a: 0, free: false, x: 0, y: 0, vx: 0, vy: 0, pd: Infinity, onInner: false, dive: false, fall: false };
+    cur = 0; spark = { a: 0, free: false, x: 0, y: 0, vx: 0, vy: 0, lx: 0, ly: 0, pd: Infinity, onInner: false, dive: false, fall: false, brush: null, miss: null };
     score = 0; state = 'play'; shake = 0; parts = []; hint = !DEMO && !hintDone;
     streak = 0; best = 0; pops = []; multFlash = 0; why = ''; charge = null;
     trail = []; waves = []; flash = 0; flashCol = '255,255,255'; freeze = 0; shown = 0; bump = 0; deadT = 0; newBest = false; banner = null;
+    zoom = 1; beatPh = 0; beatK = 0; gray = 0; ignite = 0;
   }
   function pop(x, y, text, col, size) { pops.push({ x, y, text, col, size: size || 18, life: 1 }); }
   function wave(x, y, col) { waves.push({ x, y, r: 8, life: 1, col }); }
+  // Near miss: the spark skimmed a spike shield or a mine by under NEAR px and lived.
+  function closeCall(x, y) {
+    pop(x, y, 'CLOSE!', '#FFFFFF', 22); sfx.whoosh(); moment(2);
+    shake = Math.max(shake, 5); if (flash < 0.25) { flash = 0.25; flashCol = '255,255,255'; }
+  }
+  // The spark just started moving away from target N: its closest approach on the flight line since
+  // launch decides (frame-rate independent). Inside r+GRAB it's a sloppy save; outside, the miss is called
+  // right here: slow-mo on the gap from that point to the grab zone (see MISS), then the crash.
+  function passBy(N) {
+    const v = Math.hypot(spark.vx, spark.vy), ux = spark.vx / v, uy = spark.vy / v;
+    const along = Math.max(0, Math.min(Math.hypot(spark.x - spark.lx, spark.y - spark.ly), (N.x - spark.lx) * ux + (N.y - spark.ly) * uy));
+    const px = spark.lx + ux * along, py = spark.ly + uy * along, cd = Math.hypot(px - N.x, py - N.y), gap = cd - N.r - GRAB;
+    if (gap < 0) { land(N, false, false); return; }
+    const nx = (px - N.x) / cd, ny = (py - N.y) / cd; // outward, from the target through the pass point
+    spark.miss = { t: MISS.time * MISS.slow, px, py, nx, ny, gx: N.x + nx * (N.r + GRAB), gy: N.y + ny * (N.r + GRAB), gap: Math.max(1, Math.round(gap)) };
+    if (gap < MISS.heartbreak) moment(2); // heartbreaking misses make the demo clips
+  }
   function addRing() {
     const last = rings[rings.length - 1];
     let type = 'normal';
@@ -304,11 +406,14 @@
     spark.x = R.x + Math.cos(spark.a) * rr; spark.y = R.y + Math.sin(spark.a) * rr;
     // Launch straight out along the ring's normal (radially, away from its center).
     spark.vx = Math.cos(spark.a) * SPEED; spark.vy = Math.sin(spark.a) * SPEED;
-    spark.pd = Infinity;
+    spark.lx = spark.x; spark.ly = spark.y; spark.pd = Infinity; spark.brush = null;
     burst(spark.x, spark.y, [skinCol(), '#FFFFFF'], 8, 0.5);
     if (R.type === 'spike' && inShield(R, spark.a, SPIKE_PAD)) {
       spark.x = R.x + Math.cos(spark.a) * (R.r + SH); spark.y = R.y + Math.sin(spark.a) * (R.r + SH);
       die(T.w.stab, 'SPIKED!');
+    } else if (R.type === 'spike' && inShield(R, spark.a, SPIKE_PAD + NEAR / (R.r + SH))) { // squeezed out past the spikes
+      const cr = R.r + SH + 30;
+      closeCall(R.x + Math.cos(spark.a) * cr, R.y + Math.sin(spark.a) * cr);
     } else if (R.type === 'crumble') shatter(R);
   }
   function land(N, clean, inner) {
@@ -319,10 +424,12 @@
       const before = mult();
       streak++; best = Math.max(best, streak);
       const m = mult(), pts = inner ? m * 2 : m; score += pts;
-      sfx.pop(streak); if (inner) sfx.chime();
+      sfx.pop(streak, m); if (inner) sfx.chime();
       if (m > before) { multFlash = 1; banner = { text: 'x' + m + ' COMBO!', life: 1.2 }; flash = Math.max(flash, 0.25); flashCol = '255,210,63'; }
+      if (m >= HYPE.fireMult && before < HYPE.fireMult) { ignite = 1; burst(spark.x, spark.y, [skinCol(), C.gold, '#FFFFFF'], 30, 1.3); } // combo started: the ball catches fire
       if (inner) { pop(spark.x, spark.y - 16, 'BULLSEYE +' + pts, C.gold, 22); flash = Math.max(flash, 0.35); flashCol = '255,210,63'; }
       else pop(spark.x, spark.y - 16, m > 1 ? '+' + m + '  x' + m : '+1', C.gold);
+      if (m > before || inner) moment(m > before && m >= 4 ? 3 : 2); // demo highlight: combo step or bullseye
       shake = inner ? 11 : 7; freeze = inner ? 0.07 : 0.04;
       burst(spark.x, spark.y, T.sparks, inner ? 48 : 28); wave(spark.x, spark.y, inner ? C.gold : '#FFFFFF');
     } else {
@@ -331,6 +438,7 @@
       const tag = inner ? 'GAP!' : 'SLOPPY!';
       pop(spark.x, spark.y - 16, lost >= STREAK_PER_MULT ? tag + ' streak ' + lost + ' lost' : tag + ' +1', C.sloppy);
       shake = 10; burst(spark.x, spark.y, [C.sloppy, '#FFFFFF'], 18); wave(spark.x, spark.y, C.sloppy);
+      if (lost >= HYPE.breakMin) { gray = 1; freeze = HYPE.breakFreeze; sfx.scratch(); } // losing the combo should sting
     }
     const nr = inner ? N.rin : N.r;
     spark.x = N.x + Math.cos(spark.a) * nr; spark.y = N.y + Math.sin(spark.a) * nr;
@@ -406,17 +514,26 @@
     }
   }
 
-  // Demo AI: would a shot fired now clear the spikes (own + target ring) and every mine?
-  function safeShot(R, N, px, py) {
-    const ux = Math.cos(spark.a), uy = Math.sin(spark.a);
-    if (R.type === 'spike' && inShield(R, spark.a, SPIKE_PAD + 0.2)) return false;
-    const D = Math.hypot(N.x - px, N.y - py), T = Math.max(0, (D - N.r) / SPEED);
-    if (N.type === 'spike') {
-      const L = Math.max(0, D - N.r - SH), ex = px + ux * L, ey = py + uy * L;
-      if (inShield(N, Math.atan2(ey - N.y, ex - N.x), SPIKE_PAD + 0.2, T)) return false;
-    }
-    for (const m of mines) for (let t = 0; t <= T + 0.05; t += 0.02)
-      if (Math.hypot(px + ux * SPEED * t - mineX(m, clk + t), py + uy * SPEED * t - m.y) < MINE_R + 9 + 10) return false;
+  // Where the flight line from (x, y) along the unit vector (ux, uy) meets ring N's spike-shield
+  // circle on the way in: the angle on N and the distance L to it (negative = already behind), or null.
+  function shieldEntry(N, x, y, ux, uy) {
+    const dx = N.x - x, dy = N.y - y, sr = N.r + SH, off = dx * uy - dy * ux;
+    if (Math.abs(off) >= sr) return null;
+    const L = dx * ux + dy * uy - Math.sqrt(sr * sr - off * off);
+    return { L, ang: Math.atan2(y + uy * L - N.y, x + ux * L - N.x) };
+  }
+  // Would a shot fired now from (px, py) at angle a live? It must clear the own ring's spike shield,
+  // the target's shield where and when the spark meets it, and every mine until it reaches the target.
+  // `pad` = extra px of room around each hazard (0 = the game's exact rules). Drives the demo AI and
+  // the red aim dots.
+  function safeShot(R, N, px, py, a, pad) {
+    const ux = Math.cos(a), uy = Math.sin(a);
+    if (R.type === 'spike' && inShield(R, a, SPIKE_PAD + pad / (R.r + SH))) return false;
+    const e = N.type === 'spike' ? shieldEntry(N, px, py, ux, uy) : null;
+    if (e && e.L > 0 && inShield(N, e.ang, SPIKE_PAD + pad / (N.r + SH), e.L / SPEED)) return false;
+    const tEnd = Math.max(0, (N.x - px) * ux + (N.y - py) * uy) / SPEED; // the flight is over by the closest approach
+    for (const m of mines) for (let t = 0; t <= tEnd; t += 0.01)
+      if (Math.hypot(px + ux * SPEED * t - mineX(m, clk + t), py + uy * SPEED * t - m.y) < MINE_R + 9 + pad) return false;
     return true;
   }
 
@@ -460,15 +577,21 @@
       const want = Math.atan2(ty - py, tx - px);
       const d = Math.abs(Math.atan2(Math.sin(spark.a - want), Math.cos(spark.a - want)));
       const hurry = R.type === 'crumble' && R.t < 0.75;
-      if (demoT > 0.35 && ((d < 0.08 && safeShot(R, N, px, py)) || (hurry && d < 0.35))) { demoT = 0; release(); }
+      if (demoT > 0.35 && ((d < 0.08 && safeShot(R, N, px, py, spark.a, AI_PAD)) || (hurry && d < 0.35))) { demoT = 0; release(); }
     } else if (spark.free && state === 'play') {
       if (spark.fall) spark.vy += GRAV * dt;
       spark.x += spark.vx * dt; spark.y += spark.vy * dt;
       const N = rings[cur + 1];
       const d = Math.hypot(spark.x - N.x, spark.y - N.y);
-      if (mines.some(m => Math.hypot(spark.x - mineX(m), spark.y - m.y) < MINE_R + 9)) die(T.w.boom, 'BOOM!');
+      // Crossed into the target's spike shield this frame: judged where and when the line met it
+      // (frame-rate independent, and exactly what safeShot predicts for the aim dots).
+      const e = N.type === 'spike' && !spark.fall && spark.pd >= N.r + SH && d < N.r + SH
+        ? shieldEntry(N, spark.x, spark.y, spark.vx / SPEED, spark.vy / SPEED) : null;
+      if (spark.miss) { // called miss: time runs slow on the gap (loop scales dt), then the crash
+        if ((spark.miss.t -= dt) <= 0) die('Missed by ' + spark.miss.gap + 'px!');
+      } else if (mines.some(m => Math.hypot(spark.x - mineX(m), spark.y - m.y) < MINE_R + 9)) die(T.w.boom, 'BOOM!');
       else if (spark.fall) { /* falling from a crumbled ring: nothing can catch it */ }
-      else if (N.type === 'spike' && spark.pd >= N.r + SH && d < N.r + SH && inShield(N, Math.atan2(spark.y - N.y, spark.x - N.x), SPIKE_PAD)) die(T.w.stab, 'SPIKED!');
+      else if (e && inShield(N, e.ang, SPIKE_PAD, e.L / SPEED)) die(T.w.stab, 'SPIKED!');
       else if (spark.dive) { // committed to the inner ring: solid arc = bullseye, gap = streak lost
         if (d < N.rin + CATCH || d > spark.pd) land(N, slotFrac(N, Math.atan2(spark.y - N.y, spark.x - N.x)) < SOLID, true);
       } else if (d < N.r + CATCH) {
@@ -477,21 +600,41 @@
         if (N.double && miss < N.rin + CATCH) spark.dive = true;
         else land(N, true, false);
       }
-      // Closest approach passed inside the grab zone without touching r+6: sloppy save.
-      else if (d < N.r + GRAB && d > spark.pd) land(N, false, false);
-      if (state === 'play' && spark.free && (spark.y - camY > H + 40 || spark.x < -40 || spark.x > W + 40 || spark.y - camY < -60))
+      // Closest approach passed without touching r+6: sloppy save inside the grab zone, else a called miss.
+      else if (d > spark.pd) passBy(N);
+      if (state === 'play' && !spark.fall && !spark.miss) { // near misses: in and out of a hazard's NEAR band alive
+        const cr = N.r + SH + 30;
+        if (e && inShield(N, e.ang, SPIKE_PAD + NEAR / (N.r + SH), e.L / SPEED)) closeCall(N.x + Math.cos(e.ang) * cr, N.y + Math.sin(e.ang) * cr);
+        const near = mines.find(m => Math.hypot(spark.x - mineX(m), spark.y - m.y) < MINE_R + 9 + NEAR);
+        if (near) spark.brush = near;
+        else if (spark.brush) { closeCall(mineX(spark.brush), spark.brush.y - MINE_R - 16); spark.brush = null; }
+      }
+      if (state === 'play' && spark.free && !spark.miss && (spark.y - camY > H + 40 || spark.x < -40 || spark.x > W + 40 || spark.y - camY < -60))
         die(spark.fall ? T.w.crumbled : 'Missed!');
       spark.pd = d;
     }
     for (const p of pops) { p.y -= 40 * dt; p.life -= dt; }
-    pops = pops.filter(p => p.life > 0);
+    prune(pops, p => p.life > 0);
     multFlash = Math.max(0, multFlash - dt * 2);
     if (banner && (banner.life -= dt) <= 0) banner = null;
     camY += ((rings[cur].y - H * 0.72) - camY) * Math.min(1, dt * 4);
-    mines = mines.filter(m => m.y - camY < H + 80);
+    { // combo hype: the camera leans in with the multiplier; from x4 a beat pulses the next ring
+      const m = mult();
+      zoom += ((state === 'play' ? 1 + (m - 1) * HYPE.zoomPer : 1) - zoom) * Math.min(1, dt * 3);
+      beatK = Math.max(0, beatK - dt * 4); gray = Math.max(0, gray - dt / HYPE.grayT); ignite = Math.max(0, ignite - dt * 2);
+      if (state === 'play' && m >= HYPE.beatMult) {
+        beatPh += dt * (HYPE.bpm + (m - HYPE.beatMult) * HYPE.bpmPer) / 60;
+        if (beatPh >= 1) { beatPh -= 1; beatK = 1; sfx.beat(m); }
+      } else beatPh = 0;
+    }
+    prune(mines, m => m.y - camY < H + 80);
+    // Rings a screen below the current one are gone for good: drop them (shifting `cur`) so the list doesn't grow all run.
+    while (cur > 0 && rings[0].y > rings[cur].y + H) { rings.shift(); cur--; }
     const damp = Math.pow(0.006, dt);
-    for (const p of parts.concat(uiParts)) { p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= damp; p.vy = p.vy * damp + p.g * dt; p.rot += p.vr * dt; p.life -= dt; }
-    parts = parts.filter(p => p.life > 0); uiParts = uiParts.filter(p => p.life > 0);
+    for (const arr of [parts, uiParts]) {
+      for (const p of arr) { p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= damp; p.vy = p.vy * damp + p.g * dt; p.rot += p.vr * dt; p.life -= dt; }
+      prune(arr, p => p.life > 0);
+    }
     if (toast && (toast.life -= dt) <= 0) toast = null;
     if (giftT !== null) { // gift tag on the title: pops with a coin shower, then fades
       const was = giftT; giftT += dt;
@@ -503,7 +646,7 @@
     }
     for (const k in shakes) shakes[k] = Math.max(0, shakes[k] - dt * 3);
     for (const w of waves) { w.r += (40 + 320 * w.life) * dt; w.life -= dt * 2.4; }
-    waves = waves.filter(w => w.life > 0);
+    prune(waves, w => w.life > 0);
     shake *= Math.pow(1.2e-4, dt);
     flash = Math.max(0, flash - dt * 2.5); bump = Math.max(0, bump - dt * 4);
     shown += (score - shown) * Math.min(1, dt * 10); if (Math.abs(score - shown) < 0.5) shown = score;
@@ -565,19 +708,21 @@
       }
     cx.globalAlpha = 1;
   }
-  // big ringed planet that sinks slowly as you climb
+  // big ringed planet that sinks slowly as you climb (baked once, glow and all, at full resolution)
   function skyPlanet(px, py, pr, c0, c1, c2, glow, band) {
     if (py - pr * 2 >= H) return;
-    const pg = cx.createRadialGradient(px - pr * 0.35, py - pr * 0.35, pr * 0.1, px, py, pr);
-    pg.addColorStop(0, c0); pg.addColorStop(0.6, c1); pg.addColorStop(1, c2);
-    cx.shadowColor = glow; cx.shadowBlur = 40;
-    cx.fillStyle = pg; cx.beginPath(); cx.arc(px, py, pr, 0, TAU); cx.fill(); cx.shadowBlur = 0;
-    cx.save(); cx.translate(px, py); cx.rotate(-0.35); cx.scale(1, 0.28);
-    cx.strokeStyle = band; cx.lineWidth = pr * 0.3;
-    cx.beginPath(); cx.arc(0, 0, pr * 1.6, 0.05, Math.PI - 0.05); cx.stroke();
-    cx.restore();
+    stamp(sprite('planet' + c0 + pr, Math.max(pr * 1.75, pr + 60 / dpr) + 2, dpr, c => {
+      const pg = c.createRadialGradient(-pr * 0.35, -pr * 0.35, pr * 0.1, 0, 0, pr);
+      pg.addColorStop(0, c0); pg.addColorStop(0.6, c1); pg.addColorStop(1, c2);
+      c.shadowColor = glow; c.shadowBlur = 40;
+      c.fillStyle = pg; c.beginPath(); c.arc(0, 0, pr, 0, TAU); c.fill(); c.shadowBlur = 0;
+      c.rotate(-0.35); c.scale(1, 0.28);
+      c.strokeStyle = band; c.lineWidth = pr * 0.3;
+      c.beginPath(); c.arc(0, 0, pr * 1.6, 0.05, Math.PI - 0.05); c.stroke();
+    }), px, py);
   }
-  // soft drifting clouds (mid parallax)
+  // soft drifting clouds (mid parallax), each a clump of PUFFS [x, y, radius] in cloud-size units
+  const PUFFS = [[0, 0, 1], [0.9, 0.25, 0.7], [-0.9, 0.3, 0.6], [0.2, 0.35, 0.75]];
   function skyClouds() {
     const cOff = camY * 0.35, cc = 190;
     cx.fillStyle = 'rgba(255,255,255,.12)';
@@ -586,7 +731,7 @@
       const x = ((hash(j * 9.1) * span + clk * (6 + hash(j) * 10)) % span) - s * 3;
       const y = j * cc + hash(j * 2.3) * cc - cOff;
       cx.beginPath();
-      for (const [ox, oy, k] of [[0, 0, 1], [0.9, 0.25, 0.7], [-0.9, 0.3, 0.6], [0.2, 0.35, 0.75]]) { cx.moveTo(x + ox * s + k * s, y + oy * s); cx.arc(x + ox * s, y + oy * s, k * s, 0, TAU); }
+      for (const [ox, oy, k] of PUFFS) { cx.moveTo(x + ox * s + k * s, y + oy * s); cx.arc(x + ox * s, y + oy * s, k * s, 0, TAU); }
       cx.fill();
     }
   }
@@ -654,7 +799,7 @@
       const x = W * (0.15 + 0.35 * i) + Math.sin(clk * 0.07 + i * 2) * 30, y = (((i * H * 0.55 - camY * 0.06) % m) + m) % m - H * 0.3;
       const g = cx.createRadialGradient(x, y, 0, x, y, NR);
       g.addColorStop(0, 'rgba(' + c + ',.22)'); g.addColorStop(1, 'rgba(' + c + ',0)');
-      cx.fillStyle = g; cx.fillRect(0, 0, W, H);
+      cx.fillStyle = g; cx.fillRect(x - NR, y - NR, NR * 2, NR * 2); // it's clear past NR: fill just its square
     });
     skyStars(5, '#FFFFFF', 0.95);
     skyPlanet(W * 0.2, H * 0.2 + h * 0.02, Math.min(W, H) * 0.15, '#FFE9C7', '#F0A35E', '#9A4A26', 'rgba(255,170,90,.6)', 'rgba(255,225,190,.6)');
@@ -693,21 +838,29 @@
     cx.stroke();
     cx.strokeStyle = 'rgba(255,255,255,.75)'; cx.lineWidth = 2.5; cx.lineCap = 'round';
     cx.beginPath(); cx.arc(0, 0, R - lw * 0.2, Math.PI * 1.1, Math.PI * 1.45); cx.stroke();
-    const n = Math.max(6, Math.floor(R / 4.5));
+    const n = Math.max(6, Math.floor(R / 4.5)), nc = SPRINKLES.length;
     cx.lineWidth = 2.4;
-    for (let k = 0; k < n; k++) {
-      const h1 = hash(r.seed * 31 + k), a = r.rot + k / n * TAU + h1 * 0.3, rr = R + (hash(r.seed * 17 + k) - .5) * lw * 0.6, ang = a + h1 * 3;
-      const x = Math.cos(a) * rr, y = Math.sin(a) * rr, dx = Math.cos(ang) * 2.2, dy = Math.sin(ang) * 2.2;
-      cx.strokeStyle = SPRINKLES[(k + r.seed) % SPRINKLES.length];
-      cx.beginPath(); cx.moveTo(x - dx, y - dy); cx.lineTo(x + dx, y + dy); cx.stroke();
+    for (let c = 0; c < nc; c++) { // one path per sprinkle color
+      cx.strokeStyle = SPRINKLES[(c + r.seed) % nc]; cx.beginPath();
+      for (let k = c; k < n; k += nc) {
+        const h1 = hash(r.seed * 31 + k), a = r.rot + k / n * TAU + h1 * 0.3, rr = R + (hash(r.seed * 17 + k) - .5) * lw * 0.6, ang = a + h1 * 3;
+        const x = Math.cos(a) * rr, y = Math.sin(a) * rr, dx = Math.cos(ang) * 2.2, dy = Math.sin(ang) * 2.2;
+        cx.moveTo(x - dx, y - dy); cx.lineTo(x + dx, y + dy);
+      }
+      cx.stroke();
     }
     cx.lineCap = 'butt';
   }
+  // Cached glow of a circle stroke (radius R, width lw), cast `n` times over (like repeated strokes).
+  const ringGlow = (R, lw, col, blur, n) => glowSprite('ring' + Math.round(R) + ',' + lw + ',' + n, R + lw / 2 + blur * 1.5 / dpr + 2, col, blur, c => {
+    c.lineWidth = lw; c.beginPath(); c.arc(0, 0, R, 0, TAU); for (let i = 0; i < n; i++) c.stroke();
+  });
   // Neon tube: glowing colored ring with a white-hot core and chasing light arcs.
   function drawNeon(r, lw, glow) {
     const R = r.r, col = frostOf(r);
-    cx.shadowColor = col; cx.shadowBlur = 14 + (glow || 0);
-    cx.strokeStyle = col; cx.lineWidth = lw; cx.beginPath(); cx.arc(0, 0, R, 0, TAU); cx.stroke(); cx.stroke();
+    if (glow) { cx.shadowColor = col; cx.shadowBlur = 14 + glow; } // the target pulses live; the rest is baked
+    else stamp(ringGlow(R, lw, col, 14, 2), 0, 0);
+    cx.strokeStyle = col; cx.lineWidth = lw; cx.beginPath(); cx.arc(0, 0, R, 0, TAU); cx.stroke(); if (glow) cx.stroke();
     cx.shadowBlur = 0;
     cx.strokeStyle = 'rgba(255,255,255,.85)'; cx.lineWidth = lw * 0.28; cx.beginPath(); cx.arc(0, 0, R, 0, TAU); cx.stroke();
     cx.strokeStyle = col; cx.lineWidth = 2.5; cx.lineCap = 'round';
@@ -730,29 +883,38 @@
     cx.beginPath(); cx.arc(0, 0, R - t * 0.15, Math.PI * 1.1, Math.PI * 1.45); cx.stroke();
     cx.lineCap = 'butt';
   }
-  // Orbit ring: a faint glowing band with a bright core and tumbling moonlets.
+  // Orbit ring: a faint glowing band with a bright core and tumbling moonlets (MOONS shades).
+  const MOONS = ['#E8E4FF', '#A9A3C9', '#7B7599'];
   function drawHalo(r, lw, glow) {
     const R = r.r, col = frostOf(r), ga = cx.globalAlpha;
-    cx.shadowColor = col; cx.shadowBlur = 10 + (glow || 0);
+    if (glow) { cx.shadowColor = col; cx.shadowBlur = 10 + glow; } // the target pulses live; the rest is baked
+    else stamp(glowSprite('halo' + Math.round(R) + ',' + lw, R + lw / 2 + 4 + 15 / dpr + 2, col, 10, c => {
+      c.globalAlpha = 0.35; c.lineWidth = lw + 8; c.beginPath(); c.arc(0, 0, R, 0, TAU); c.stroke();
+      c.globalAlpha = 1; c.lineWidth = 3; c.stroke();
+    }), 0, 0);
     cx.globalAlpha = ga * 0.35; cx.strokeStyle = col; cx.lineWidth = lw + 8; cx.beginPath(); cx.arc(0, 0, R, 0, TAU); cx.stroke();
     cx.globalAlpha = ga; cx.lineWidth = 3; cx.beginPath(); cx.arc(0, 0, R, 0, TAU); cx.stroke();
     cx.shadowBlur = 0;
     cx.strokeStyle = '#FFFFFF'; cx.lineWidth = 1; cx.beginPath(); cx.arc(0, 0, R, 0, TAU); cx.stroke();
     const n = Math.max(8, Math.floor(R / 3.5));
-    for (let k = 0; k < n; k++) {
-      const a = r.rot + k / n * TAU + hash(r.seed * 31 + k) * 0.4, rr = R + (hash(r.seed * 17 + k) - .5) * lw * 0.9, s = 1.4 + hash(r.seed * 7 + k) * 2.6;
-      cx.fillStyle = ['#E8E4FF', '#A9A3C9', '#7B7599'][k % 3];
-      cx.beginPath(); cx.arc(Math.cos(a) * rr, Math.sin(a) * rr, s, 0, TAU); cx.fill();
+    for (let c = 0; c < MOONS.length; c++) { // one path per moonlet shade
+      cx.fillStyle = MOONS[c]; cx.beginPath();
+      for (let k = c; k < n; k += MOONS.length) {
+        const a = r.rot + k / n * TAU + hash(r.seed * 31 + k) * 0.4, rr = R + (hash(r.seed * 17 + k) - .5) * lw * 0.9, s = 1.4 + hash(r.seed * 7 + k) * 2.6;
+        const x = Math.cos(a) * rr, y = Math.sin(a) * rr;
+        cx.moveTo(x + s, y); cx.arc(x, y, s, 0, TAU);
+      }
+      cx.fill();
     }
   }
   // Crumble ring (cookie / glitch / sandcastle / asteroid): chunks that wobble and split apart as the timer runs out.
   function drawCookie(r, worn, active, glow) {
-    const n = 9, seg = TAU / n, neon = T.id === 'neon';
+    const n = 9, seg = TAU / n;
+    if (T.id === 'neon') stamp(ringGlow(r.r, 15, T.crumb[0], 10, 1), 0, 0); // every chunk's neon glow, baked as one
     if (glow) { cx.shadowColor = 'rgba(255,255,255,.9)'; cx.shadowBlur = glow; }
     for (let k = 0; k < n; k++) {
       const a0 = r.rot + k * seg + 0.05 + worn * 0.12, a1 = r.rot + (k + 1) * seg - 0.05 - worn * 0.12;
       const jx = (Math.random() - .5) * worn * 5, jy = (Math.random() - .5) * worn * 5 + worn * worn * 4, rr = r.r + (k % 2 ? 1.5 : -1.5);
-      if (neon) { cx.shadowColor = T.crumb[0]; cx.shadowBlur = 10; }
       cx.strokeStyle = T.crumb[0]; cx.lineWidth = 15; cx.beginPath(); cx.arc(jx, jy, rr, a0, a1); cx.stroke();
       cx.shadowBlur = 0;
       cx.fillStyle = T.crumb[1];
@@ -767,39 +929,56 @@
   }
   // Counter-rotating inner arcs of a double ring (butt caps so the solid part reads true).
   function drawCaramel(r, on) {
-    const [dk, main] = T.inner;
-    if (T.id === 'neon') { cx.shadowColor = main; cx.shadowBlur = 10; }
-    for (let k = 0; k < SEGS; k++) {
-      const a0 = r.inA + k * SLOT, a1 = a0 + SLOT * SOLID, lw = on ? 11 : 9;
-      cx.strokeStyle = dk; cx.lineWidth = lw; cx.beginPath(); cx.arc(0, 0, r.rin, a0, a1); cx.stroke();
-      cx.strokeStyle = main; cx.lineWidth = lw - 4; cx.beginPath(); cx.arc(0, 0, r.rin, a0 + 0.03, a1 - 0.03); cx.stroke();
-      cx.strokeStyle = 'rgba(255,255,255,.75)'; cx.lineWidth = 1.8; cx.beginPath(); cx.arc(0, 0, r.rin - 1.5, a0 + 0.12, a1 - 0.12); cx.stroke();
+    const [dk, main] = T.inner, lw = on ? 11 : 9;
+    const arcs = (c, a) => { // the three layered strokes of every solid arc, turned by angle a
+      for (let k = 0; k < SEGS; k++) {
+        const a0 = a + k * SLOT, a1 = a0 + SLOT * SOLID;
+        c.strokeStyle = dk; c.lineWidth = lw; c.beginPath(); c.arc(0, 0, r.rin, a0, a1); c.stroke();
+        c.strokeStyle = main; c.lineWidth = lw - 4; c.beginPath(); c.arc(0, 0, r.rin, a0 + 0.03, a1 - 0.03); c.stroke();
+        c.strokeStyle = 'rgba(255,255,255,.75)'; c.lineWidth = 1.8; c.beginPath(); c.arc(0, 0, r.rin - 1.5, a0 + 0.12, a1 - 0.12); c.stroke();
+      }
+    };
+    if (T.id === 'neon') { // baked glow, turned with the arcs
+      cx.save(); cx.rotate(r.inA);
+      stamp(glowSprite('caramel' + Math.round(r.rin) + ',' + lw, r.rin + lw / 2 + 15 / dpr + 2, main, 10, c => arcs(c, 0)), 0, 0);
+      cx.restore();
     }
-    cx.shadowBlur = 0;
+    arcs(cx, r.inA);
     cx.fillStyle = main; star4(0, 0, 7, clk * 2);
   }
-  // Licorice shield with red spikes pointing both ways.
+  // Licorice shield with red spikes pointing both ways (drawn turned by spA; the red glow is baked and pulses).
   function drawSpikes(r) {
-    const sr = r.r + SH, n = 9, P = (rad, ang) => [Math.cos(ang) * rad, Math.sin(ang) * rad];
-    cx.shadowColor = C.red; cx.shadowBlur = 10 + Math.sin(clk * 6) * 4;
+    const sr = r.r + SH, n = 9, w = 5 / sr, ga = cx.globalAlpha;
+    const spikes = c => { // every spike in one path
+      c.beginPath();
+      for (let k = 0; k <= n; k++) {
+        const a = SPIKE_ARC * k / n;
+        c.moveTo(Math.cos(a) * (sr + 11), Math.sin(a) * (sr + 11)); c.lineTo(Math.cos(a - w) * sr, Math.sin(a - w) * sr);
+        c.lineTo(Math.cos(a) * (sr - 8), Math.sin(a) * (sr - 8)); c.lineTo(Math.cos(a + w) * sr, Math.sin(a + w) * sr); c.closePath();
+      }
+    };
+    cx.save(); cx.rotate(r.spA);
+    cx.globalAlpha = ga * (0.8 + 0.2 * Math.sin(clk * 6));
+    stamp(glowSprite('spikes' + Math.round(sr), sr + 11 + 18 / dpr + 2, C.red, 12, c => { spikes(c); c.fill(); c.lineWidth = 2; c.lineJoin = 'round'; c.stroke(); }), 0, 0);
+    cx.globalAlpha = ga;
     cx.fillStyle = C.red; cx.strokeStyle = C.lic; cx.lineWidth = 2; cx.lineJoin = 'round';
-    for (let k = 0; k <= n; k++) {
-      const a = r.spA + SPIKE_ARC * k / n, w = 5 / sr;
-      cx.beginPath();
-      cx.moveTo(...P(sr + 11, a)); cx.lineTo(...P(sr, a - w)); cx.lineTo(...P(sr - 8, a)); cx.lineTo(...P(sr, a + w));
-      cx.closePath(); cx.fill(); cx.stroke();
-    }
-    cx.shadowBlur = 0;
-    cx.strokeStyle = C.lic; cx.lineWidth = 8; cx.beginPath(); cx.arc(0, 0, sr, r.spA, r.spA + SPIKE_ARC); cx.stroke();
+    spikes(cx); cx.fill(); cx.stroke();
+    cx.strokeStyle = C.lic; cx.lineWidth = 8; cx.beginPath(); cx.arc(0, 0, sr, 0, SPIKE_ARC); cx.stroke();
     cx.strokeStyle = C.red; cx.lineWidth = 3; cx.setLineDash([6, 5]); cx.lineDashOffset = -clk * 12;
-    cx.beginPath(); cx.arc(0, 0, sr, r.spA, r.spA + SPIKE_ARC); cx.stroke();
+    cx.beginPath(); cx.arc(0, 0, sr, 0, SPIKE_ARC); cx.stroke();
     cx.setLineDash([]); cx.lineDashOffset = 0;
+    cx.restore();
   }
+  // o.beat (0..1): the x4+ combo beat, swelling the target's glow and flashing a gold ring out of it.
   function drawRing(r, o) {
-    const s = 1 + 0.16 * r.pulse * Math.sin(r.pulse * 12);
+    const beat = o.beat || 0, s = 1 + 0.16 * r.pulse * Math.sin(r.pulse * 12) + 0.05 * beat;
     cx.save(); cx.globalAlpha = o.past ? 0.3 : 1;
     cx.translate(r.x, r.y); cx.scale(s, s);
-    const glow = o.next ? 14 + 6 * Math.sin(clk * 4) : 0;
+    if (beat > 0) {
+      cx.globalAlpha = beat; cx.strokeStyle = C.gold; cx.lineWidth = 2 + 4 * beat;
+      cx.beginPath(); cx.arc(0, 0, r.r + 14 + (1 - beat) * 20, 0, TAU); cx.stroke(); cx.globalAlpha = 1;
+    }
+    const glow = o.next ? 14 + 6 * Math.sin(clk * 4) + 30 * beat : 0;
     if (r.type === 'crumble') drawCookie(r, o.worn || 0, o.cur, glow);
     else (T.id === 'neon' ? drawNeon : T.id === 'ocean' ? drawBuoy : T.id === 'space' ? drawHalo : drawDonut)(r, o.cur ? 12 : 10, glow);
     if (r.double) drawCaramel(r, o.inner);
@@ -810,10 +989,15 @@
   function drawMine(x, y, dir) {
     cx.save(); cx.translate(x, y);
     cx.save(); cx.rotate(clk * 3 * dir);
-    cx.fillStyle = C.red; cx.shadowColor = C.red; cx.shadowBlur = 12 + Math.sin(clk * 8) * 6;
-    cx.beginPath();
-    for (let k = 0; k < 16; k++) { const rad = k % 2 ? MINE_R - 3 : MINE_R + 5, a = k * TAU / 16; k ? cx.lineTo(Math.cos(a) * rad, Math.sin(a) * rad) : cx.moveTo(rad, 0); }
-    cx.closePath(); cx.fill(); cx.shadowBlur = 0;
+    const body = c => {
+      c.beginPath();
+      for (let k = 0; k < 16; k++) { const rad = k % 2 ? MINE_R - 3 : MINE_R + 5, a = k * TAU / 16; k ? c.lineTo(Math.cos(a) * rad, Math.sin(a) * rad) : c.moveTo(rad, 0); }
+      c.closePath();
+    };
+    const ga = cx.globalAlpha; cx.globalAlpha = ga * (0.7 + 0.3 * Math.sin(clk * 8)); // baked red glow, pulsing
+    stamp(glowSprite('mine', MINE_R + 5 + 23 / dpr + 2, C.red, 15, c => { body(c); c.fill(); }), 0, 0);
+    cx.globalAlpha = ga;
+    cx.fillStyle = C.red; body(cx); cx.fill();
     cx.strokeStyle = C.lic; cx.lineWidth = 1.5; cx.stroke();
     cx.restore();
     cx.fillStyle = T.mine; cx.beginPath(); cx.arc(0, 0, 8.5, 0, TAU); cx.fill();
@@ -931,19 +1115,154 @@
       gloss(r); outline(r, 'rgba(255,255,255,.9)', 2);
     },
   };
-  // The equipped ball (or `sk`), stretched along its velocity while flying.
-  function drawBall(x, y, r, vx, vy, look, sk) {
+  // "On fire": once a combo runs (x2+) every skin wears its own aura behind the ball, drawn unrotated
+  // at the origin with radius r; k = fireK() (fireMin at x2 .. 1 at MAX_MULT) grows it.
+  function aura(rad, col, a) { // additive soft glow
+    const g = cx.createRadialGradient(0, 0, 0, 0, 0, rad); g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)');
+    cx.save(); cx.globalCompositeOperation = 'lighter'; cx.globalAlpha = a; cx.fillStyle = g; disc(rad); cx.fill(); cx.restore();
+  }
+  const P = (d, a) => [Math.cos(a) * d, Math.sin(a) * d];
+  const SKIN_FIRE = {
+    gum(r, t, k) { // a bubblegum bubble that swells and pops, mint sparkles circling
+      aura(r * (2.2 + k), 'rgba(63,240,213,.9)', 0.5 * k);
+      const ph = t * 0.9 % 1, br = r * (1.15 + ph * (0.7 + 0.9 * k));
+      cx.globalAlpha = 0.75 * (1 - ph * ph * ph);
+      cx.fillStyle = 'rgba(255,143,200,.3)'; disc(br); cx.fill();
+      cx.strokeStyle = '#FF8FC8'; cx.lineWidth = 1.5; cx.stroke();
+      cx.strokeStyle = '#FFFFFF'; cx.lineWidth = 2; cx.lineCap = 'round'; cx.beginPath(); cx.arc(0, 0, br * 0.75, Math.PI * 1.1, Math.PI * 1.4); cx.stroke();
+      cx.globalAlpha = 1; cx.fillStyle = '#E8FFFB';
+      for (let i = 0; i < 4; i++) { const a = t * 3 + i * TAU / 4; star4(...P(r * (1.9 + 0.6 * k), a), r * (0.25 + 0.3 * k) * (0.6 + 0.4 * Math.sin(t * 9 + i)), a); }
+    },
+    hole(r, t, k) { // a spinning halo of sprinkles
+      aura(r * (2.2 + k), 'rgba(255,180,110,.9)', 0.5 * k);
+      const n = 8 + Math.round(4 * k), l = r * 0.3;
+      cx.lineWidth = Math.max(1.5, r * 0.22); cx.lineCap = 'round';
+      for (let i = 0; i < n; i++) {
+        const [x, y] = P(r * (1.6 + 0.4 * k + 0.2 * Math.sin(t * 6 + i * 1.7)), t * (2 + 2 * k) + i * TAU / n), [dx, dy] = P(l, t * 7 + i);
+        cx.strokeStyle = SPRINKLES[i % SPRINKLES.length]; cx.beginPath(); cx.moveTo(x - dx, y - dy); cx.lineTo(x + dx, y + dy); cx.stroke();
+      }
+    },
+    beach(r, t, k) { // a turning summer sunburst
+      aura(r * (2.4 + k), 'rgba(255,214,70,.95)', 0.55 * k);
+      const L = r * (1.8 + k);
+      cx.fillStyle = 'rgba(255,224,100,' + (0.4 + 0.35 * k) + ')'; cx.beginPath();
+      for (let i = 0; i < 10; i++) {
+        const a = t * 1.5 + i * TAU / 10;
+        cx.moveTo(...P(r, a - 0.16)); cx.lineTo(...P(L * (0.8 + 0.2 * Math.sin(t * 8 + i * 2)), a)); cx.lineTo(...P(r, a + 0.16));
+      }
+      cx.fill();
+    },
+    eye(r, t, k) { // hypnotic ripples rolling out of the stare
+      aura(r * (2.2 + k), 'rgba(255,70,140,.85)', 0.5 * k);
+      cx.lineWidth = Math.max(1.5, r * 0.2);
+      for (let i = 0; i < 3; i++) {
+        const ph = (t * 1.4 + i / 3) % 1;
+        cx.globalAlpha = (1 - ph) * (0.35 + 0.45 * k); cx.strokeStyle = i % 2 ? '#FF5FA8' : '#FFFFFF';
+        disc(r * (1.1 + ph * (1.3 + k))); cx.stroke();
+      }
+    },
+    neon(r, t, k) { // crackling lightning, re-struck 18 times a second
+      aura(r * (2.3 + k), 'rgba(0,240,255,.85)', 0.55 * k);
+      const f = Math.floor(t * 18);
+      cx.lineWidth = Math.max(1.2, r * 0.16); cx.lineJoin = 'round'; cx.shadowColor = '#00F0FF'; cx.shadowBlur = 8;
+      for (let i = 0; i < 2 + Math.round(2 * k); i++) {
+        let a = hash(f * 7 + i) * TAU;
+        cx.strokeStyle = i % 2 ? '#FF2E88' : '#BFFCFF'; cx.beginPath(); cx.moveTo(...P(r, a));
+        for (let j = 1; j <= 4; j++) { a += (hash(f * 13 + i * 5 + j) - 0.5) * 0.9; cx.lineTo(...P(r * (1 + j * (0.25 + 0.2 * k)), a)); }
+        cx.stroke();
+      }
+    },
+    pearl(r, t, k) { // an iridescent halo and a stream of rising bubbles
+      aura(r * (2.2 + k), 'rgba(200,240,255,.9)', 0.5 * k);
+      cx.lineWidth = Math.max(1.5, r * 0.28); cx.lineCap = 'round';
+      for (let i = 0; i < 6; i++) {
+        const a = t * 2 + i * TAU / 6;
+        cx.strokeStyle = 'hsla(' + Math.round((t * 90 + i * 60) % 360) + ',100%,75%,.75)';
+        cx.beginPath(); cx.arc(0, 0, r * (1.5 + 0.25 * k), a, a + TAU / 6 * 0.7); cx.stroke();
+      }
+      cx.strokeStyle = 'rgba(255,255,255,.85)'; cx.lineWidth = 1.2;
+      for (let i = 0; i < 5; i++) {
+        const ph = (t * 0.8 + i / 5) % 1;
+        cx.globalAlpha = 1 - ph; cx.beginPath();
+        cx.arc(Math.sin(i * 2.3 + t * 3) * r * 1.1, -r * 0.6 - ph * r * (2 + 1.4 * k), r * (0.15 + 0.12 * hash(i)), 0, TAU); cx.stroke();
+      }
+    },
+    saturn(r, t, k) { // little moons on tilted orbits, each with a comet tail
+      aura(r * (2.3 + k), 'rgba(255,184,107,.9)', 0.5 * k);
+      for (let i = 0; i < 3; i++) {
+        const rx = r * (2 + i * 0.5 + 0.4 * k), ry = rx * 0.38, a0 = t * (2.4 - i * 0.5) + i * 2.1;
+        cx.save(); cx.rotate(-0.35 + i * 0.7);
+        cx.strokeStyle = 'rgba(255,224,176,.3)'; cx.lineWidth = 1; cx.beginPath(); cx.ellipse(0, 0, rx, ry, 0, 0, TAU); cx.stroke();
+        for (let j = 4; j >= 0; j--) {
+          const a = a0 - j * 0.16;
+          cx.globalAlpha = j ? (1 - j / 5) * 0.5 : 1; cx.fillStyle = j ? '#FFB86B' : ['#FFE0B0', '#C58CFF', '#8AB4FF'][i];
+          cx.beginPath(); cx.arc(Math.cos(a) * rx, Math.sin(a) * ry, r * (j ? 0.18 : 0.26), 0, TAU); cx.fill();
+        }
+        cx.restore();
+      }
+    },
+    fire(r, t, k) { // a licking flame corona (going blue-hot at high combos) with embers rising off it
+      aura(r * (2.6 + 1.2 * k), 'rgba(255,110,0,.95)', 0.65 * k);
+      [['rgba(255,70,0,.7)', 1], ['rgba(255,200,40,.85)', 0.7]].forEach(([col, sc]) => {
+        cx.fillStyle = col; cx.beginPath();
+        for (let i = 0; i < 9; i++) {
+          const a = i * TAU / 9 + t * 0.8, h = Math.PI / 9, tip = a + Math.sin(t * 13 + i) * 0.25;
+          const l = r * (1.35 + 0.7 * k) * sc * (0.8 + 0.25 * Math.sin(t * 21 + i * 2.7));
+          cx.moveTo(...P(r * 0.9, a - h)); cx.quadraticCurveTo(...P(l * 0.75, a - h * 0.4), ...P(l, tip)); cx.quadraticCurveTo(...P(l * 0.75, a + h * 0.4), ...P(r * 0.9, a + h));
+        }
+        cx.fill();
+      });
+      aura(r * 1.6, 'rgba(150,200,255,.95)', 0.7 * k * k);
+      for (let i = 0; i < 6; i++) {
+        const ph = (t * 1.1 + i / 6) % 1;
+        cx.globalAlpha = 1 - ph; cx.fillStyle = i % 2 ? '#FFD23F' : '#FF6A00';
+        cx.beginPath(); cx.arc(Math.sin(i * 1.9 + t * 2.5) * r * (0.6 + ph), -r - ph * r * (2.4 + 1.6 * k), r * 0.16 * (1 - ph * 0.5), 0, TAU); cx.fill();
+      }
+    },
+    prism(r, t, k) { // spectrum beams fanning out and turning
+      const L = r * (2.2 + 1.4 * k);
+      for (let i = 0; i < 6; i++) {
+        const a = t * 1.2 + i * TAU / 6;
+        cx.fillStyle = 'hsla(' + Math.round((t * 120 + i * 60) % 360) + ',100%,62%,' + (0.3 + 0.35 * k) + ')';
+        cx.beginPath(); cx.moveTo(0, 0); cx.lineTo(...P(L, a - 0.2)); cx.lineTo(...P(L, a + 0.2)); cx.fill();
+      }
+      aura(r * (2 + k), 'rgba(255,255,255,.9)', 0.45 * k);
+    },
+  };
+  // The equipped ball (or `sk`), stretched along its velocity while flying. `fire` (fireK) puts the skin's
+  // on-fire aura behind it; `flare` (0..1) swells that aura for a moment when the ball ignites.
+  function drawBall(x, y, r, vx, vy, look, sk, fire, flare) {
     cx.save(); cx.translate(x, y);
+    const id = (sk || S).id;
+    if (fire > 0) { cx.save(); const s = 1 + (flare || 0) * 0.8; cx.scale(s, s); SKIN_FIRE[id](r, clk, fire); cx.restore(); }
     const sp = Math.hypot(vx || 0, vy || 0);
     if (sp > 1) { cx.rotate(Math.atan2(vy, vx)); cx.scale(1 + Math.min(.4, sp / 1400), 1 - Math.min(.25, sp / 2400)); look = 0; }
-    SKIN_DRAW[(sk || S).id](r, clk, look === undefined ? -Math.PI / 2 : look, sp > 1);
+    SKIN_DRAW[id](r, clk, look === undefined ? -Math.PI / 2 : look, sp > 1);
     cx.restore();
   }
-  function drawAim(x, y, a, len, col) {
+  // Aim dots; `warn` (a deadly line) makes them bigger with a dark rim so the red reads on any sky.
+  function drawAim(x, y, a, len, col, warn) {
     const n = Math.floor(len / 11);
-    cx.fillStyle = col;
-    for (let j = 1; j <= n; j++) { const d = j * 11; cx.globalAlpha = 1 - j / (n + 1) * 0.7; cx.beginPath(); cx.arc(x + Math.cos(a) * d, y + Math.sin(a) * d, 2.6 - j / n, 0, TAU); cx.fill(); }
+    for (let j = 1; j <= n; j++) {
+      const d = j * 11, px = x + Math.cos(a) * d, py = y + Math.sin(a) * d, r = (warn ? 3.3 : 2.6) - j / n;
+      cx.globalAlpha = 1 - j / (n + 1) * 0.7;
+      if (warn) { cx.fillStyle = C.ink; cx.beginPath(); cx.arc(px, py, r + 1.5, 0, TAU); cx.fill(); }
+      cx.fillStyle = col; cx.beginPath(); cx.arc(px, py, r, 0, TAU); cx.fill();
+    }
     cx.globalAlpha = 1;
+  }
+  // A called miss: a red dashed gap (with end ticks) from where the spark passed to the grab zone and
+  // "MISSED BY 14px" past it; pops in, then stays until the restart.
+  function drawMiss(m) {
+    cx.strokeStyle = C.red; cx.lineWidth = 3; cx.lineCap = 'round'; cx.beginPath();
+    for (const [x, y] of [[m.px, m.py], [m.gx, m.gy]]) { cx.moveTo(x - m.ny * 7, y + m.nx * 7); cx.lineTo(x + m.ny * 7, y - m.nx * 7); }
+    cx.stroke();
+    cx.setLineDash([4, 5]); cx.beginPath(); cx.moveTo(m.px, m.py); cx.lineTo(m.gx, m.gy); cx.stroke(); cx.setLineDash([]);
+    cx.lineCap = 'butt';
+    const k = 1 - Math.max(0, m.t) / (MISS.time * MISS.slow), s = 1 + 0.5 * Math.max(0, 1 - k * 3);
+    cx.save(); cx.translate(Math.max(95, Math.min(W - 95, m.px + m.nx * 28)), m.py + m.ny * 28); cx.scale(s, s);
+    cx.textBaseline = 'middle'; txt('MISSED BY ' + m.gap + 'px', 0, 0, 18, C.red, C.ink, 180);
+    cx.restore();
   }
 
   function draw() {
@@ -951,10 +1270,11 @@
     cx.textAlign = 'center'; cx.textBaseline = 'alphabetic';
     drawSky();
     cx.save();
+    cx.translate(W / 2, H / 2); cx.scale(zoom, zoom); cx.translate(-W / 2, -H / 2); // combo zoom-in
     cx.translate((Math.random() - .5) * shake, (Math.random() - .5) * shake - camY);
     rings.forEach((r, i) => {
       if (r.broken || r.y - camY > H + 140) return;
-      drawRing(r, { past: i < cur, cur: i === cur, next: i === cur + 1, inner: i === cur && spark.onInner,
+      drawRing(r, { past: i < cur, cur: i === cur, next: i === cur + 1, inner: i === cur && spark.onInner, beat: i === cur + 1 ? beatK : 0,
         worn: i === cur && !spark.free && r.type === 'crumble' ? 1 - r.t / CRUMBLE_T : 0 });
     });
     for (const m of mines) { drawTrack(m.x0, m.y, m.amp); drawMine(mineX(m), m.y, Math.sign(m.w)); }
@@ -979,9 +1299,11 @@
         cx.fillStyle = 'rgba(255,255,255,.5)';
         cx.beginPath(); cx.arc(R.x + Math.cos(spark.a) * rr, R.y + Math.sin(spark.a) * rr, 4, 0, TAU); cx.fill();
       }
-      // Aim line: the spark leaves straight out from the ring; it stretches while charging
-      // and turns gold when the shot would snap clean onto the next donut.
-      drawAim(sx, sy, a, 34 + k * 110, N && cleanLine(sx, sy, a, N) ? C.gold : '#FFFFFF');
+      // Aim line: the spark leaves straight out from the ring; it stretches while charging,
+      // turns gold when the shot would snap clean onto the next donut and red when it would die
+      // on the way (either ring's spikes or a mine, as they will be when the spark gets there).
+      const deadly = N && !safeShot(R, N, sx, sy, a, 0);
+      drawAim(sx, sy, a, 34 + k * 110, deadly ? C.red : N && cleanLine(sx, sy, a, N) ? C.gold : '#FFFFFF', deadly);
       if (charge && k > 0) { // charge meter around the spark; flickers when full (about to auto-fire)
         const full = k >= 1 && Math.sin(clk * 40) > 0;
         cx.strokeStyle = full ? '#FFFFFF' : C.gold; cx.lineWidth = 3.5; cx.lineCap = 'round';
@@ -989,12 +1311,25 @@
         cx.lineCap = 'butt';
       }
     }
-    if (state !== 'dead') { trail.push({ x: sx, y: sy }); if (trail.length > 14) trail.shift(); } else trail.shift();
-    for (let i = 0; i < trail.length; i++) { const f = (i + 1) / trail.length; cx.fillStyle = skinCol(i); cx.globalAlpha = f * 0.4; cx.beginPath(); cx.arc(trail[i].x, trail[i].y, 9 * f, 0, TAU); cx.fill(); }
+    // Trail: longer, fatter and brighter (a white-hot core) as the multiplier climbs.
+    const heat = (mult() - 1) / (MAX_MULT - 1);
+    if (state !== 'dead') { trail.push({ x: sx, y: sy }); while (trail.length > HYPE.trail + (mult() - 1) * HYPE.trailPer) trail.shift(); } else trail.shift();
+    for (let i = 0; i < trail.length; i++) { const f = (i + 1) / trail.length; cx.fillStyle = skinCol(i); cx.globalAlpha = f * (0.4 + 0.45 * heat); cx.beginPath(); cx.arc(trail[i].x, trail[i].y, 9 * f * (1 + 0.4 * heat), 0, TAU); cx.fill(); }
+    if (heat > 0) {
+      cx.globalCompositeOperation = 'lighter'; cx.fillStyle = '#FFFFFF';
+      for (let i = 0; i < trail.length; i++) { const f = (i + 1) / trail.length; cx.globalAlpha = f * heat * 0.55; cx.beginPath(); cx.arc(trail[i].x, trail[i].y, 4 * f, 0, TAU); cx.fill(); }
+      cx.globalCompositeOperation = 'source-over';
+    }
     cx.globalAlpha = 1;
-    if (state !== 'dead') drawBall(sx, sy, 9 + (charge ? windK() * 1.5 : 0), spark.free ? spark.vx : 0, spark.free ? spark.vy : 0, N ? Math.atan2(N.y - sy, N.x - sx) : undefined);
+    if (state !== 'dead') drawBall(sx, sy, 9 + (charge ? windK() * 1.5 : 0), spark.free ? spark.vx : 0, spark.free ? spark.vy : 0, N ? Math.atan2(N.y - sy, N.x - sx) : undefined, null, fireK(), ignite);
     for (const w of waves) { cx.globalAlpha = w.life; cx.strokeStyle = w.col; cx.lineWidth = 5 * w.life; cx.beginPath(); cx.arc(w.x, w.y, w.r, 0, TAU); cx.stroke(); }
     drawParts(parts);
+    if (gray > 0) { // streak lost: the world drains of color (the pop text stays loud on top), then floods back
+      cx.save(); cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      cx.globalCompositeOperation = 'saturation'; cx.globalAlpha = Math.min(1, gray * 1.6); cx.fillStyle = '#808080'; cx.fillRect(0, 0, W, H);
+      cx.restore();
+    }
+    if (spark.miss) drawMiss(spark.miss);
     for (const p of pops) {
       const s = 1 + Math.max(0, (p.life - 0.8) / 0.2) * 0.8;
       cx.globalAlpha = Math.min(1, p.life * 1.5);
@@ -1057,7 +1392,7 @@
       rrect(bx, by, bw, bh, 18); cx.fillStyle = 'rgba(42,15,58,.72)'; cx.fill();
       txt('TAP to shoot straight out - GOLD dots = clean shot', W / 2, by + 26, 17, '#FFFFFF', null, bw - 24);
       txt('HOLD to wind it along the ' + T.w.ring + ', release to fire', W / 2, by + 48, 14, C.gold, null, bw - 24, '600');
-      txt('Hit the ' + T.w.ring + ' itself for combos. Red spikes kill!', W / 2, by + 68, 14, '#FFC2DD', null, bw - 24, '600');
+      txt('Hit the ' + T.w.ring + ' itself for combos. RED dots = deadly shot!', W / 2, by + 68, 14, '#FFC2DD', null, bw - 24, '600');
     }
   }
 
@@ -1162,7 +1497,7 @@
       cx.fillStyle = it.trail === 'rainbow' ? 'hsl(' + Math.round(clk * 120 % 360) + ',100%,65%)' : it.trail;
       for (let i = 1; i <= 4; i++) { cx.globalAlpha = 0.35 - i * 0.07; cx.beginPath(); cx.arc(-rad * (0.9 + i * 0.75), bob + i * 1.5, rad * (1 - i * 0.18), 0, TAU); cx.fill(); }
       cx.globalAlpha = 1;
-      drawBall(0, bob, rad, 0, 0, clk * 1.3, it);
+      drawBall(0, bob, rad, 0, 0, clk * 1.3, it, Math.max(0, Math.sin(clk * 1.4 + x * 0.05)) * 0.8); // teases its on-fire look
     }
     cx.restore();
     if (!own && !afford) { // locked
@@ -1218,8 +1553,8 @@
   const TUT = [
     { t: 'Tap to launch', d: () => 'Your ' + S.noun + ' orbits the ' + T.w.ring + '. Tap and it shoots straight out from the ring. When the aim dots turn GOLD, you are lined up for a clean snap on the next ' + T.w.ring + '!' },
     { t: 'Hold to wind up', d: () => 'Hold and the ' + S.noun + ' grips the ring: it pulls back, then whips forward past where you pressed. Let go at any moment to fire from there.' },
-    { t: 'Snap clean = combo', d: () => 'Hit the ' + T.w.ring + ' itself: every 3 clean snaps raise your multiplier (up to x8). Grazing the dashed zone saves you but breaks the streak. Double ' + T.w.ring + '? Hit a ' + T.w.arc + ' for BULLSEYE x2 - a gap breaks the streak.' },
-    { t: 'Watch out!', d: () => 'Red ' + T.w.spikes + ' block you going in AND out. ' + cap(T.w.bomb) + ' slide on their tracks. ' + cap(T.w.crumble) + ' crumble soon after you land - leave fast!' },
+    { t: 'Snap clean = combo', d: () => 'Hit the ' + T.w.ring + ' itself: every 3 clean snaps raise your multiplier (up to x8) and set your ' + S.noun + ' on fire! Grazing the dashed zone saves you but breaks the streak - fly past outside it and it\'s a miss. Double ' + T.w.ring + '? Hit a ' + T.w.arc + ' for BULLSEYE x2 - a gap breaks the streak.' },
+    { t: 'Watch out!', d: () => 'Red ' + T.w.spikes + ' block you going in AND out. ' + cap(T.w.bomb) + ' slide on their tracks. ' + cap(T.w.crumble) + ' crumble soon after you land - leave fast! RED aim dots = that shot hits spikes or ' + T.w.bomb + ': wait for a gap. Skim past alive for a CLOSE!' },
     { t: 'Coins & shop', d: () => 'Every point you score is a coin. Spend them in the SHOP on new worlds (Neon Night, Deep Sea, Cosmic Drift) and ball skins - tap one you own to wear it.' },
   ];
   const tA = ring(0, 0, 28), tB = ring(0, 0, 26), tW = ring(0, 0, 36), tD = ring(0, 0, 40, 'double'), tS = ring(0, 0, 22, 'spike'), tC = ring(0, 0, 24, 'crumble'), tK = ring(0, 0, 34);
@@ -1274,13 +1609,13 @@
       cx.strokeStyle = 'rgba(255,255,255,.4)'; cx.lineWidth = 1.5; cx.setLineDash([5, 7]);
       cx.beginPath(); cx.arc(tD.x, tD.y, tD.r + GRAB, 0, TAU); cx.stroke(); cx.setLineDash([]);
       drawRing(tD, { next: ph < land, cur: ph >= land, inner: ph >= land });
-      if (ph >= 0.4 && ph < land) { const f = (ph - 0.4) / (land - 0.4), y0 = ah / 2 + 12, y1 = tD.y + tD.rin; drawBall(tD.x, y0 + (y1 - y0) * f, 8, 0, -500); }
-      else if (ph >= land) { const a = Math.PI / 2 + tD.inSpin * (ph - land); drawBall(tD.x + Math.cos(a) * tD.rin, tD.y + Math.sin(a) * tD.rin, 8); }
+      const rx = aw * 0.27, got = Math.min(3, Math.floor((t % 3.2) / 0.8)), fire = got === 3 ? HYPE.fireMin : 0; // x2 = ball on fire
+      if (ph >= 0.4 && ph < land) { const f = (ph - 0.4) / (land - 0.4), y0 = ah / 2 + 12, y1 = tD.y + tD.rin; drawBall(tD.x, y0 + (y1 - y0) * f, 8, 0, -500, undefined, null, fire); }
+      else if (ph >= land) { const a = Math.PI / 2 + tD.inSpin * (ph - land); drawBall(tD.x + Math.cos(a) * tD.rin, tD.y + Math.sin(a) * tD.rin, 8, 0, 0, undefined, null, fire); }
       if (ph >= land && ph < 1.9) {
         const s = 1 + Math.max(0, 1 - (ph - land) * 5) * 0.6;
         cx.save(); cx.translate(tD.x, tD.y - tD.r - 14); cx.scale(s, s); txt('BULLSEYE x2', 0, 0, 16, C.gold, C.ink); cx.restore();
       }
-      const rx = aw * 0.27, got = Math.min(3, Math.floor((t % 3.2) / 0.8));
       rrect(rx - 30, -26, 60, 28, 14); cx.fillStyle = got === 3 ? C.gold : 'rgba(255,255,255,.2)'; cx.fill();
       cx.strokeStyle = C.ink; cx.lineWidth = 2.5; cx.stroke();
       cx.textBaseline = 'middle'; txt(got === 3 ? 'x2' : 'x1', rx, -11, 17, got === 3 ? C.ink : '#FFFFFF', got === 3 ? null : C.ink); cx.textBaseline = 'alphabetic';
@@ -1290,6 +1625,10 @@
       const xs = [-aw / 3, 0, aw / 3];
       tS.x = xs[0]; tS.y = -8; tS.spA = clk * 0.9; tS.rot = clk * 2;
       drawRing(tS, {});
+      { // a ball orbiting under the spikes: its aim dots turn RED while they point into the shield
+        const ba = -clk * 1.6, bx = tS.x + Math.cos(ba) * tS.r, by = tS.y + Math.sin(ba) * tS.r, red = inShield(tS, ba, SPIKE_PAD);
+        drawAim(bx, by, ba, 30, red ? C.red : '#FFFFFF', red); drawBall(bx, by, 7);
+      }
       drawTrack(xs[1], -8, Math.min(34, aw / 7)); drawMine(xs[1] + Math.sin(clk * 2) * Math.min(34, aw / 7), -8, 1);
       const k = (t % 2.4) / 2.4; tC.x = xs[2]; tC.y = -8; tC.t = CRUMBLE_T * (1 - k); tC.rot = clk * 1.5;
       drawRing(tC, { cur: true, worn: k });
@@ -1365,9 +1704,13 @@
   }
 
   function loop(t) {
-    const dt = Math.min(0.033, (t - last) / 1000); last = t;
+    const ms = t - last, dt = Math.min(0.033, ms / 1000); last = t;
+    if (ms < 250) { // adaptive resolution (see PERF); long gaps (a hidden tab) don't count
+      frameMs += (ms - frameMs) * 0.05;
+      if (frameMs > PERF.slowMs && dpr > 1) { dprCap = Math.max(1, dpr - 0.5); frameMs = 16.7; resize(); }
+    }
     try {
-      if (freeze > 0) { freeze -= dt; step(dt * 0.05); } else step(dt);
+      if (freeze > 0) { freeze -= dt; step(dt * 0.05); } else step(dt * (state === 'play' && spark.miss ? MISS.slow : 1));
       draw();
       sfx.whine(charge && state === 'play' ? windK() : 0);
     } catch (err) { cx.fillStyle = '#FF5A6E'; cx.font = '14px monospace'; cx.textAlign = 'left'; cx.fillText('Error: ' + err.message, 10, 20); return; }
