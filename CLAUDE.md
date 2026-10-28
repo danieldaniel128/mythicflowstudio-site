@@ -11,6 +11,7 @@ Studio showcase for Mythic Flow Studio (https://mythicflowstudio.com). Purpose: 
 ## Content rules
 - Real in-game footage only. No drawn/SVG gameplay stand-ins, no "clip coming" placeholders.
 - Short highlight clips (~5–13 s loops), not long footage. Keep each web clip ≲1.2 MB.
+- Exception: the Apex Dragon trailer (`assets/media/apexdragon-trailer.mp4`, 720p, 61 s, ~16 MB) plays only on demand, in the `#apex-trailer` dialog opened by the card's "Watch the trailer" button (`preload="none"`).
 - Mobile first: the owner presents the site from a phone at conventions. The highlight reel has a full-screen button for that.
 - Studio-level copy is genre-neutral; each game's pitch lives in its own card.
 - Games:

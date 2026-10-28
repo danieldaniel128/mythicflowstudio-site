@@ -198,6 +198,16 @@
   }
   .btn:active{transform:none}
 
+  /* ---------------------------------------------------------- trailer dialog */
+  .trailer{width:min(1100px, calc(100vw - 32px)); max-width:none; padding:0; border:0; background:transparent; overflow:visible}
+  .trailer::backdrop{background:rgba(6,18,31,.9)}
+  .trailer-box{position:relative; border-radius:14px; overflow:hidden; border:1px solid var(--line); background:#000;
+    box-shadow:0 30px 80px -20px rgba(0,0,0,.8)}
+  .trailer-video{display:block; width:100%; height:auto; aspect-ratio:16/9; background:#000}
+  .trailer-close{position:absolute; top:10px; right:10px; width:44px; height:44px; border-radius:50%; cursor:pointer;
+    border:1px solid var(--line); background:rgba(6,18,31,.75); color:var(--hot); display:grid; place-items:center}
+  .trailer-close svg{width:18px; height:18px}
+
   /* ---------------------------------------------------------- hero
      Phones: title, then the highlight reel, then the buttons (footage above the fold).
      Desktop: copy on the left, reel on the right. */
@@ -998,6 +1008,10 @@
 
             <div class="game-cta">
               <a class="btn btn-accent" href="mailto:hello@mythicflowstudio.com?subject=Apex%20Dragon%20updates">Get notified</a>
+              <a class="btn btn-ghost" href="assets/media/apexdragon-trailer.mp4" data-trailer-open>
+                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="6" cy="6" r="5"/><path d="M4.9 3.9v4.2L8.2 6Z" fill="currentColor" stroke="none"/></svg>
+                Watch the trailer
+              </a>
             </div>
           </div>
         </article>
@@ -1174,6 +1188,18 @@
 
 </div>
 
+<!-- Apex Dragon trailer (1280x720, 61 s, no audio): plays only when opened -->
+<dialog class="trailer" id="apex-trailer" aria-label="Apex Dragon trailer">
+  <div class="trailer-box">
+    <video class="trailer-video" controls playsinline preload="none" width="1280" height="720"
+           poster="assets/media/apexdragon-trailer-poster.jpg" src="assets/media/apexdragon-trailer.mp4"
+           aria-label="Apex Dragon trailer: a Hatchling eats and grows to Apex, duels other players' dragons, fights the three boss boars at Apex 9 and wins their powers, then picks from 17 dragons."></video>
+    <button class="trailer-close" type="button" data-trailer-close aria-label="Close the trailer">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7"/></svg>
+    </button>
+  </div>
+</dialog>
+
 <script>
 (() => {
   'use strict';
@@ -1223,6 +1249,21 @@
     cardVideos.forEach((v) => cardIO.observe(v));
   } else {
     cardVideos.forEach((v) => { v._visible = true; refreshCard(v); });
+  }
+
+  /* ---------- trailer: opens in a dialog and plays; closing it (button, Esc, tap outside) stops it */
+  const trailer = doc.getElementById('apex-trailer');
+  if (trailer && typeof trailer.showModal === 'function') {
+    const tv = trailer.querySelector('video');
+    doc.querySelectorAll('[data-trailer-open]').forEach((a) => a.addEventListener('click', (e) => {
+      e.preventDefault();
+      trailer.showModal();
+      quietPlay(tv);
+    }));
+    const shut = () => { tv.pause(); trailer.close(); };
+    trailer.querySelector('[data-trailer-close]').addEventListener('click', shut);
+    trailer.addEventListener('click', (e) => { if (e.target === trailer) shut(); });
+    trailer.addEventListener('close', () => tv.pause());   // Esc / back gesture
   }
 
   /* ---------- highlight reel: each clip plays through once, then the reel moves on */
