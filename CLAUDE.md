@@ -16,7 +16,7 @@ Studio showcase for Mythic Flow Studio (https://mythicflowstudio.com). Purpose: 
 - Studio-level copy is genre-neutral; each game's pitch lives in its own card.
 - Games:
   - **BEAMLOCK** — Android laser-routing puzzle, 200 levels, status "In closed testing".
-  - **Apex Dragon** (final name; on Google Play as "Apex Dragon: Evolution .io") — Android top-down .io-style dragon arena. Stages Hatchling → Whelp (dash) → Juvenile (fire breath) → Young Dragon → Adult → Elder → Apex. Online multiplayer, free-for-all (owner confirmed 2026-09-26 that it runs online). Status "In development".
+  - **Apex Dragon** (final name; on Google Play as "Apex Dragon: Evolution .io") — Android top-down .io-style dragon arena. Stages Hatchling → Whelp (dash) → Juvenile (fire breath) → Young Dragon → Adult → Elder → Apex. Online multiplayer, free-for-all (owner confirmed 2026-09-26 that it runs online). Status "On Google Play" (production release sent for review 2026-11-07); the card's main button is "Get it on Google Play" (https://play.google.com/store/apps/details?id=com.daniel.apexdragon).
 - Adding a game: copy one game card block (see the HTML comment "how to add a game") and one reel slide.
 
 ## Design rules
