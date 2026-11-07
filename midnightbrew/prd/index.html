@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Midnight Brew · PRD · Mythic Flow Studio</title>
+<meta name="description" content="Product requirements for Midnight Brew, a potion memory game for Android by Mythic Flow Studio.">
+<meta name="theme-color" content="#06121F">
+<link rel="icon" type="image/png" sizes="32x32" href="../../assets/img/favicon-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700&amp;family=JetBrains+Mono&amp;family=Manrope:wght@400;700&amp;display=swap">
+<style>
+  :root{
+    --bg-deep:#06121F; --bg-panel:#161D33; --bg-raised:#212B4C; --line:#2A3556;
+    --beam:#45C8FF; --beam-deep:#1E7FB8; --hot:#E8EEFF; --dim:#93A0C4; --amber:#FFC94A;
+    --gutter:clamp(16px,4vw,24px);
+    --font-head:"Baloo 2",Manrope,sans-serif;
+    --font-body:Manrope,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  html{color-scheme:dark; background:var(--bg-deep); -webkit-text-size-adjust:100%; text-size-adjust:100%; scroll-behavior:smooth}
+  body{margin:0; background:var(--bg-deep); color:var(--hot); font-family:var(--font-body); font-size:16px; line-height:1.6}
+  main{max-width:820px; margin:0 auto; padding:40px var(--gutter) 64px}
+  a{color:var(--beam)}
+  .back{display:inline-block; margin-bottom:28px; font-family:var(--font-mono); font-size:14px; text-decoration:none}
+  h1{font-family:var(--font-head); font-size:clamp(32px,6vw,46px); line-height:1.1; margin:0 0 6px}
+  h2{font-family:var(--font-head); font-size:26px; line-height:1.2; margin:44px 0 10px; scroll-margin-top:16px}
+  h3{font-size:17px; margin:24px 0 6px}
+  .meta{color:var(--dim); font-size:14px; margin:0 0 24px}
+  .meta span + span::before{content:"·"; margin:0 8px}
+  p, ul, ol{margin:0 0 12px}
+  li{margin:4px 0}
+  strong{color:var(--hot)}
+  code{font-family:var(--font-mono); font-size:.88em; color:var(--beam)}
+  .card{background:var(--bg-panel); border:1px solid var(--line); border-radius:12px; padding:16px 20px; margin:20px 0}
+  .card p:last-child, .card ul:last-child{margin-bottom:0}
+  .pitch{font-size:19px; line-height:1.5}
+  nav.toc ol{columns:2; column-gap:28px; padding-left:20px; margin:0}
+  @media (max-width:560px){ nav.toc ol{columns:1} }
+  .scroll{overflow-x:auto; margin:12px 0 16px}
+  table{border-collapse:collapse; width:100%; font-size:14px; font-variant-numeric:tabular-nums}
+  th,td{text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top}
+  th{color:var(--dim); font-weight:700; white-space:nowrap}
+  .tag{display:inline-block; font-size:12px; font-weight:700; letter-spacing:.04em; padding:2px 8px; border-radius:999px; background:var(--bg-raised); color:var(--amber)}
+  .loop{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:12px 0 16px; padding:0; list-style:none}
+  .loop li{margin:0; background:var(--bg-raised); border:1px solid var(--line); border-radius:10px; padding:8px 12px; font-size:14px}
+  .loop li.arrow{background:none; border:0; padding:0 2px; color:var(--dim)}
+  footer{border-top:1px solid var(--line); margin-top:48px; padding-top:20px; color:var(--dim); font-size:14px}
+</style>
+</head>
+<body>
+<main>
+  <a class="back" href="/">&larr; Mythic Flow Studio</a>
+  <h1>Midnight Brew: PRD</h1>
+  <p class="meta"><span>Product requirements document</span><span>Version 1.0 (game build 42)</span><span>8 November 2026</span><span>Status: Google Play closed test</span></p>
+
+  <div class="card">
+    <p class="pitch"><strong>An alchemist's shop at midnight.</strong> Break the wax seals, find matching potions and pour them into the cauldron before the candle burns out.</p>
+    <p>Midnight Brew is a portrait memory-matching puzzle for Android phones, played in short shelves of about half a minute each, with a light progression layer of nights, ingredients, recipes and spells around it.</p>
+  </div>
+
+  <nav class="toc" aria-label="Contents"><ol>
+    <li><a href="#goals">Goals and audience</a></li>
+    <li><a href="#loop">Core loop</a></li>
+    <li><a href="#rules">Rules and scoring</a></li>
+    <li><a href="#twists">Twists and special potions</a></li>
+    <li><a href="#progression">Progression: nights and stars</a></li>
+    <li><a href="#meta">Ingredients, recipes and spells</a></li>
+    <li><a href="#screens">Screens and flow</a></li>
+    <li><a href="#feel">Game feel</a></li>
+    <li><a href="#art">Art and audio</a></li>
+    <li><a href="#tech">Technical requirements</a></li>
+    <li><a href="#money">Monetisation</a></li>
+    <li><a href="#privacy">Privacy and compliance</a></li>
+    <li><a href="#release">Release plan</a></li>
+    <li><a href="#risks">Risks and open questions</a></li>
+  </ol></nav>
+
+  <h2 id="goals">1. Goals and audience</h2>
+  <ul>
+    <li><strong>Audience:</strong> casual mobile players aged 13 and up who like short, calm puzzle sessions with a light test of memory. Store category: Puzzle.</li>
+    <li><strong>Session:</strong> one shelf takes about 20–35 seconds of candle time; a night is one to four shelves, so a full night is a few minutes.</li>
+    <li><strong>Player promise:</strong> remembering where things are feels good and pays off: every correct memory buys time, every forgotten bottle costs it.</li>
+    <li><strong>Product goal for v1.0:</strong> pass Google Play's 14-day closed test with real players and learn which nights feel too hard or too easy before going public.</li>
+  </ul>
+  <p><strong>What we want to measure</strong> (the build has no analytics, so for now these come from Play Console statistics and tester feedback): how many testers clear Night 1, how far they get through the 12 nights, how often they come back, and which nights get the most retries.</p>
+
+  <h2 id="loop">2. Core loop</h2>
+  <ul class="loop">
+    <li>Tap a sealed bottle</li><li class="arrow">&rarr;</li>
+    <li>Tap a second one</li><li class="arrow">&rarr;</li>
+    <li>Match: both pour into the cauldron</li><li class="arrow">&rarr;</li>
+    <li>Miss: they reseal</li><li class="arrow">&rarr;</li>
+    <li>Clear the shelf before the candle runs out</li>
+  </ul>
+  <ul>
+    <li>A shelf holds sealed bottles in pairs: <strong>small 4×3</strong>, <strong>medium 4×4</strong> or <strong>grand 5×4</strong>. Every bottle's potion is hidden under the same red wax seal.</li>
+    <li>Tapping a bottle breaks its seal and turns it round to show its glowing liquid and rune.</li>
+    <li>Two of the same: both bottles fly to the bubbling cauldron and pour in; the brew changes colour.</li>
+    <li>A mismatch: the two bottles clink, wobble and seal themselves again.</li>
+    <li>The <strong>candle</strong> is the timer. Each shelf adds wax (seconds) to it. Clear every pair before it burns out to finish the shelf; clear every shelf to finish the night.</li>
+  </ul>
+
+  <h2 id="rules">3. Rules and scoring</h2>
+  <h3>Memory pays in wax</h3>
+  <ul>
+    <li>Every match drips <strong>+1 s</strong> of wax into the candle per streak level.</li>
+    <li>A mismatch whose second bottle had <strong>already been seen</strong> shows "FORGOT!" and burns <strong>2 s</strong> of wax.</li>
+  </ul>
+  <h3>Steam orders</h3>
+  <ul>
+    <li>The steam above the cauldron forms the rune of one pair still on the shelf. Brewing that pair scores <strong>×2</strong> and adds <strong>+3 s</strong> of wax; a new order forms 0.8 s later.</li>
+  </ul>
+  <h3>Streak, magic meter and the magic chain</h3>
+  <ul>
+    <li>Matches in a row build a streak, shown as "STREAK ×n", up to a <strong>×5</strong> score multiplier.</li>
+    <li>The streak lights the five sockets on the cauldron. At <strong>MAX MAGIC</strong> the cauldron throbs until the player taps it: every pair whose two bottles have both been seen lifts off and pours in one <strong>magic chain</strong>, each pour chiming higher.</li>
+    <li>A mismatch dims one lit socket (the streak drops by one) and loses an unspent charge.</li>
+  </ul>
+  <h3>Crack impact</h3>
+  <ul>
+    <li>Every <strong>2 matches in a row</strong> the brew thumps and <strong>2 sealed bottles crack</strong>. A cracked bottle leaks its colour onto the shelf until it is brewed, so the stains become a hint.</li>
+  </ul>
+  <h3>Points</h3>
+  <div class="scroll"><table>
+    <tr><th>Event</th><th>Points</th></tr>
+    <tr><td>Match</td><td>100 × streak multiplier (max ×5)</td></tr>
+    <tr><td>Lucky match (both bottles never seen before)</td><td>+50</td></tr>
+    <tr><td>Steam order brewed</td><td>Match points ×2</td></tr>
+    <tr><td>Shelf cleared</td><td>+250</td></tr>
+    <tr><td>Wax left when the shelf is cleared</td><td>+20 per second</td></tr>
+  </table></div>
+  <p>Clearing with less than 3 s left shows "JUST IN TIME!". The best score is saved and shown on the title screen.</p>
+
+  <h2 id="twists">4. Twists and special potions</h2>
+  <ul>
+    <li><strong>The shop cat</strong> visits grand shelves. About every 11–13 s it pads along a plank, head-bumps two sealed neighbours and they swap places. It never moves the pair the steam is asking for.</li>
+    <li><strong>Prismatic Elixir</strong> (wild): it matches whichever bottle is opened with it, and that bottle's twin lifts off too, so three bottles pour in one rainbow arc.</li>
+    <li><strong>Spare Wax jar</strong>: when a single Prismatic leaves an empty cell, a clay jar sits there; one tap pours +3 s into the candle.</li>
+  </ul>
+  <h3>Special potions (Recipe Book sockets)</h3>
+  <p>Special potions are slotted into the Recipe Book's sockets. Each slotted special is dealt onto every shelf as a pair, except the passive Phoenix, which works from its socket.</p>
+  <div class="scroll"><table>
+    <tr><th>Special</th><th>Effect when brewed</th><th>Learned</th></tr>
+    <tr><td>Frost Draught</td><td>Freezes the candle for 5 s</td><td>From the start</td></tr>
+    <tr><td>Phoenix Ember</td><td>Passive: when the candle runs out, relights it with +8 s, once per attempt</td><td>From the start</td></tr>
+    <tr><td>Firefly Draught</td><td>Fireflies fly to two hidden pairs and make each pair blink its colour together for 4 s</td><td>After 2 nights</td></tr>
+    <tr><td>Thunder Tonic</td><td>A thunderclap cracks 4 sealed bottles at once, so their leaks map the shelf</td><td>After 5 nights</td></tr>
+  </table></div>
+  <p>The Recipe Book has 3 sockets; the third opens after 5 nights are cleared.</p>
+
+  <h2 id="progression">5. Progression: nights and stars</h2>
+  <p>The game is a map of <strong>12 nights</strong>. Clearing a night opens the next one and pays its ingredient reward every time it is cleared.</p>
+  <div class="scroll"><table>
+    <tr><th>#</th><th>Night</th><th>Shelves (seconds of wax each)</th><th>Reward</th></tr>
+    <tr><td>1</td><td>First Light</td><td>small (34)</td><td>2 Moon Petal, 1 Ember Salt</td></tr>
+    <tr><td>2</td><td>Moonrise</td><td>small (30), small (24)</td><td>2 Moon Petal, 1 Frost Lily</td></tr>
+    <tr><td>3</td><td>Rainbow Hour</td><td>small (30), medium (26)</td><td>2 Ember Salt, 1 Star Dust</td></tr>
+    <tr><td>4</td><td>Witching Hour</td><td>small (32), medium (22), grand (26)</td><td>2 Frost Lily, 1 Moon Petal, 1 Star Dust</td></tr>
+    <tr><td>5</td><td>Frostfall</td><td>medium (28), medium (22)</td><td>3 Frost Lily, 1 Ember Salt</td></tr>
+    <tr><td>6</td><td>Cat's Cradle</td><td>small (28), grand (30)</td><td>2 Ember Salt, 2 Star Dust</td></tr>
+    <tr><td>7</td><td>Owl Watch</td><td>medium (26), grand (26)</td><td>3 Moon Petal, 1 Star Dust</td></tr>
+    <tr><td>8</td><td>Ember Night</td><td>small (26), medium (22), grand (24)</td><td>3 Ember Salt, 1 Frost Lily</td></tr>
+    <tr><td>9</td><td>Blue Moon</td><td>medium (24), medium (20), grand (24)</td><td>3 Moon Petal, 2 Frost Lily</td></tr>
+    <tr><td>10</td><td>Starfall</td><td>medium (24), grand (24), grand (22)</td><td>3 Star Dust, 1 Ember Salt</td></tr>
+    <tr><td>11</td><td>Hex Storm</td><td>grand (28), grand (22)</td><td>2 Frost Lily, 2 Ember Salt, 1 Star Dust</td></tr>
+    <tr><td>12</td><td>Midnight Brew</td><td>small (26), medium (20), grand (22), grand (20)</td><td>3 Star Dust, 2 Moon Petal, 2 Frost Lily</td></tr>
+  </table></div>
+  <ul>
+    <li><strong>Stars:</strong> 1 star for clearing a night, plus 1 more for finishing with at least 15% of the night's wax left and another for 35%. Every star earned for the first time gifts 1 Star Dust.</li>
+    <li>Difficulty rises through less wax per shelf, bigger shelves, more shelves per night and the cat (grand shelves only).</li>
+  </ul>
+
+  <h2 id="meta">6. Ingredients, recipes and spells</h2>
+  <p>Four ingredients come from night rewards: <strong>Moon Petal</strong>, <strong>Ember Salt</strong>, <strong>Frost Lily</strong> and <strong>Star Dust</strong>. They are spent in the Recipe Book to brew spells.</p>
+  <div class="scroll"><table>
+    <tr><th>Recipe</th><th>Cost</th><th>Gives one charge of</th><th>Learned</th></tr>
+    <tr><td>Frostbite Tonic</td><td>2 Frost Lily, 1 Moon Petal</td><td><strong>Freeze</strong>: freezes the candle for 5 s</td><td>From the start</td></tr>
+    <tr><td>Prismatic Draught</td><td>1 Moon Petal, 1 Ember Salt, 1 Star Dust</td><td><strong>Rainbow</strong>: stir a whirlpool through the shelf; every pair it touches pours</td><td>After 1 night</td></tr>
+    <tr><td>Owl's Eye Elixir</td><td>2 Ember Salt, 1 Star Dust</td><td><strong>Owl's Eye</strong>: every sealed bottle turns round for a moment</td><td>After 3 nights</td></tr>
+  </table></div>
+  <ul>
+    <li>Spells are carried into a night in <strong>2 spell slots</strong> (the second opens after 2 nights) and cast once per slot by tapping it beside the cauldron.</li>
+    <li>A new player starts with one Freeze charge. A spell with no charges shows as a dark masked icon.</li>
+    <li><strong>Rainbow stir:</strong> casting it freezes the candle and the cat. The player drags a whirlpool across the shelf for up to 3 s; it reveals up to 6 bottles, and any pair touched on both bottles pours. It never removes a lone bottle, so the shelf always stays solvable; if no pair is touched, the last bottle's twin is pulled in anyway.</li>
+  </ul>
+
+  <h2 id="screens">7. Screens and flow</h2>
+  <ol>
+    <li><strong>Title:</strong> the Midnight Brew logo, PLAY, the best score, a sound on/off toggle and a privacy policy link.</li>
+    <li><strong>Tutorial</strong> (first launch): a tiny 3×2 shelf teaches four steps: break a seal, match the steam's colour, see a mismatch reseal ("forgetting one burns wax"), and brew the steam's rune first for double points.</li>
+    <li><strong>Hub</strong> with three tabs:
+      <ul>
+        <li><strong>Home:</strong> the bubbling cauldron with the cat on its rim (it hops and meows when tapped), the ingredient counts, the loadout row of slotted potions and spells, and PLAY with the next night's number.</li>
+        <li><strong>Potions:</strong> the Recipe Book, with the special potion sockets and the spell recipes with their Brew buttons.</li>
+        <li><strong>Nights:</strong> a winding night map, with cleared, next and locked nights and their stars.</li>
+      </ul></li>
+    <li><strong>Play:</strong> the HUD shows score, shelf number and potions left, and the candle bar. Spell slots sit beside the cauldron.</li>
+    <li><strong>Results:</strong> win ("Potion complete!") or loss ("The candle burned out"), then back to Home, where earned ingredients fly into their counters.</li>
+    <li><strong>Pause:</strong> leaving the app pauses the game and its sound; returning shows "Paused: tap to resume".</li>
+  </ol>
+  <p>The first time the Rainbow recipe can be brewed, a short coach leads the player from Home into the Recipe Book to brew and slot it.</p>
+
+  <h2 id="feel">8. Game feel</h2>
+  <ul>
+    <li>Screen shake and short hit-stops on match, shelf clear and the final shelf.</li>
+    <li>Pour arcs, liquid sloshing in bottles, bubbles and steam in the cauldron, glass clinks, a flickering candle.</li>
+    <li>An eruption of colour when a shelf is cleared, and a bigger one for the final shelf.</li>
+    <li>Pop-up callouts: STREAK ×n, LUCKY!, FORGOT!, MAX MAGIC!, ORDER ×2, MAGIC CHAIN!, WHIRLPOOL!, JUST IN TIME!, NEW BEST!</li>
+    <li>A loss reveals every bottle before the results, so the player sees what they missed.</li>
+  </ul>
+
+  <h2 id="art">9. Art and audio</h2>
+  <ul>
+    <li><strong>Style:</strong> stylised, warm candle-lit night, flat colours with thick outlines on the hub, glowing runes on the shelf.</li>
+    <li><strong>Procedural art:</strong> every sprite is drawn in code when the game starts (105 textures), so the game ships no image files. See the <a href="../assetlist/">asset list</a>.</li>
+    <li><strong>Procedural audio:</strong> 43 sounds synthesized live with Web Audio, tuned to a pentatonic scale from C5; no audio files.</li>
+    <li><strong>15 potions</strong>, each a liquid colour plus a rune: Ember, Sunburst, Moss, Frost, Moon, Hex, Charm, Storm, Mint, Amber, Lime, Prismatic, Phoenix, Firefly and Thunder.</li>
+  </ul>
+
+  <h2 id="tech">10. Technical requirements</h2>
+  <ul>
+    <li><strong>Engine:</strong> one self-contained HTML5 file (about 316 KB) drawing to a canvas, designed in a 360×640 play area and scaled to any portrait screen (pixel density capped at 2×).</li>
+    <li><strong>Android app:</strong> a WebView wrapper (Capacitor) built by Mythic Forge; package <code>com.mythicflowstudio.midnightbrew</code>, portrait only, targets Android 16 (API 36), signed App Bundle for Google Play.</li>
+    <li><strong>Offline:</strong> the app blocks all network access from the game; it plays fully offline.</li>
+    <li><strong>Saving:</strong> progress, ingredients, charges, best score and settings are kept in local storage on the device (<code>midnightBrew.v1</code>); the game still runs if storage is unavailable.</li>
+    <li><strong>Input:</strong> touch and mouse through pointer events; audio starts after the first tap.</li>
+    <li><strong>Safe areas:</strong> buttons and HUD stay clear of notches and gesture bars.</li>
+    <li><strong>Demo mode:</strong> <code>?demo=1</code> plays the game by itself for recordings, with 17 scripted showcase scenes.</li>
+  </ul>
+
+  <h2 id="money">11. Monetisation</h2>
+  <p><span class="tag">v1.0</span> No ads and no purchases. The closed test build is free and complete.</p>
+  <p><span class="tag">Next</span> Ads are planned. Any ad must follow Google Play and AdMob rules: rewarded ads only as an opt-in choice with the reward named up front, interstitials only at natural breaks (never during play), and a consent form where the law requires it. Adding ads also means updating the privacy policy and the Play Console ads and data safety answers.</p>
+
+  <h2 id="privacy">12. Privacy and compliance</h2>
+  <ul>
+    <li>Collects no personal data: no accounts, analytics, ads or network use. Privacy policy: <a href="../../midnight-brew/privacy/">mythicflowstudio.com/midnight-brew/privacy</a>.</li>
+    <li>Target audience 13+, so the game sits outside Google Play's Families programme.</li>
+    <li>Expected content rating: Everyone / PEGI 3 (no violence, gambling, purchases or user interaction).</li>
+  </ul>
+
+  <h2 id="release">13. Release plan</h2>
+  <ol>
+    <li>Closed test on Google Play with at least 12 opted-in testers for 14 days in a row (the requirement for new personal developer accounts).</li>
+    <li>Collect feedback on difficulty (which nights are retried most), the cat, the Rainbow stir and the Recipe Book.</li>
+    <li>Add ads, update the privacy and Play Console declarations, and apply for production access.</li>
+  </ol>
+
+  <h2 id="risks">14. Risks and open questions</h2>
+  <ul>
+    <li><strong>Difficulty curve is untested</strong> with real players: wax per shelf and the cat's timing may need tuning.</li>
+    <li><strong>The shop cat</strong> may feel unfair to some players; it only appears on grand shelves.</li>
+    <li><strong>Performance:</strong> Mythic Forge measured about 32 ms per frame on build 40 with the CPU slowed 4× (its budget is 12 ms); real phones need checking.</li>
+    <li><strong>Rainbow stir</strong> is new in build 42 and needs testing on real phones, especially the edge cases (two bottles left, a lone Prismatic).</li>
+    <li><strong>Discoverability:</strong> the store title is "Midnight Brew"; adding a keyword, such as "Midnight Brew: Potion Memory", could help search.</li>
+  </ul>
+
+  <footer>&copy; 2026 Mythic Flow Studio · Midnight Brew is made with Mythic Forge</footer>
+</main>
+</body>
+</html>

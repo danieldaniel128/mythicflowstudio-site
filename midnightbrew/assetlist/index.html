@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Midnight Brew · Asset List · Mythic Flow Studio</title>
+<meta name="description" content="Every sprite, sound and font in Midnight Brew, grouped by category with its sizes.">
+<meta name="theme-color" content="#06121F">
+<link rel="icon" type="image/png" sizes="32x32" href="../../assets/img/favicon-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700&amp;family=JetBrains+Mono&amp;family=Manrope:wght@400;700&amp;display=swap">
+<style>
+  :root{
+    --bg-deep:#06121F; --bg-panel:#161D33; --bg-raised:#212B4C; --line:#2A3556;
+    --beam:#45C8FF; --beam-deep:#1E7FB8; --hot:#E8EEFF; --dim:#93A0C4; --amber:#FFC94A;
+    --gutter:clamp(16px,4vw,24px);
+    --font-head:"Baloo 2",Manrope,sans-serif;
+    --font-body:Manrope,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  html{color-scheme:dark; background:var(--bg-deep); -webkit-text-size-adjust:100%; text-size-adjust:100%; scroll-behavior:smooth}
+  body{margin:0; background:var(--bg-deep); color:var(--hot); font-family:var(--font-body); font-size:16px; line-height:1.55}
+  main{max-width:1120px; margin:0 auto; padding:40px var(--gutter) 64px}
+  a{color:var(--beam)}
+  .back{display:inline-block; margin-bottom:28px; font-family:var(--font-mono); font-size:14px; text-decoration:none}
+  h1{font-family:var(--font-head); font-size:clamp(32px,6vw,46px); line-height:1.1; margin:0 0 8px}
+  .lede{color:var(--dim); max-width:68ch; margin:0 0 20px}
+  .facts{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 28px; padding:0; list-style:none}
+  .facts li{background:var(--bg-panel); border:1px solid var(--line); border-radius:999px; padding:6px 14px; font-size:14px}
+  .facts strong{color:var(--amber)}
+  nav.toc{position:sticky; top:0; z-index:2; display:flex; gap:8px; overflow-x:auto; scrollbar-width:none; padding:12px 0; margin:0 0 8px; background:var(--bg-deep); border-bottom:1px solid var(--line)}
+  nav.toc::-webkit-scrollbar{display:none}
+  nav.toc a{flex:none; text-decoration:none; color:var(--hot); background:var(--bg-panel); border:1px solid var(--line); border-radius:10px; padding:6px 12px; font-size:14px; font-weight:700}
+  nav.toc a span{color:var(--dim); font-weight:400; margin-left:4px}
+  section{padding-top:28px; scroll-margin-top:60px}
+  h2{font-family:var(--font-head); font-size:28px; line-height:1.2; margin:12px 0 6px}
+  h2 .count{font-family:var(--font-mono); font-size:15px; color:var(--dim); font-weight:400; vertical-align:middle}
+  h3{font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:var(--dim); margin:22px 0 10px}
+  .intro{color:var(--dim); max-width:72ch; margin:0}
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(172px,1fr)); gap:12px}
+  .asset{margin:0; background:var(--bg-panel); border:1px solid var(--line); border-radius:14px; overflow:hidden; display:flex; flex-direction:column}
+  .tile{display:grid; place-items:center; height:150px; padding:12px;
+    background:radial-gradient(circle at 50% 40%, #2b2050, #150f2a 70%)}
+  .tile img{max-width:100%; max-height:126px; width:auto; height:auto; object-fit:contain}
+  figcaption{padding:10px 12px 12px; display:flex; flex-direction:column; gap:3px; min-width:0}
+  figcaption strong{font-size:14px; line-height:1.3}
+  figcaption code{font-family:var(--font-mono); font-size:12px; color:var(--beam); overflow-wrap:anywhere}
+  .sizes{display:flex; flex-wrap:wrap; gap:4px 10px; font-size:12px; color:var(--dim); font-variant-numeric:tabular-nums; margin-top:2px}
+  ul.sounds{list-style:none; padding:0; margin:14px 0 0; display:flex; flex-wrap:wrap; gap:8px}
+  ul.sounds li code{display:inline-block; font-family:var(--font-mono); font-size:13px; background:var(--bg-panel); border:1px solid var(--line); border-radius:8px; padding:4px 10px; color:var(--hot)}
+  table{border-collapse:collapse; width:100%; margin-top:12px; font-size:14px}
+  th,td{text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top}
+  th{color:var(--dim); font-weight:700}
+  .scroll{overflow-x:auto}
+  footer{border-top:1px solid var(--line); margin-top:48px; padding-top:20px; color:var(--dim); font-size:14px}
+</style>
+</head>
+<body>
+<main>
+  <a class="back" href="/">&larr; Mythic Flow Studio</a>
+  <h1>Midnight Brew: Asset List</h1>
+  <p class="lede">Every sprite, sound and font in the game, grouped by what it's for. Midnight Brew draws all of its art in code when it starts, so there are no image files in the game itself: each picture below is the texture the game builds, exported as it appears on a 1080×1920 phone screen. Tap a picture to open the full-size PNG.</p>
+  <ul class="facts">
+    <li><strong>105</strong> sprites</li>
+    <li><strong>43</strong> sounds, synthesized live</li>
+    <li><strong>2</strong> system fonts</li>
+    <li><strong>0</strong> image or audio files shipped</li>
+    <li>Exports total <strong>4.7 MB</strong></li>
+  </ul>
+  <p class="lede"><strong>How to read the sizes.</strong> <em>Design</em> is the sprite's size in the game's own units (the play area is 360×640). <em>Texture</em> is the bitmap the game draws it into on a 1080×1920 phone (3.75× the design size; it scales with the screen). <em>PNG</em> is the size of the exported file.</p>
+  <nav class="toc" aria-label="Categories"><a href="#potions">Potions <span>45</span></a><a href="#bottles">Bottles and seals <span>11</span></a><a href="#cauldron">Cauldron, fire and light <span>12</span></a><a href="#spells">Spells <span>10</span></a><a href="#ingredients">Ingredients <span>6</span></a><a href="#characters">Characters <span>8</span></a><a href="#hub">Home and night map <span>13</span></a><a href="#sounds">Sounds <span>43</span></a><a href="#fonts">Fonts <span>2</span></a></nav>
+  <section id="potions"><h2>Potions <span class="count">45</span></h2><p class="intro">Each of the 15 potions has a rune (shown on its bottle once the seal breaks), a coloured glow and a steam order (the rune the steam above the cauldron asks for). The liquid colour itself is drawn live in the bottle.</p><h3>Runes</h3><div class="grid"><figure class="asset">
+      <a class="tile" href="img/runes.0.png" title="Open the full-size PNG"><img src="img/thumb/runes.0.png" alt="" loading="lazy" width="120" height="120"></a>
+      <figcaption><strong>Ember rune (flame)</strong><code>runes.0</code>
+        <span class="sizes"><span>Design 32×32</span><span>Texture 120×120 px</span><span>PNG 15 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/runes.1.png" title="Open the full-size PNG"><img src="img/thumb/runes.1.png" alt="" loading="lazy" width="120" height="120"></a>
+      <figcaption><strong>Sunburst rune (sun)</strong><code>runes.1</code>
+        <span class="sizes"><span>Design 32×32</span><span>Texture 120×120 px</span><span>PNG 20 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/runes.2.png" title="Open the full-size PNG"><img src="img/thumb/runes.2.png" alt="" loading="lazy" width="120" height="120"></a>
+      <figcaption><strong>Moss rune (leaf)</strong><code>runes.2</code>
+        <span class="sizes"><span>Design 32×32</span><span>Texture 120×120 px</span><span>PNG 17 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/runes.3.png" title="Open the full-size PNG"><img src="img/thumb/runes.3.png" alt="" loading="lazy" width="120" height="120"></a>
+      <figcaption><strong>Frost rune (frost)</strong><code>runes.3</code>
+        <span class="sizes"><span>Design 32×32</span><span>Texture 120×120 px</span><span>PNG 18 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/runes.4.png" title="Open the full-size PNG"><img src="img/thumb/runes.4.png" alt="" loading="lazy" width="120" height="120"></a>
+      <figcaption><strong>Moon rune (moon)</strong><code>runes.4</code>
+        <span class="sizes"><span>Design 32×32</span><span>Texture 120×120 px</span><span>PNG 20 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/runes.5.png" title="Open the full-size PNG"><img src="img/thumb/runes.5.png" alt="" loading="lazy" width="120" height="120"></a>
+      <figcaption><strong>Hex rune (eye)</strong><code>runes.5</code>
+        <span class="sizes"><span>Design 32×32</span><span>Texture 120×120 px</span><span>PNG 18 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/runes.6.png" title="Open the full-size PNG"><img src="img/thumb/runes.6.png" alt="" loading="lazy" width="120" height="120"></a>
+      <figcaption><strong>Charm rune (heart)</strong><code>runes.6</code>
+        <span class="sizes"><span>Design 32×32</span><span>Texture 120×120 px</span><span>PNG 18 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/runes.7.png" title="Open the full-size PNG"><img src="img/thumb/runes.7.png" alt="" loading="lazy" width="120" height="120"></a>
+      <figcaption><strong>Storm rune (bolt)</strong><code>runes.7</code>
+        <span class="sizes"><span>Design 32×32</span><span>Texture 120×120 px</span><span>PNG 14 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/runes.8.png" title="Open the full-size PNG"><img src="img/thumb/runes.8.png" alt="" loading="lazy" width="120" height="120"></a>
+      <figcaption><strong>Mint rune (spiral)</strong><code>runes.8</code>
+        <span class="sizes"><span>Design 32×32</span><span>Texture 120×120 px</span><span>PNG 17 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/runes.9.png" title="Open the full-size PNG"><img src="img/thumb/runes.9.png" alt="" loading="lazy" width="120" height="120"></a>
+      <figcaption><strong>Amber rune (star)</strong><code>runes.9</code>
+        <span class="sizes"><span>Design 32×32</span><span>Texture 120×120 px</span><span>PNG 19 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/runes.10.png" title="Open the full-size PNG"><img src="img/thumb/runes.10.png" alt="" loading="lazy" width="120" height="120"></a>
+      <figcaption><strong>Lime rune (hourglass)</strong><code>runes.10</code>
+        <span class="sizes"><span>Design 32×32</span><span>Texture 120×120 px</span><span>PNG 17 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/runes.11.png" title="Open the full-size PNG"><img src="img/thumb/runes.11.png" alt="" loading="lazy" width="120" height="120"></a>
+      <figcaption><strong>Prismatic rune (prism)</strong><code>runes.11</code>
+        <span class="sizes"><span>Design 32×32</span><span>Texture 120×120 px</span><span>PNG 17 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/runes.12.png" title="Open the full-size PNG"><img src="img/thumb/runes.12.png" alt="" loading="lazy" width="120" height="120"></a>
+      <figcaption><strong>Phoenix rune (feather)</strong><code>runes.12</code>
+        <span class="sizes"><span>Design 32×32</span><span>Texture 120×120 px</span><span>PNG 16 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/runes.13.png" title="Open the full-size PNG"><img src="img/thumb/runes.13.png" alt="" loading="lazy" width="120" height="120"></a>
+      <figcaption><strong>Firefly rune (firefly)</strong><code>runes.13</code>
+        <span class="sizes"><span>Design 32×32</span><span>Texture 120×120 px</span><span>PNG 19 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/runes.14.png" title="Open the full-size PNG"><img src="img/thumb/runes.14.png" alt="" loading="lazy" width="120" height="120"></a>
+      <figcaption><strong>Thunder rune (thunder)</strong><code>runes.14</code>
+        <span class="sizes"><span>Design 32×32</span><span>Texture 120×120 px</span><span>PNG 19 KB</span></span></figcaption>
+    </figure></div><h3>Glows</h3><div class="grid"><figure class="asset">
+      <a class="tile" href="img/glow.0.png" title="Open the full-size PNG"><img src="img/thumb/glow.0.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Ember glow</strong><code>glow.0</code>
+        <span class="sizes"><span>Design 64×64</span><span>Texture 240×240 px</span><span>PNG 64 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/glow.1.png" title="Open the full-size PNG"><img src="img/thumb/glow.1.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Sunburst glow</strong><code>glow.1</code>
+        <span class="sizes"><span>Design 64×64</span><span>Texture 240×240 px</span><span>PNG 77 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/glow.2.png" title="Open the full-size PNG"><img src="img/thumb/glow.2.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Moss glow</strong><code>glow.2</code>
+        <span class="sizes"><span>Design 64×64</span><span>Texture 240×240 px</span><span>PNG 81 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/glow.3.png" title="Open the full-size PNG"><img src="img/thumb/glow.3.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Frost glow</strong><code>glow.3</code>
+        <span class="sizes"><span>Design 64×64</span><span>Texture 240×240 px</span><span>PNG 77 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/glow.4.png" title="Open the full-size PNG"><img src="img/thumb/glow.4.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Moon glow</strong><code>glow.4</code>
+        <span class="sizes"><span>Design 64×64</span><span>Texture 240×240 px</span><span>PNG 76 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/glow.5.png" title="Open the full-size PNG"><img src="img/thumb/glow.5.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Hex glow</strong><code>glow.5</code>
+        <span class="sizes"><span>Design 64×64</span><span>Texture 240×240 px</span><span>PNG 77 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/glow.6.png" title="Open the full-size PNG"><img src="img/thumb/glow.6.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Charm glow</strong><code>glow.6</code>
+        <span class="sizes"><span>Design 64×64</span><span>Texture 240×240 px</span><span>PNG 76 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/glow.7.png" title="Open the full-size PNG"><img src="img/thumb/glow.7.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Storm glow</strong><code>glow.7</code>
+        <span class="sizes"><span>Design 64×64</span><span>Texture 240×240 px</span><span>PNG 73 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/glow.8.png" title="Open the full-size PNG"><img src="img/thumb/glow.8.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Mint glow</strong><code>glow.8</code>
+        <span class="sizes"><span>Design 64×64</span><span>Texture 240×240 px</span><span>PNG 83 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/glow.9.png" title="Open the full-size PNG"><img src="img/thumb/glow.9.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Amber glow</strong><code>glow.9</code>
+        <span class="sizes"><span>Design 64×64</span><span>Texture 240×240 px</span><span>PNG 76 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/glow.10.png" title="Open the full-size PNG"><img src="img/thumb/glow.10.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Lime glow</strong><code>glow.10</code>
+        <span class="sizes"><span>Design 64×64</span><span>Texture 240×240 px</span><span>PNG 83 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/glow.11.png" title="Open the full-size PNG"><img src="img/thumb/glow.11.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Prismatic glow</strong><code>glow.11</code>
+        <span class="sizes"><span>Design 64×64</span><span>Texture 240×240 px</span><span>PNG 72 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/glow.12.png" title="Open the full-size PNG"><img src="img/thumb/glow.12.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Phoenix glow</strong><code>glow.12</code>
+        <span class="sizes"><span>Design 64×64</span><span>Texture 240×240 px</span><span>PNG 76 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/glow.13.png" title="Open the full-size PNG"><img src="img/thumb/glow.13.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Firefly glow</strong><code>glow.13</code>
+        <span class="sizes"><span>Design 64×64</span><span>Texture 240×240 px</span><span>PNG 79 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/glow.14.png" title="Open the full-size PNG"><img src="img/thumb/glow.14.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Thunder glow</strong><code>glow.14</code>
+        <span class="sizes"><span>Design 64×64</span><span>Texture 240×240 px</span><span>PNG 82 KB</span></span></figcaption>
+    </figure></div><h3>Steam orders</h3><div class="grid"><figure class="asset">
+      <a class="tile" href="img/order.0.png" title="Open the full-size PNG"><img src="img/thumb/order.0.png" alt="" loading="lazy" width="192" height="180"></a>
+      <figcaption><strong>Ember steam order</strong><code>order.0</code>
+        <span class="sizes"><span>Design 64×60</span><span>Texture 240×225 px</span><span>PNG 74 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/order.1.png" title="Open the full-size PNG"><img src="img/thumb/order.1.png" alt="" loading="lazy" width="192" height="180"></a>
+      <figcaption><strong>Sunburst steam order</strong><code>order.1</code>
+        <span class="sizes"><span>Design 64×60</span><span>Texture 240×225 px</span><span>PNG 73 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/order.2.png" title="Open the full-size PNG"><img src="img/thumb/order.2.png" alt="" loading="lazy" width="192" height="180"></a>
+      <figcaption><strong>Moss steam order</strong><code>order.2</code>
+        <span class="sizes"><span>Design 64×60</span><span>Texture 240×225 px</span><span>PNG 74 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/order.3.png" title="Open the full-size PNG"><img src="img/thumb/order.3.png" alt="" loading="lazy" width="192" height="180"></a>
+      <figcaption><strong>Frost steam order</strong><code>order.3</code>
+        <span class="sizes"><span>Design 64×60</span><span>Texture 240×225 px</span><span>PNG 70 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/order.4.png" title="Open the full-size PNG"><img src="img/thumb/order.4.png" alt="" loading="lazy" width="192" height="180"></a>
+      <figcaption><strong>Moon steam order</strong><code>order.4</code>
+        <span class="sizes"><span>Design 64×60</span><span>Texture 240×225 px</span><span>PNG 73 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/order.5.png" title="Open the full-size PNG"><img src="img/thumb/order.5.png" alt="" loading="lazy" width="192" height="180"></a>
+      <figcaption><strong>Hex steam order</strong><code>order.5</code>
+        <span class="sizes"><span>Design 64×60</span><span>Texture 240×225 px</span><span>PNG 72 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/order.6.png" title="Open the full-size PNG"><img src="img/thumb/order.6.png" alt="" loading="lazy" width="192" height="180"></a>
+      <figcaption><strong>Charm steam order</strong><code>order.6</code>
+        <span class="sizes"><span>Design 64×60</span><span>Texture 240×225 px</span><span>PNG 75 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/order.7.png" title="Open the full-size PNG"><img src="img/thumb/order.7.png" alt="" loading="lazy" width="192" height="180"></a>
+      <figcaption><strong>Storm steam order</strong><code>order.7</code>
+        <span class="sizes"><span>Design 64×60</span><span>Texture 240×225 px</span><span>PNG 72 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/order.8.png" title="Open the full-size PNG"><img src="img/thumb/order.8.png" alt="" loading="lazy" width="192" height="180"></a>
+      <figcaption><strong>Mint steam order</strong><code>order.8</code>
+        <span class="sizes"><span>Design 64×60</span><span>Texture 240×225 px</span><span>PNG 76 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/order.9.png" title="Open the full-size PNG"><img src="img/thumb/order.9.png" alt="" loading="lazy" width="192" height="180"></a>
+      <figcaption><strong>Amber steam order</strong><code>order.9</code>
+        <span class="sizes"><span>Design 64×60</span><span>Texture 240×225 px</span><span>PNG 75 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/order.10.png" title="Open the full-size PNG"><img src="img/thumb/order.10.png" alt="" loading="lazy" width="192" height="180"></a>
+      <figcaption><strong>Lime steam order</strong><code>order.10</code>
+        <span class="sizes"><span>Design 64×60</span><span>Texture 240×225 px</span><span>PNG 73 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/order.11.png" title="Open the full-size PNG"><img src="img/thumb/order.11.png" alt="" loading="lazy" width="192" height="180"></a>
+      <figcaption><strong>Prismatic steam order</strong><code>order.11</code>
+        <span class="sizes"><span>Design 64×60</span><span>Texture 240×225 px</span><span>PNG 69 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/order.12.png" title="Open the full-size PNG"><img src="img/thumb/order.12.png" alt="" loading="lazy" width="192" height="180"></a>
+      <figcaption><strong>Phoenix steam order</strong><code>order.12</code>
+        <span class="sizes"><span>Design 64×60</span><span>Texture 240×225 px</span><span>PNG 76 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/order.13.png" title="Open the full-size PNG"><img src="img/thumb/order.13.png" alt="" loading="lazy" width="192" height="180"></a>
+      <figcaption><strong>Firefly steam order</strong><code>order.13</code>
+        <span class="sizes"><span>Design 64×60</span><span>Texture 240×225 px</span><span>PNG 73 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/order.14.png" title="Open the full-size PNG"><img src="img/thumb/order.14.png" alt="" loading="lazy" width="192" height="180"></a>
+      <figcaption><strong>Thunder steam order</strong><code>order.14</code>
+        <span class="sizes"><span>Design 64×60</span><span>Texture 240×225 px</span><span>PNG 76 KB</span></span></figcaption>
+    </figure></div></section><section id="bottles"><h2>Bottles and seals <span class="count">11</span></h2><p class="intro">A shelf bottle is drawn in layers: the back glass, the liquid, the front highlight, then the wax seal on top until it is broken. The four special potions have their own finished bottles.</p><h3>Bottle layers</h3><div class="grid"><figure class="asset">
+      <a class="tile" href="img/back.png" title="Open the full-size PNG"><img src="img/thumb/back.png" alt="" loading="lazy" width="140" height="192"></a>
+      <figcaption><strong>Bottle back with label</strong><code>back</code>
+        <span class="sizes"><span>Design 60×82</span><span>Texture 225×308 px</span><span>PNG 31 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/frontBack.png" title="Open the full-size PNG"><img src="img/thumb/frontBack.png" alt="" loading="lazy" width="140" height="192"></a>
+      <figcaption><strong>Bottle glass, back layer</strong><code>frontBack</code>
+        <span class="sizes"><span>Design 60×82</span><span>Texture 225×308 px</span><span>PNG 42 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/frontOver.png" title="Open the full-size PNG"><img src="img/thumb/frontOver.png" alt="" loading="lazy" width="140" height="192"></a>
+      <figcaption><strong>Bottle glass, front highlight</strong><code>frontOver</code>
+        <span class="sizes"><span>Design 60×82</span><span>Texture 225×308 px</span><span>PNG 14 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/seal.png" title="Open the full-size PNG"><img src="img/thumb/seal.png" alt="" loading="lazy" width="120" height="135"></a>
+      <figcaption><strong>Red wax seal</strong><code>seal</code>
+        <span class="sizes"><span>Design 32×36</span><span>Texture 120×135 px</span><span>PNG 13 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/crack.png" title="Open the full-size PNG"><img src="img/thumb/crack.png" alt="" loading="lazy" width="150" height="150"></a>
+      <figcaption><strong>Glass crack</strong><code>crack</code>
+        <span class="sizes"><span>Design 40×40</span><span>Texture 150×150 px</span><span>PNG 15 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/iceShard.png" title="Open the full-size PNG"><img src="img/thumb/iceShard.png" alt="" loading="lazy" width="60" height="83"></a>
+      <figcaption><strong>Ice shard</strong><code>iceShard</code>
+        <span class="sizes"><span>Design 16×22</span><span>Texture 60×83 px</span><span>PNG 3 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/swirl.png" title="Open the full-size PNG"><img src="img/thumb/swirl.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Prismatic swirl (inside the bottle)</strong><code>swirl</code>
+        <span class="sizes"><span>Design 56×56</span><span>Texture 210×210 px</span><span>PNG 53 KB</span></span></figcaption>
+    </figure></div><h3>Special potions</h3><div class="grid"><figure class="asset">
+      <a class="tile" href="img/special.frost.png" title="Open the full-size PNG"><img src="img/thumb/special.frost.png" alt="" loading="lazy" width="134" height="192"></a>
+      <figcaption><strong>Frost Draught bottle</strong><code>special.frost</code>
+        <span class="sizes"><span>Design 60×86</span><span>Texture 225×323 px</span><span>PNG 60 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/special.phoenix.png" title="Open the full-size PNG"><img src="img/thumb/special.phoenix.png" alt="" loading="lazy" width="134" height="192"></a>
+      <figcaption><strong>Phoenix Ember bottle</strong><code>special.phoenix</code>
+        <span class="sizes"><span>Design 60×86</span><span>Texture 225×323 px</span><span>PNG 62 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/special.firefly.png" title="Open the full-size PNG"><img src="img/thumb/special.firefly.png" alt="" loading="lazy" width="134" height="192"></a>
+      <figcaption><strong>Firefly Draught bottle</strong><code>special.firefly</code>
+        <span class="sizes"><span>Design 60×86</span><span>Texture 225×323 px</span><span>PNG 62 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/special.thunder.png" title="Open the full-size PNG"><img src="img/thumb/special.thunder.png" alt="" loading="lazy" width="134" height="192"></a>
+      <figcaption><strong>Thunder Tonic bottle</strong><code>special.thunder</code>
+        <span class="sizes"><span>Design 60×86</span><span>Texture 225×323 px</span><span>PNG 62 KB</span></span></figcaption>
+    </figure></div></section><section id="cauldron"><h2>Cauldron, fire and light <span class="count">12</span></h2><p class="intro">The cauldron in play, the candle that is the timer, and the soft lights and puffs the effects are built from.</p><h3>Cauldron</h3><div class="grid"><figure class="asset">
+      <a class="tile" href="img/cauldronBack.png" title="Open the full-size PNG"><img src="img/thumb/cauldronBack.png" alt="" loading="lazy" width="192" height="48"></a>
+      <figcaption><strong>Cauldron rim (back)</strong><code>cauldronBack</code>
+        <span class="sizes"><span>Design 160×40</span><span>Texture 600×150 px</span><span>PNG 9 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/cauldronFront.png" title="Open the full-size PNG"><img src="img/thumb/cauldronFront.png" alt="" loading="lazy" width="192" height="106"></a>
+      <figcaption><strong>Cauldron (front)</strong><code>cauldronFront</code>
+        <span class="sizes"><span>Design 200×110</span><span>Texture 750×413 px</span><span>PNG 131 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/logs.png" title="Open the full-size PNG"><img src="img/thumb/logs.png" alt="" loading="lazy" width="192" height="44"></a>
+      <figcaption><strong>Fire logs</strong><code>logs</code>
+        <span class="sizes"><span>Design 130×30</span><span>Texture 488×113 px</span><span>PNG 11 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/rainbow.png" title="Open the full-size PNG"><img src="img/thumb/rainbow.png" alt="" loading="lazy" width="192" height="100"></a>
+      <figcaption><strong>Rainbow pour arc</strong><code>rainbow</code>
+        <span class="sizes"><span>Design 188×98</span><span>Texture 705×368 px</span><span>PNG 230 KB</span></span></figcaption>
+    </figure></div><h3>Candle and effects</h3><div class="grid"><figure class="asset">
+      <a class="tile" href="img/flame.png" title="Open the full-size PNG"><img src="img/thumb/flame.png" alt="" loading="lazy" width="90" height="158"></a>
+      <figcaption><strong>Candle flame</strong><code>flame</code>
+        <span class="sizes"><span>Design 24×42</span><span>Texture 90×158 px</span><span>PNG 7 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/flameIce.png" title="Open the full-size PNG"><img src="img/thumb/flameIce.png" alt="" loading="lazy" width="90" height="158"></a>
+      <figcaption><strong>Frozen candle flame</strong><code>flameIce</code>
+        <span class="sizes"><span>Design 24×42</span><span>Texture 90×158 px</span><span>PNG 7 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/steam.png" title="Open the full-size PNG"><img src="img/thumb/steam.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Steam puff</strong><code>steam</code>
+        <span class="sizes"><span>Design 64×64</span><span>Texture 240×240 px</span><span>PNG 74 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/smoke.png" title="Open the full-size PNG"><img src="img/thumb/smoke.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Smoke puff</strong><code>smoke</code>
+        <span class="sizes"><span>Design 64×64</span><span>Texture 240×240 px</span><span>PNG 78 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/feather.png" title="Open the full-size PNG"><img src="img/thumb/feather.png" alt="" loading="lazy" width="192" height="111"></a>
+      <figcaption><strong>Phoenix feather</strong><code>feather</code>
+        <span class="sizes"><span>Design 52×30</span><span>Texture 195×113 px</span><span>PNG 26 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/glowWarm.png" title="Open the full-size PNG"><img src="img/thumb/glowWarm.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Warm glow</strong><code>glowWarm</code>
+        <span class="sizes"><span>Design 64×64</span><span>Texture 240×240 px</span><span>PNG 76 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/glowWhite.png" title="Open the full-size PNG"><img src="img/thumb/glowWhite.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>White glow</strong><code>glowWhite</code>
+        <span class="sizes"><span>Design 64×64</span><span>Texture 240×240 px</span><span>PNG 36 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/glowIce.png" title="Open the full-size PNG"><img src="img/thumb/glowIce.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Ice glow</strong><code>glowIce</code>
+        <span class="sizes"><span>Design 64×64</span><span>Texture 240×240 px</span><span>PNG 76 KB</span></span></figcaption>
+    </figure></div></section><section id="spells"><h2>Spells <span class="count">10</span></h2><p class="intro">The three spells carried into a night. The Rainbow icon is a 24-frame loop of stirred paint (the first frame is shown); the dark versions are shown when a spell has no charges left.</p><h3>Icons</h3><div class="grid"><figure class="asset">
+      <a class="tile" href="img/spell.rainbow.png" title="Open the full-size PNG"><img src="img/thumb/spell.rainbow.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Rainbow spell icon</strong><code>spell.rainbow</code>
+        <span class="sizes"><span>Design 56×56</span><span>Texture 210×210 px</span><span>PNG 62 KB</span><span>24 frames</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/spell.freeze.png" title="Open the full-size PNG"><img src="img/thumb/spell.freeze.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Freeze spell icon</strong><code>spell.freeze</code>
+        <span class="sizes"><span>Design 56×56</span><span>Texture 210×210 px</span><span>PNG 39 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/spell.peek.png" title="Open the full-size PNG"><img src="img/thumb/spell.peek.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Owl&#x27;s Eye spell icon</strong><code>spell.peek</code>
+        <span class="sizes"><span>Design 56×56</span><span>Texture 210×210 px</span><span>PNG 39 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/spellRim.png" title="Open the full-size PNG"><img src="img/thumb/spellRim.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Spell slot rim</strong><code>spellRim</code>
+        <span class="sizes"><span>Design 56×56</span><span>Texture 210×210 px</span><span>PNG 10 KB</span></span></figcaption>
+    </figure></div><h3>Glows</h3><div class="grid"><figure class="asset">
+      <a class="tile" href="img/spellGlow.rainbow.png" title="Open the full-size PNG"><img src="img/thumb/spellGlow.rainbow.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Rainbow spell glow</strong><code>spellGlow.rainbow</code>
+        <span class="sizes"><span>Design 64×64</span><span>Texture 240×240 px</span><span>PNG 76 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/spellGlow.freeze.png" title="Open the full-size PNG"><img src="img/thumb/spellGlow.freeze.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Freeze spell glow</strong><code>spellGlow.freeze</code>
+        <span class="sizes"><span>Design 64×64</span><span>Texture 240×240 px</span><span>PNG 77 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/spellGlow.peek.png" title="Open the full-size PNG"><img src="img/thumb/spellGlow.peek.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Owl&#x27;s Eye spell glow</strong><code>spellGlow.peek</code>
+        <span class="sizes"><span>Design 64×64</span><span>Texture 240×240 px</span><span>PNG 77 KB</span></span></figcaption>
+    </figure></div><h3>None left</h3><div class="grid"><figure class="asset">
+      <a class="tile" href="img/spellDark.rainbow.png" title="Open the full-size PNG"><img src="img/thumb/spellDark.rainbow.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Rainbow spell, none left (x0)</strong><code>spellDark.rainbow</code>
+        <span class="sizes"><span>Design 56×56</span><span>Texture 210×210 px</span><span>PNG 42 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/spellDark.freeze.png" title="Open the full-size PNG"><img src="img/thumb/spellDark.freeze.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Freeze spell, none left (x0)</strong><code>spellDark.freeze</code>
+        <span class="sizes"><span>Design 56×56</span><span>Texture 210×210 px</span><span>PNG 33 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/spellDark.peek.png" title="Open the full-size PNG"><img src="img/thumb/spellDark.peek.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Owl&#x27;s Eye spell, none left (x0)</strong><code>spellDark.peek</code>
+        <span class="sizes"><span>Design 56×56</span><span>Texture 210×210 px</span><span>PNG 33 KB</span></span></figcaption>
+    </figure></div></section><section id="ingredients"><h2>Ingredients <span class="count">6</span></h2><p class="intro">Rewards for clearing a night, spent in the Recipe Book to brew spells.</p><h3>Ingredients</h3><div class="grid"><figure class="asset">
+      <a class="tile" href="img/ing.petal.png" title="Open the full-size PNG"><img src="img/thumb/ing.petal.png" alt="" loading="lazy" width="135" height="135"></a>
+      <figcaption><strong>Moon Petal</strong><code>ing.petal</code>
+        <span class="sizes"><span>Design 36×36</span><span>Texture 135×135 px</span><span>PNG 3 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/ing.salt.png" title="Open the full-size PNG"><img src="img/thumb/ing.salt.png" alt="" loading="lazy" width="135" height="135"></a>
+      <figcaption><strong>Ember Salt</strong><code>ing.salt</code>
+        <span class="sizes"><span>Design 36×36</span><span>Texture 135×135 px</span><span>PNG 3 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/ing.lily.png" title="Open the full-size PNG"><img src="img/thumb/ing.lily.png" alt="" loading="lazy" width="135" height="135"></a>
+      <figcaption><strong>Frost Lily</strong><code>ing.lily</code>
+        <span class="sizes"><span>Design 36×36</span><span>Texture 135×135 px</span><span>PNG 7 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/ing.dust.png" title="Open the full-size PNG"><img src="img/thumb/ing.dust.png" alt="" loading="lazy" width="135" height="135"></a>
+      <figcaption><strong>Star Dust</strong><code>ing.dust</code>
+        <span class="sizes"><span>Design 36×36</span><span>Texture 135×135 px</span><span>PNG 5 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/jar.png" title="Open the full-size PNG"><img src="img/thumb/jar.png" alt="" loading="lazy" width="165" height="180"></a>
+      <figcaption><strong>Spare Wax jar</strong><code>jar</code>
+        <span class="sizes"><span>Design 44×48</span><span>Texture 165×180 px</span><span>PNG 10 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/jarOpen.png" title="Open the full-size PNG"><img src="img/thumb/jarOpen.png" alt="" loading="lazy" width="165" height="180"></a>
+      <figcaption><strong>Spare Wax jar (lid cracked)</strong><code>jarOpen</code>
+        <span class="sizes"><span>Design 44×48</span><span>Texture 165×180 px</span><span>PNG 9 KB</span></span></figcaption>
+    </figure></div></section><section id="characters"><h2>Characters <span class="count">8</span></h2><p class="intro">The shop cat walks along the shelves and swaps bottles; on Home it sits on the cauldron.</p><h3>Shop cat</h3><div class="grid"><figure class="asset">
+      <a class="tile" href="img/cat.0.png" title="Open the full-size PNG"><img src="img/thumb/cat.0.png" alt="" loading="lazy" width="192" height="128"></a>
+      <figcaption><strong>Shop cat, walk frame 1 of 6</strong><code>cat.0</code>
+        <span class="sizes"><span>Design 84×56</span><span>Texture 315×210 px</span><span>PNG 49 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/cat.1.png" title="Open the full-size PNG"><img src="img/thumb/cat.1.png" alt="" loading="lazy" width="192" height="128"></a>
+      <figcaption><strong>Shop cat, walk frame 2 of 6</strong><code>cat.1</code>
+        <span class="sizes"><span>Design 84×56</span><span>Texture 315×210 px</span><span>PNG 54 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/cat.2.png" title="Open the full-size PNG"><img src="img/thumb/cat.2.png" alt="" loading="lazy" width="192" height="128"></a>
+      <figcaption><strong>Shop cat, walk frame 3 of 6</strong><code>cat.2</code>
+        <span class="sizes"><span>Design 84×56</span><span>Texture 315×210 px</span><span>PNG 54 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/cat.3.png" title="Open the full-size PNG"><img src="img/thumb/cat.3.png" alt="" loading="lazy" width="192" height="128"></a>
+      <figcaption><strong>Shop cat, walk frame 4 of 6</strong><code>cat.3</code>
+        <span class="sizes"><span>Design 84×56</span><span>Texture 315×210 px</span><span>PNG 49 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/cat.4.png" title="Open the full-size PNG"><img src="img/thumb/cat.4.png" alt="" loading="lazy" width="192" height="128"></a>
+      <figcaption><strong>Shop cat, walk frame 5 of 6</strong><code>cat.4</code>
+        <span class="sizes"><span>Design 84×56</span><span>Texture 315×210 px</span><span>PNG 54 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/cat.5.png" title="Open the full-size PNG"><img src="img/thumb/cat.5.png" alt="" loading="lazy" width="192" height="128"></a>
+      <figcaption><strong>Shop cat, walk frame 6 of 6</strong><code>cat.5</code>
+        <span class="sizes"><span>Design 84×56</span><span>Texture 315×210 px</span><span>PNG 54 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/catSit.png" title="Open the full-size PNG"><img src="img/thumb/catSit.png" alt="" loading="lazy" width="146" height="192"></a>
+      <figcaption><strong>Shop cat, sitting</strong><code>catSit</code>
+        <span class="sizes"><span>Design 64×84</span><span>Texture 240×315 px</span><span>PNG 41 KB</span></span></figcaption>
+    </figure></div><h3>Tutorial</h3><div class="grid"><figure class="asset">
+      <a class="tile" href="img/hand.png" title="Open the full-size PNG"><img src="img/thumb/hand.png" alt="" loading="lazy" width="156" height="192"></a>
+      <figcaption><strong>Tutorial hand</strong><code>hand</code>
+        <span class="sizes"><span>Design 52×64</span><span>Texture 195×240 px</span><span>PNG 9 KB</span></span></figcaption>
+    </figure></div></section><section id="hub"><h2>Home and night map <span class="count">13</span></h2><p class="intro">The hub between nights: the Home cauldron, the loadout slots, the Recipe Book buttons and the night map.</p><h3>Home</h3><div class="grid"><figure class="asset">
+      <a class="tile" href="img/hubPot.png" title="Open the full-size PNG"><img src="img/thumb/hubPot.png" alt="" loading="lazy" width="192" height="134"></a>
+      <figcaption><strong>Home cauldron</strong><code>hubPot</code>
+        <span class="sizes"><span>Design 200×140</span><span>Texture 750×525 px</span><span>PNG 60 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/hubPotBack.png" title="Open the full-size PNG"><img src="img/thumb/hubPotBack.png" alt="" loading="lazy" width="192" height="44"></a>
+      <figcaption><strong>Home cauldron rim (back)</strong><code>hubPotBack</code>
+        <span class="sizes"><span>Design 140×32</span><span>Texture 525×120 px</span><span>PNG 7 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/slotRing.png" title="Open the full-size PNG"><img src="img/thumb/slotRing.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Loadout slot (filled ring)</strong><code>slotRing</code>
+        <span class="sizes"><span>Design 58×58</span><span>Texture 218×218 px</span><span>PNG 14 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/slotEmpty.png" title="Open the full-size PNG"><img src="img/thumb/slotEmpty.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Loadout slot (open)</strong><code>slotEmpty</code>
+        <span class="sizes"><span>Design 58×58</span><span>Texture 218×218 px</span><span>PNG 18 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/slotLock.png" title="Open the full-size PNG"><img src="img/thumb/slotLock.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Loadout slot (locked)</strong><code>slotLock</code>
+        <span class="sizes"><span>Design 58×58</span><span>Texture 218×218 px</span><span>PNG 16 KB</span></span></figcaption>
+    </figure></div><h3>Recipe Book and map</h3><div class="grid"><figure class="asset">
+      <a class="tile" href="img/brewOn.png" title="Open the full-size PNG"><img src="img/thumb/brewOn.png" alt="" loading="lazy" width="192" height="104"></a>
+      <figcaption><strong>Brew button (can brew)</strong><code>brewOn</code>
+        <span class="sizes"><span>Design 78×42</span><span>Texture 293×158 px</span><span>PNG 12 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/brewOff.png" title="Open the full-size PNG"><img src="img/thumb/brewOff.png" alt="" loading="lazy" width="192" height="104"></a>
+      <figcaption><strong>Brew button (missing ingredients)</strong><code>brewOff</code>
+        <span class="sizes"><span>Design 78×42</span><span>Texture 293×158 px</span><span>PNG 11 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/nodeDone.png" title="Open the full-size PNG"><img src="img/thumb/nodeDone.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Night map: cleared night</strong><code>nodeDone</code>
+        <span class="sizes"><span>Design 64×64</span><span>Texture 240×240 px</span><span>PNG 13 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/nodeNext.png" title="Open the full-size PNG"><img src="img/thumb/nodeNext.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Night map: next night</strong><code>nodeNext</code>
+        <span class="sizes"><span>Design 80×80</span><span>Texture 300×300 px</span><span>PNG 15 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/nodeLock.png" title="Open the full-size PNG"><img src="img/thumb/nodeLock.png" alt="" loading="lazy" width="192" height="192"></a>
+      <figcaption><strong>Night map: locked night</strong><code>nodeLock</code>
+        <span class="sizes"><span>Design 64×64</span><span>Texture 240×240 px</span><span>PNG 11 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/starOn.png" title="Open the full-size PNG"><img src="img/thumb/starOn.png" alt="" loading="lazy" width="75" height="75"></a>
+      <figcaption><strong>Star (earned)</strong><code>starOn</code>
+        <span class="sizes"><span>Design 20×20</span><span>Texture 75×75 px</span><span>PNG 3 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/starOff.png" title="Open the full-size PNG"><img src="img/thumb/starOff.png" alt="" loading="lazy" width="75" height="75"></a>
+      <figcaption><strong>Star (not yet)</strong><code>starOff</code>
+        <span class="sizes"><span>Design 20×20</span><span>Texture 75×75 px</span><span>PNG 3 KB</span></span></figcaption>
+    </figure><figure class="asset">
+      <a class="tile" href="img/newMark.png" title="Open the full-size PNG"><img src="img/thumb/newMark.png" alt="" loading="lazy" width="98" height="98"></a>
+      <figcaption><strong>&quot;New&quot; badge</strong><code>newMark</code>
+        <span class="sizes"><span>Design 26×26</span><span>Texture 98×98 px</span><span>PNG 4 KB</span></span></figcaption>
+    </figure></div></section>
+  <section id="sounds">
+    <h2>Sounds <span class="count">43</span></h2>
+    <p class="intro">Every sound is synthesized while the game runs (Web Audio oscillators and noise, tuned to a pentatonic scale from C5), so none of them is a file and they take no download size. These are the names of the sound functions in the code.</p>
+    <ul class="sounds"><li><code>hold</code></li><li><code>ui</code></li><li><code>seal</code></li><li><code>match</code></li><li><code>pour</code></li><li><code>splash</code></li><li><code>clink</code></li><li><code>stamp</code></li><li><code>tick</code></li><li><code>maxMagic</code></li><li><code>newBest</code></li><li><code>clear</code></li><li><code>timeout</code></li><li><code>bubble</code></li><li><code>orderForm</code></li><li><code>order</code></li><li><code>drip</code></li><li><code>sputter</code></li><li><code>mrrp</code></li><li><code>catSlide</code></li><li><code>settle</code></li><li><code>frost</code></li><li><code>thunder</code></li><li><code>fireflies</code></li><li><code>thaw</code></li><li><code>prism</code></li><li><code>magicSpend</code></li><li><code>chain</code></li><li><code>fizzle</code></li><li><code>cast</code></li><li><code>owl</code></li><li><code>stir</code></li><li><code>stirTouch</code></li><li><code>gutter</code></li><li><code>shatter</code></li><li><code>rekindle</code></li><li><code>brewSpell</code></li><li><code>star</code></li><li><code>meow</code></li><li><code>collect</code></li><li><code>unlock</code></li><li><code>tab</code></li><li><code>press</code></li></ul>
+  </section>
+  <section id="fonts">
+    <h2>Fonts <span class="count">2</span></h2>
+    <p class="intro">The game uses the phone's own fonts, so it ships no font files.</p>
+    <div class="scroll"><table>
+      <tr><th>Use</th><th>Font stack</th></tr>
+      <tr><td>Interface, buttons, HUD</td><td><code>system-ui, -apple-system, "Segoe UI", Roboto, sans-serif</code> (canvas) and <code>"Arial Rounded MT Bold", "Nunito", "Varela Round", "Segoe UI", Roboto, system-ui</code> (menus)</td></tr>
+      <tr><td>Titles and banners</td><td><code>Georgia, "Times New Roman", serif</code></td></tr>
+    </table></div>
+  </section>
+  <footer>&copy; 2026 Mythic Flow Studio · exported from Midnight Brew version 42</footer>
+</main>
+</body>
+</html>
