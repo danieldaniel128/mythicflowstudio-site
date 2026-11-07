@@ -566,6 +566,9 @@
     background:var(--accent); box-shadow:0 0 8px var(--accent);
   }
   .game-cta{margin-top:auto; padding-top:6px; display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+  .play-badge{display:inline-flex; border-radius:9px; transition:transform .15s ease}
+  .play-badge img{display:block; height:56px; width:auto}
+  @media (hover:hover){ .play-badge:hover{transform:translateY(-1px)} }
 
   /* "more games" strip: a full-width row, or the empty grid cell beside a half-width card */
   .game-next{
@@ -954,9 +957,8 @@
             </ul>
 
             <div class="game-cta">
-              <a class="btn btn-accent" href="https://play.google.com/store/apps/details?id=com.daniel.apexdragon" target="_blank" rel="noopener">
-                <svg viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M2.5 1.2v9.6c0 .5.5.8.9.5l7.4-4.8c.4-.2.4-.8 0-1L3.4.7c-.4-.3-.9 0-.9.5Z"/></svg>
-                Get it on Google Play
+              <a class="play-badge" href="https://play.google.com/store/apps/details?id=com.daniel.apexdragon" target="_blank" rel="noopener">
+                <img src="assets/img/google-play-badge.png" width="564" height="168" alt="Get it on Google Play" loading="lazy" decoding="async">
               </a>
               <a class="btn btn-ghost" href="assets/media/apexdragon-trailer.mp4" data-trailer-open>
                 <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="6" cy="6" r="5"/><path d="M4.9 3.9v4.2L8.2 6Z" fill="currentColor" stroke="none"/></svg>
