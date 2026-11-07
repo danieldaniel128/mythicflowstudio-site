@@ -26,7 +26,9 @@
   a{color:var(--beam)}
   .back{display:inline-block; margin-bottom:28px; font-family:var(--font-mono); font-size:14px; text-decoration:none}
   h1{font-family:var(--font-head); font-size:clamp(32px,6vw,46px); line-height:1.1; margin:0 0 6px}
-  h2{font-family:var(--font-head); font-size:26px; line-height:1.2; margin:44px 0 10px; scroll-margin-top:16px}
+  h2{font-family:var(--font-head); font-size:26px; line-height:1.2; margin:44px 0 10px}
+  [id]{scroll-margin-top:16px}
+  :target{background:rgba(255,201,74,.12); border-radius:8px; outline:2px solid rgba(255,201,74,.45); outline-offset:4px}
   h3{font-size:17px; margin:24px 0 6px}
   .meta{color:var(--dim); font-size:14px; margin:0 0 24px}
   .meta span + span::before{content:"·"; margin:0 8px}
@@ -96,11 +98,11 @@
     <li>Clear the shelf before the candle runs out</li>
   </ul>
   <ul>
-    <li>A shelf holds sealed bottles in pairs: <strong>small 4×3</strong>, <strong>medium 4×4</strong> or <strong>grand 5×4</strong>. Every bottle's potion is hidden under the same red wax seal.</li>
+    <li id="bottles">A shelf holds sealed bottles in pairs: <strong>small 4×3</strong>, <strong>medium 4×4</strong> or <strong>grand 5×4</strong>. Every bottle's potion is hidden under the same red wax seal.</li>
     <li>Tapping a bottle breaks its seal and turns it round to show its glowing liquid and rune.</li>
-    <li>Two of the same: both bottles fly to the bubbling cauldron and pour in; the brew changes colour.</li>
+    <li id="cauldron">Two of the same: both bottles fly to the bubbling cauldron and pour in; the brew changes colour.</li>
     <li>A mismatch: the two bottles clink, wobble and seal themselves again.</li>
-    <li>The <strong>candle</strong> is the timer. Each shelf adds wax (seconds) to it. Clear every pair before it burns out to finish the shelf; clear every shelf to finish the night.</li>
+    <li id="candle">The <strong>candle</strong> is the timer. Each shelf adds wax (seconds) to it. Clear every pair before it burns out to finish the shelf; clear every shelf to finish the night.</li>
   </ul>
 
   <h2 id="rules">3. Rules and scoring</h2>
@@ -109,7 +111,7 @@
     <li>Every match drips <strong>+1 s</strong> of wax into the candle per streak level.</li>
     <li>A mismatch whose second bottle had <strong>already been seen</strong> shows "FORGOT!" and burns <strong>2 s</strong> of wax.</li>
   </ul>
-  <h3>Steam orders</h3>
+  <h3 id="steam-orders">Steam orders</h3>
   <ul>
     <li>The steam above the cauldron forms the rune of one pair still on the shelf. Brewing that pair scores <strong>×2</strong> and adds <strong>+3 s</strong> of wax; a new order forms 0.8 s later.</li>
   </ul>
@@ -119,7 +121,7 @@
     <li>The streak lights the five sockets on the cauldron. At <strong>MAX MAGIC</strong> the cauldron throbs until the player taps it: every pair whose two bottles have both been seen lifts off and pours in one <strong>magic chain</strong>, each pour chiming higher.</li>
     <li>A mismatch dims one lit socket (the streak drops by one) and loses an unspent charge.</li>
   </ul>
-  <h3>Crack impact</h3>
+  <h3 id="crack">Crack impact</h3>
   <ul>
     <li>Every <strong>2 matches in a row</strong> the brew thumps and <strong>2 sealed bottles crack</strong>. A cracked bottle leaks its colour onto the shelf until it is brewed, so the stains become a hint.</li>
   </ul>
@@ -136,11 +138,11 @@
 
   <h2 id="twists">4. Twists and special potions</h2>
   <ul>
-    <li><strong>The shop cat</strong> visits grand shelves. About every 11–13 s it pads along a plank, head-bumps two sealed neighbours and they swap places. It never moves the pair the steam is asking for.</li>
-    <li><strong>Prismatic Elixir</strong> (wild): it matches whichever bottle is opened with it, and that bottle's twin lifts off too, so three bottles pour in one rainbow arc.</li>
-    <li><strong>Spare Wax jar</strong>: when a single Prismatic leaves an empty cell, a clay jar sits there; one tap pours +3 s into the candle.</li>
+    <li id="cat"><strong>The shop cat</strong> visits grand shelves. About every 11–13 s it pads along a plank, head-bumps two sealed neighbours and they swap places. It never moves the pair the steam is asking for.</li>
+    <li id="prismatic"><strong>Prismatic Elixir</strong> (wild): it matches whichever bottle is opened with it, and that bottle's twin lifts off too, so three bottles pour in one rainbow arc.</li>
+    <li id="spare-wax"><strong>Spare Wax jar</strong>: when a single Prismatic leaves an empty cell, a clay jar sits there; one tap pours +3 s into the candle.</li>
   </ul>
-  <h3>Special potions (Recipe Book sockets)</h3>
+  <h3 id="specials">Special potions (Recipe Book sockets)</h3>
   <p>Special potions are slotted into the Recipe Book's sockets. Each slotted special is dealt onto every shelf as a pair, except the passive Phoenix, which works from its socket.</p>
   <div class="scroll"><table>
     <tr><th>Special</th><th>Effect when brewed</th><th>Learned</th></tr>
@@ -169,12 +171,12 @@
     <tr><td>12</td><td>Midnight Brew</td><td>small (26), medium (20), grand (22), grand (20)</td><td>3 Star Dust, 2 Moon Petal, 2 Frost Lily</td></tr>
   </table></div>
   <ul>
-    <li><strong>Stars:</strong> 1 star for clearing a night, plus 1 more for finishing with at least 15% of the night's wax left and another for 35%. Every star earned for the first time gifts 1 Star Dust.</li>
+    <li id="stars"><strong>Stars:</strong> 1 star for clearing a night, plus 1 more for finishing with at least 15% of the night's wax left and another for 35%. Every star earned for the first time gifts 1 Star Dust.</li>
     <li>Difficulty rises through less wax per shelf, bigger shelves, more shelves per night and the cat (grand shelves only).</li>
   </ul>
 
   <h2 id="meta">6. Ingredients, recipes and spells</h2>
-  <p>Four ingredients come from night rewards: <strong>Moon Petal</strong>, <strong>Ember Salt</strong>, <strong>Frost Lily</strong> and <strong>Star Dust</strong>. They are spent in the Recipe Book to brew spells.</p>
+  <p id="ingredients">Four ingredients come from night rewards: <strong>Moon Petal</strong>, <strong>Ember Salt</strong>, <strong>Frost Lily</strong> and <strong>Star Dust</strong>. They are spent in the Recipe Book to brew spells.</p>
   <div class="scroll"><table>
     <tr><th>Recipe</th><th>Cost</th><th>Gives one charge of</th><th>Learned</th></tr>
     <tr><td>Frostbite Tonic</td><td>2 Frost Lily, 1 Moon Petal</td><td><strong>Freeze</strong>: freezes the candle for 5 s</td><td>From the start</td></tr>
@@ -182,7 +184,7 @@
     <tr><td>Owl's Eye Elixir</td><td>2 Ember Salt, 1 Star Dust</td><td><strong>Owl's Eye</strong>: every sealed bottle turns round for a moment</td><td>After 3 nights</td></tr>
   </table></div>
   <ul>
-    <li>Spells are carried into a night in <strong>2 spell slots</strong> (the second opens after 2 nights) and cast once per slot by tapping it beside the cauldron.</li>
+    <li id="spells">Spells are carried into a night in <strong>2 spell slots</strong> (the second opens after 2 nights) and cast once per slot by tapping it beside the cauldron.</li>
     <li>A new player starts with one Freeze charge. A spell with no charges shows as a dark masked icon.</li>
     <li><strong>Rainbow stir:</strong> casting it freezes the candle and the cat. The player drags a whirlpool across the shelf for up to 3 s; it reveals up to 6 bottles, and any pair touched on both bottles pours. It never removes a lone bottle, so the shelf always stays solvable; if no pair is touched, the last bottle's twin is pulled in anyway.</li>
   </ul>
@@ -190,12 +192,12 @@
   <h2 id="screens">7. Screens and flow</h2>
   <ol>
     <li><strong>Title:</strong> the Midnight Brew logo, PLAY, the best score, a sound on/off toggle and a privacy policy link.</li>
-    <li><strong>Tutorial</strong> (first launch): a tiny 3×2 shelf teaches four steps: break a seal, match the steam's colour, see a mismatch reseal ("forgetting one burns wax"), and brew the steam's rune first for double points.</li>
+    <li id="tutorial"><strong>Tutorial</strong> (first launch): a tiny 3×2 shelf teaches four steps: break a seal, match the steam's colour, see a mismatch reseal ("forgetting one burns wax"), and brew the steam's rune first for double points.</li>
     <li><strong>Hub</strong> with three tabs:
       <ul>
-        <li><strong>Home:</strong> the bubbling cauldron with the cat on its rim (it hops and meows when tapped), the ingredient counts, the loadout row of slotted potions and spells, and PLAY with the next night's number.</li>
+        <li id="home"><strong>Home:</strong> the bubbling cauldron with the cat on its rim (it hops and meows when tapped), the ingredient counts, the loadout row of slotted potions and spells, and PLAY with the next night's number.</li>
         <li><strong>Potions:</strong> the Recipe Book, with the special potion sockets and the spell recipes with their Brew buttons.</li>
-        <li><strong>Nights:</strong> a winding night map, with cleared, next and locked nights and their stars.</li>
+        <li id="night-map"><strong>Nights:</strong> a winding night map, with cleared, next and locked nights and their stars.</li>
       </ul></li>
     <li><strong>Play:</strong> the HUD shows score, shelf number and potions left, and the candle bar. Spell slots sit beside the cauldron.</li>
     <li><strong>Results:</strong> win ("Potion complete!") or loss ("The candle burned out"), then back to Home, where earned ingredients fly into their counters.</li>
@@ -217,7 +219,7 @@
     <li><strong>Style:</strong> stylised, warm candle-lit night, flat colours with thick outlines on the hub, glowing runes on the shelf.</li>
     <li><strong>Procedural art:</strong> every sprite is drawn in code when the game starts (105 textures), so the game ships no image files. See the <a href="../assetlist/">asset list</a>.</li>
     <li><strong>Procedural audio:</strong> 43 sounds synthesized live with Web Audio, tuned to a pentatonic scale from C5; no audio files.</li>
-    <li><strong>15 potions</strong>, each a liquid colour plus a rune: Ember, Sunburst, Moss, Frost, Moon, Hex, Charm, Storm, Mint, Amber, Lime, Prismatic, Phoenix, Firefly and Thunder.</li>
+    <li id="potions"><strong>15 potions</strong>, each a liquid colour plus a rune: Ember, Sunburst, Moss, Frost, Moon, Hex, Charm, Storm, Mint, Amber, Lime, Prismatic, Phoenix, Firefly and Thunder.</li>
   </ul>
 
   <h2 id="tech">10. Technical requirements</h2>
