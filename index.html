@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mythic Flow Studio · Apex Dragon &amp; BEAMLOCK for Android</title>
 <meta name="description" content="Mythic Flow Studio makes Android games. Watch real gameplay highlights from BEAMLOCK, a laser-routing puzzle, and Apex Dragon, an online multiplayer dragon arena.">
-<meta name="theme-color" content="#06121F">
+<meta name="theme-color" content="#0a0a0c">
 <link rel="canonical" href="https://mythicflowstudio.com/">
 
 <meta property="og:type" content="website">
@@ -26,7 +26,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700&amp;family=JetBrains+Mono&amp;family=Manrope:wght@400;700&amp;display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono&amp;family=Manrope:wght@400;700;800&amp;display=swap">
 
 <script type="application/ld+json">
 {
@@ -82,978 +82,481 @@
 }
 </script>
 
+<script>document.documentElement.classList.add('js')</script>
+
 <style>
   /* =========================================================== tokens
-     Colors come from the games' design tokens: reuse them, don't invent new ones.
-     Each game block and reel slide sets its own --accent to one of these tokens. */
+     The studio's look comes from the logo: white tribal strokes on near-black, and a river.
+     Each game scene adds its own --accent and --world (one of the game color tokens).
+     --bg-deep, --bg-panel, --line, --dim, --hot are kept because the Forge lab block uses them. */
   :root{
-    --bg-deep:#06121F; --bg-panel:#161D33; --bg-raised:#212B4C; --line:#2A3556;
-    --beam:#45C8FF; --beam-deep:#1E7FB8; --hot:#E8EEFF; --dim:#93A0C4; --amber:#FFC94A;
+    --void:#0a0a0c; --void-2:#131316; --ink:#f5f5f1; --mist:#a9a9a4; --rule:rgba(255,255,255,.16);
+    --beam:#45C8FF; --beam-deep:#1E7FB8; --amber:#FFC94A;
+    --bg-deep:var(--void); --bg-panel:var(--void-2); --bg-raised:#1d1d22; --line:var(--rule); --hot:var(--ink); --dim:var(--mist);
 
-    --accent:var(--beam);
-    --gutter:clamp(16px,4vw,24px);
-    --font-head:"Baloo 2",Manrope,sans-serif;
-    --font-body:Manrope,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-    --font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --accent:var(--ink);
+    --pad:clamp(16px,4vw,40px);
+    --rw:104px;                                 /* river width: keep in step with RIVER.width in the script */
+    --bank-gap:calc(var(--rw) + 2 * clamp(34px,5.5vw,84px));   /* clear water between the two banks of text */
+    --gut:0px;                                  /* phones: room on the left for the river */
+    --font:Manrope,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   }
+  @media (max-width:859px){ :root{ --rw:40px; --gut:62px } }
 
   *,*::before,*::after{box-sizing:border-box}
-  html{color-scheme:dark; background:var(--bg-deep); -webkit-text-size-adjust:100%; text-size-adjust:100%}
+  html{color-scheme:dark; background:var(--void); -webkit-text-size-adjust:100%; text-size-adjust:100%}
   @media (prefers-reduced-motion:no-preference){ html{scroll-behavior:smooth} }
-  body{
-    margin:0; background:var(--bg-deep); color:var(--hot);
-    font-family:var(--font-body); font-size:16px; line-height:1.5;
-    -webkit-font-smoothing:antialiased; overflow-x:clip;
-  }
-  h1,h2,h3{font-family:var(--font-head); font-weight:700; text-wrap:balance; margin:0}
+  body{margin:0; background:var(--void); color:var(--ink); font:400 16px/1.55 var(--font); -webkit-font-smoothing:antialiased; overflow-x:clip}
+  h1,h2,h3{margin:0; font-weight:800; text-transform:uppercase; letter-spacing:.04em; line-height:1.02; text-wrap:balance}
   p{margin:0}
-  .mono{font-family:var(--font-mono); font-weight:400}
-  .mono b{font-weight:400}
   a{color:inherit}
-  img,svg,video{display:block}
-  ::selection{background:var(--beam); color:var(--bg-deep)}
+  img,video{display:block; max-width:100%}
+  em{font-style:normal; color:var(--accent)}
+  .mono,.kicker{font-family:var(--mono); font-size:12px; font-weight:400; letter-spacing:.1em; text-transform:uppercase; color:var(--mist)}
+  .mono b{font-weight:400; color:var(--ink)}
+  :focus-visible{outline:2px solid var(--ink); outline-offset:3px; border-radius:6px}
+  .skip{position:absolute; left:-999px; top:8px; z-index:50; background:var(--ink); color:var(--void); padding:10px 16px; border-radius:999px; font-weight:800}
+  .skip:focus{left:12px}
+  .wrap{position:relative; z-index:1; width:min(1240px, 100% - 2 * var(--pad)); margin-inline:auto}
+  svg.defs{position:absolute; width:0; height:0; overflow:hidden}
 
-  :focus-visible{outline:2px solid var(--beam); outline-offset:3px}
-  .skip{
-    position:absolute; left:12px; top:-80px; z-index:100;
-    display:inline-flex; align-items:center; min-height:44px; padding:10px 16px; border-radius:10px;
-    background:var(--beam); color:var(--bg-deep); font-weight:700; font-size:14px; text-decoration:none;
-  }
-  .skip:focus{top:12px}
-
-  .page{max-width:1040px; margin:0 auto; padding-inline:var(--gutter); position:relative; z-index:1}
-
-  /* ---------------------------------------------------------- backdrop */
-  .grid-bg{
-    position:fixed; inset:0; z-index:0; pointer-events:none;
-    background-image:
-      linear-gradient(var(--line) 1px, transparent 1px),
-      linear-gradient(90deg, var(--line) 1px, transparent 1px);
-    background-size:56px 56px;
-    -webkit-mask-image:radial-gradient(ellipse 75% 60% at 50% 0%, #000 0%, transparent 78%);
-            mask-image:radial-gradient(ellipse 75% 60% at 50% 0%, #000 0%, transparent 78%);
-    opacity:.55;
-  }
-  .glow{
-    position:fixed; z-index:0; pointer-events:none; left:50%; top:-260px;
-    width:900px; max-width:240vw; height:640px; transform:translateX(-50%);
-    background:radial-gradient(closest-side, rgba(69,200,255,.16), transparent 70%);
-  }
-
-  /* ---------------------------------------------------------- status dots
-     Three blinks, then steady (under 5 s, so no pause control is needed). */
-  .pulse{width:6px; height:6px; border-radius:50%; flex:none; background:#3DDC84; box-shadow:0 0 6px 1px #3DDC84; animation:blink 1.6s ease 3}
-  .pulse--amber{background:var(--amber); box-shadow:0 0 6px 1px var(--amber)}
-  @keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
-
-  /* ---------------------------------------------------------- header */
-  .top{display:flex; align-items:center; flex-wrap:wrap; gap:4px 14px; padding-block:14px 4px}
-  .brand{
-    display:inline-flex; align-items:center; gap:10px; min-height:44px;
-    font-size:15px; font-weight:700; letter-spacing:.06em; text-decoration:none; white-space:nowrap; border-radius:8px;
-  }
-  .brand .dot{width:9px; height:9px; border-radius:50%; background:var(--beam); box-shadow:0 0 10px 2px rgba(69,200,255,.75); flex:none}
-  .status-chip{
-    display:inline-flex; align-items:center; gap:8px; margin-right:auto; white-space:nowrap;
-    font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--dim);
-    border:1px solid var(--line); border-radius:999px; padding:6px 12px;
-  }
-  .nav{display:flex; gap:2px}
-  .nav a{
-    display:inline-flex; align-items:center; min-height:44px; padding:0 10px; border-radius:10px;
-    font-size:14px; font-weight:700; color:var(--dim); text-decoration:none;
-    transition:color .15s ease, background-color .15s ease;
-  }
-  @media (hover:hover){ .nav a:hover{color:var(--hot); background:var(--bg-panel)} }
-  /* phones: brand + nav on the first row, the status chip drops onto its own row */
-  @media (max-width:720px){ .brand{margin-right:auto} .status-chip{order:3; margin-right:0} }
-  @media (max-width:440px){
-    .nav .nav-opt{display:none}
-    .nav a{padding:0 9px}
-    .brand{font-size:13.5px; letter-spacing:.04em; gap:9px}
-  }
-  @media (max-width:359px){
-    .top{column-gap:6px}
-    .nav a{padding:0 6px; font-size:13.5px}
-    .brand{font-size:12.5px; letter-spacing:.02em; gap:7px}
-  }
-
-  /* ---------------------------------------------------------- buttons */
-  .btn{
-    font-family:inherit; font-weight:700; font-size:15px; letter-spacing:.01em; line-height:1.2; text-align:center;
-    min-height:48px; padding:12px 20px; border-radius:12px; border:1px solid transparent;
-    cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:8px;
-    transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease, background-color .15s ease;
-    overflow-wrap:anywhere;
-  }
+  /* ---------------------------------------------------------- buttons, chips */
+  .btn{display:inline-flex; align-items:center; justify-content:center; gap:10px; min-height:48px; padding:0 24px; border-radius:999px;
+       border:1.5px solid var(--ink); font:800 13px/1 var(--font); letter-spacing:.1em; text-transform:uppercase; text-decoration:none;
+       cursor:pointer; transition:transform .15s ease, background .15s ease, color .15s ease}
   .btn svg{width:16px; height:16px; flex:none}
-  .btn-primary{background:var(--beam); color:var(--bg-deep); box-shadow:0 8px 24px -10px rgba(69,200,255,.65)}
-  .btn-ghost{background:transparent; border-color:var(--beam-deep); color:var(--hot)}
-  .btn-accent{
-    background:var(--accent); color:var(--bg-deep);
-    box-shadow:0 8px 24px -12px var(--accent);
-    box-shadow:0 8px 24px -10px color-mix(in srgb, var(--accent) 65%, transparent);
-  }
+  .btn-primary,.btn-accent{background:var(--ink); color:var(--void)}
+  .btn-ghost{background:rgba(10,10,12,.55); color:var(--ink)}
   @media (hover:hover){
-    .btn:hover{transform:translateY(-1px)}
-    .btn-ghost:hover{border-color:var(--accent); background:rgba(69,200,255,.06)}
+    .btn:hover{transform:translateY(-2px)}
+    .btn-ghost:hover{background:var(--ink); color:var(--void)}
   }
-  .btn:active{transform:none}
+  .chips{display:flex; flex-wrap:wrap; gap:8px; list-style:none; margin:0; padding:0}
+  .chip{display:inline-flex; align-items:center; gap:8px; padding:6px 13px; border:1px solid var(--rule); border-radius:999px;
+        background:rgba(10,10,12,.5); font-size:12.5px; font-weight:700; letter-spacing:.02em}
+  .chip--status{border-color:var(--accent); color:var(--accent)}
+  .pulse{width:8px; height:8px; border-radius:50%; background:var(--accent); flex:none}
+  @media (prefers-reduced-motion:no-preference){
+    .pulse{animation:pulse 2.2s ease-out infinite}
+    @keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb, var(--accent) 60%, transparent)} 100%{box-shadow:0 0 0 10px transparent}}
+  }
+
+  /* ---------------------------------------------------------- the river
+     The script adds one .river layer to every element in RIVER.hosts and draws it there.
+     .dim is the whole river, faint; .lit is the same river in full white, uncovered as you scroll. */
+  .has-river{position:relative; isolation:isolate}
+  .river{position:absolute; inset:0; z-index:0; pointer-events:none}
+  .river svg{position:absolute; left:0; top:0; width:100%; display:block}
+  .river .dim{opacity:.15; top:-6px}          /* each piece reaches 6px up into the one above: RIVER.overlap */
+  .river .lit{position:absolute; left:0; right:0; top:-6px; height:0; overflow:hidden;
+              -webkit-mask-image:linear-gradient(180deg, #000 calc(100% - 80px), transparent); mask-image:linear-gradient(180deg, #000 calc(100% - 80px), transparent)}
+  .river .lit.is-full{-webkit-mask-image:none; mask-image:none}
+  .river .body{fill:var(--ink)}
+  .river .streak{fill:var(--void)}
+
+  /* ---------------------------------------------------------- top bar */
+  .top{position:fixed; inset:0 0 auto 0; z-index:30; display:flex; align-items:center; justify-content:space-between; gap:14px;
+       padding:12px var(--pad); border-bottom:1px solid transparent; transition:background .3s ease, border-color .3s ease}
+  .top.is-stuck{background:rgba(10,10,12,.78); border-bottom-color:var(--rule); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px)}
+  .brand{display:inline-flex; align-items:center; gap:12px; min-height:44px; font-weight:800; font-size:13px; letter-spacing:.24em; text-decoration:none; text-transform:uppercase}
+  .brand svg{width:44px; height:34px; fill:var(--ink); flex:none}
+  .nav{display:flex; align-items:center; gap:clamp(14px,2.6vw,34px)}
+  .nav a{display:inline-flex; align-items:center; min-height:44px; font-weight:700; font-size:13px; letter-spacing:.12em; text-transform:uppercase; text-decoration:none; opacity:.8}
+  .nav a:hover{opacity:1; text-decoration:underline; text-underline-offset:7px}
+  @media (max-width:560px){ .brand span{display:none} .nav{gap:14px} .nav a{font-size:12px; letter-spacing:.08em} .nav-opt{display:none !important} }
+
+  /* ---------------------------------------------------------- hero: the dragon, and the river's source */
+  .hero{min-height:100svh; display:grid; grid-template-rows:1fr auto; row-gap:clamp(20px,4vh,44px); padding:84px 0 clamp(30px,6vh,64px); overflow:hidden}
+  .ghost{position:absolute; left:50%; top:42%; z-index:-1; margin:0; transform:translate(-50%,-50%); white-space:nowrap; user-select:none;
+         font-weight:800; font-size:13.4vw; line-height:.9; letter-spacing:.03em; text-transform:uppercase; color:rgba(255,255,255,.055)}
+  .hero-mark{position:relative; z-index:2; align-self:center; justify-self:center; width:min(64vw, 640px, 82vh); aspect-ratio:1476/1152}
+  .hero-mark svg{width:100%; height:100%; fill:var(--ink); overflow:visible}
+  .banks{display:grid; grid-template-columns:1fr 1fr; column-gap:var(--bank-gap); align-items:end}
+  .bank-l{justify-self:end; text-align:right}
+  .bank-r{justify-self:start}
+  .hero h1{font-size:clamp(30px,4.2vw,62px); letter-spacing:.14em; line-height:1.08; margin-top:12px}
+  .hero h1 small{display:block; font-size:.42em; letter-spacing:.56em; margin-top:.5em; color:var(--mist); font-weight:700}
+  .hero .banks{column-gap:calc(var(--bank-gap) + 170px)}
+  .hero .tagline{max-width:34ch; font-size:clamp(16px,1.5vw,19px); color:var(--mist)}
+  .hero .tagline strong{color:var(--ink)}
+  .cta-row{display:flex; flex-wrap:wrap; gap:12px; margin-top:20px}
+  @media (prefers-reduced-motion:no-preference){
+    .hero-mark svg{animation:rise 1.1s cubic-bezier(.2,.7,.2,1) both, drift 8s ease-in-out 1.1s infinite}
+    @keyframes rise{from{opacity:0; transform:translateY(26px) scale(.96)} to{opacity:1; transform:none}}
+    @keyframes drift{50%{transform:translateY(-7px)}}
+  }
+
+  /* ---------------------------------------------------------- game scenes: one whole screen per game */
+  .scene{--world:#15151a; min-height:100svh; display:grid; align-items:center; padding:clamp(72px,12vh,150px) 0;
+         background:linear-gradient(180deg, var(--void) 0, var(--world) 15%, var(--world) 85%, var(--void) 100%)}
+  .scene-art{position:absolute; inset:0; z-index:-1; overflow:hidden;
+             -webkit-mask-image:linear-gradient(180deg, transparent 0, #000 24%, #000 76%, transparent 100%);
+                     mask-image:linear-gradient(180deg, transparent 0, #000 24%, #000 76%, transparent 100%)}
+  .scene-art img{width:100%; height:100%; object-fit:cover; filter:blur(48px) saturate(1.3); transform:scale(1.25); opacity:.5}
+  .scene .kicker{display:inline-flex; align-items:center; gap:10px; color:var(--accent)}
+  .scene .kicker b{color:var(--ink); font-weight:400}
+  .name{font-size:clamp(50px,8vw,116px); line-height:.9; letter-spacing:.01em; margin:14px 0 16px}
+  .tagline-game{color:var(--accent)}
+  .pitch{font-size:clamp(16px,1.35vw,18.5px); max-width:46ch}
+  .hl{list-style:none; margin:0; padding:0; display:grid; gap:9px; font-weight:700}
+  .hl li{display:flex; gap:12px; align-items:baseline}
+  .hl li::before{content:""; flex:none; width:18px; height:2px; background:var(--accent); transform:translateY(-4px)}
+  .mini{margin-bottom:14px}
+  .actions{display:flex; flex-wrap:wrap; gap:14px; align-items:center}
+  .play-badge{display:inline-block; border-radius:10px}
+  .play-badge img{height:60px; width:auto}
+  .icon-row{display:flex; align-items:center; gap:14px}
+  .game-icon{width:64px; height:64px; border-radius:15px; box-shadow:0 0 0 1.5px rgba(255,255,255,.85)}
+
+  /* the stage: real footage, moored on the river. White rim like the logo, with ripples around it. */
+  .stage{position:relative; margin:0}
+  .screen{position:relative; overflow:hidden; background:#000; border-radius:clamp(14px,2vw,26px);
+          box-shadow:0 0 0 2px rgba(255,255,255,.92), 0 0 0 13px rgba(255,255,255,.10), 0 0 0 32px rgba(255,255,255,.05), 0 44px 100px rgba(0,0,0,.65)}
+  .screen video{width:100%; height:100%; object-fit:cover}
+  .stage--wide .screen{aspect-ratio:1030/480}
+  .stage--tall .screen{aspect-ratio:720/1544; width:min(300px, 26vw); margin-inline:auto; border-radius:clamp(22px,2.6vw,36px)}
+  .stage-bar{display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:8px; margin-top:44px}
+  .clip,.full{min-height:40px; padding:0 15px; border-radius:999px; border:1px solid rgba(255,255,255,.3); background:var(--void); color:var(--ink);
+              font:700 11.5px/1 var(--font); letter-spacing:.1em; text-transform:uppercase; cursor:pointer; transition:background .15s ease, color .15s ease}
+  .clip.is-on{background:var(--ink); color:var(--void); border-color:var(--ink)}
+  .full{display:inline-flex; align-items:center; justify-content:center; padding:0; width:40px}
+  .full svg{width:15px; height:15px}
+  .live{display:inline-flex; align-items:center; gap:8px; min-height:40px; padding:0 14px; border-radius:999px; background:var(--void); border:1px solid var(--accent); color:var(--accent)}
+
+  /* landscape game: two banks above the stage, two below */
+  .scene--wide .banks{align-items:center}
+  .scene--wide .stage{margin:clamp(40px,7vh,76px) 0 clamp(34px,6vh,64px)}
+  .scene--wide .bank-l .chips,.scene--wide .bank-l .actions{justify-content:flex-end}
+  .scene--wide .bank-l .actions{margin-top:22px}
+  /* portrait game: the phone stands in the river, a bank on each side */
+  .scene--tall .trio{display:grid; grid-template-columns:1fr auto 1fr; column-gap:clamp(34px,5vw,84px); align-items:center}
+  .scene--tall .name{font-size:clamp(34px,4.7vw,66px)}
+  .scene--tall .bank-l .chips,.scene--tall .bank-l .actions,.scene--tall .bank-l .icon-row{justify-content:flex-end}
+  .scene--tall .bank-l .chips{margin:18px 0 22px}
+  .scene--tall .pitch{margin-bottom:26px}
+
+  /* ---------------------------------------------------------- bends: open water between scenes */
+  .bend{height:clamp(300px,58vh,520px)}
+  .orn{position:absolute; z-index:-1; top:50%; width:min(44vw,520px); aspect-ratio:760/800; transform:translateY(-50%); fill:rgba(255,255,255,.045)}
+  .bend--l .orn{right:max(2vw, 50% - 640px)}
+  .bend--r .orn{left:max(2vw, 50% - 640px); transform:translateY(-50%) scaleX(-1)}
+  .bend-label{position:absolute; z-index:1; top:50%; transform:translateY(-50%); max-width:min(30ch, 34vw); line-height:1.7}
+  .bend--l .bend-label{left:calc(50% + 70px)}
+  .bend--r .bend-label{right:calc(50% + 70px); text-align:right}
+  .bend-label b{display:block; font:800 clamp(18px,2vw,26px)/1.15 var(--font); letter-spacing:.08em; color:var(--ink); margin-top:4px}
+
+  /* ---------------------------------------------------------- prototype lab (the block itself is written by Mythic Forge) */
+  #lab{padding:clamp(60px,10vh,120px) 0 clamp(80px,13vh,160px)}
+  #lab .sec-head,#lab .lab-grid{position:relative; z-index:1; width:min(1240px, 100% - 2 * var(--pad)); margin-inline:auto}
+  #lab .sec-head{display:grid; grid-template-columns:1fr 1fr; column-gap:var(--bank-gap); align-items:end}
+  #lab .sec-head > div{justify-self:end; text-align:right; max-width:30rem}
+  .sec-title{font-size:clamp(32px,4.6vw,64px); margin:12px 0 14px}
+  .sec-sub{color:var(--mist); font-size:clamp(15px,1.3vw,18px)}
+  .sec-count{justify-self:start}
+  .sec-count b{font:800 clamp(40px,5vw,72px)/1 var(--font); letter-spacing:.02em; margin-right:10px}
+  #lab .lab-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:clamp(14px,2vw,26px); margin-top:clamp(36px,6vh,60px)}
+  #lab .lab-card{position:relative; border:0; border-radius:clamp(18px,2vw,28px); background:#000; overflow:hidden;
+                 box-shadow:0 0 0 2px rgba(255,255,255,.92), 0 0 0 11px rgba(255,255,255,.09), 0 30px 70px rgba(0,0,0,.6)}
+  #lab .lab-card:nth-child(even){transform:translateY(clamp(18px,3.4vw,44px))}
+  #lab .lab-media{aspect-ratio:9/16; background:#000}
+  #lab .lab-body{position:absolute; left:0; right:0; bottom:0; flex:none; gap:8px; padding:70px 16px 16px;
+                 background:linear-gradient(180deg, transparent, rgba(0,0,0,.9) 46%); pointer-events:none}
+  #lab .lab-body h3{font-size:clamp(15px,1.5vw,19px); letter-spacing:.08em}
+  #lab .lab-body p{color:#d6d6d0; font-size:13px; line-height:1.45; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
+  #lab .lab-tags li{border-color:rgba(255,255,255,.3); color:var(--ink); background:rgba(0,0,0,.4)}
+  #lab .lab-play{pointer-events:auto; align-self:stretch; min-height:42px; margin-top:6px}
+
+  /* ---------------------------------------------------------- studio: the river reaches the pool */
+  .mouth{padding:clamp(70px,11vh,130px) 0 0}
+  .mouth .banks{align-items:center}
+  .studio-copy{display:grid; gap:14px; max-width:44ch; color:var(--mist)}
+  .studio-copy strong{color:var(--ink)}
+  .pool{position:relative; z-index:1; display:grid; place-items:center; width:clamp(170px,22vw,260px); aspect-ratio:1; margin:clamp(110px,18vh,190px) auto clamp(96px,15vh,150px);
+        border-radius:50%; background:var(--void);
+        box-shadow:0 0 0 2px var(--ink), 0 0 0 20px rgba(255,255,255,.09), 0 0 0 50px rgba(255,255,255,.05), 0 0 0 90px rgba(255,255,255,.025)}
+  .pool svg{width:66%; fill:var(--ink)}
+  .principles{list-style:none; padding:0; margin:0 auto; display:grid; grid-template-columns:repeat(3,1fr); gap:clamp(20px,4vw,56px)}
+  .principles li{border-top:2px solid var(--ink); padding-top:18px}
+  .principles h3{font-size:clamp(17px,1.7vw,22px); letter-spacing:.08em; margin:10px 0 8px}
+  .principles p{color:var(--mist)}
+
+  /* ---------------------------------------------------------- contact + footer */
+  .contact{position:relative; overflow:hidden; text-align:center; padding:clamp(90px,15vh,170px) 0}
+  .contact .sec-title{font-size:clamp(34px,6vw,88px)}
+  .contact-copy{max-width:52ch; margin:0 auto; color:var(--mist); font-size:clamp(16px,1.4vw,19px)}
+  .contact .cta-row{justify-content:center; margin-top:30px}
+  .contact .orn-big{position:absolute; z-index:0; left:50%; top:50%; width:min(120vw,1100px); transform:translate(-50%,-50%); fill:rgba(255,255,255,.035)}
+  .site-foot{border-top:1px solid var(--rule); padding:38px var(--pad) 44px}
+  .foot-in{width:min(1240px,100%); margin-inline:auto; display:grid; grid-template-columns:2fr 1fr 1fr; gap:28px}
+  .site-foot p{color:var(--mist); font-size:14px}
+  .foot-brand .brand{margin-bottom:6px; color:var(--ink)}
+  .foot-list{list-style:none; margin:10px 0 0; padding:0; display:grid; gap:4px}
+  .foot-list a,.contact-link{display:inline-flex; align-items:center; min-height:32px; text-decoration:none; font-weight:700}
+  .foot-list a:hover,.contact-link:hover{text-decoration:underline; text-underline-offset:5px}
+  .fine{grid-column:1/-1; padding-top:18px; border-top:1px solid var(--rule)}
 
   /* ---------------------------------------------------------- trailer dialog */
   .trailer{width:min(1100px, calc(100vw - 32px)); max-width:none; padding:0; border:0; background:transparent; overflow:visible}
-  .trailer::backdrop{background:rgba(6,18,31,.9)}
-  .trailer-box{position:relative; border-radius:14px; overflow:hidden; border:1px solid var(--line); background:#000;
-    box-shadow:0 30px 80px -20px rgba(0,0,0,.8)}
+  .trailer::backdrop{background:rgba(5,5,7,.92)}
+  .trailer-box{position:relative; border-radius:16px; overflow:hidden; background:#000; box-shadow:0 0 0 2px rgba(255,255,255,.92), 0 30px 90px rgba(0,0,0,.7)}
   .trailer-video{display:block; width:100%; height:auto; aspect-ratio:16/9; background:#000}
-  .trailer-close{position:absolute; top:10px; right:10px; width:44px; height:44px; border-radius:50%; cursor:pointer;
-    border:1px solid var(--line); background:rgba(6,18,31,.75); color:var(--hot); display:grid; place-items:center}
+  .trailer-close{position:absolute; top:10px; right:10px; width:44px; height:44px; display:grid; place-items:center; border-radius:50%; cursor:pointer;
+                 border:1px solid rgba(255,255,255,.4); background:rgba(10,10,12,.8); color:var(--ink)}
   .trailer-close svg{width:18px; height:18px}
 
-  /* ---------------------------------------------------------- hero
-     Phones: title, then the highlight reel, then the buttons (footage above the fold).
-     Desktop: copy on the left, reel on the right. */
-  .hero{
-    display:grid; grid-template-columns:minmax(0,1fr); grid-template-areas:"head" "reel" "actions";
-    gap:24px; padding-block:clamp(18px,5vw,52px) 12px;
-  }
-  .hero-head{grid-area:head}
-  .hero-actions{grid-area:actions}
-  .hero .reel{grid-area:reel}
-  @media (min-width:881px){
-    .hero{
-      grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr); grid-template-areas:"head reel" "actions reel";
-      column-gap:clamp(32px,4.5vw,52px); row-gap:0; align-items:center;
-    }
-    .hero-head{align-self:end}
-    .hero-actions{align-self:start; padding-top:28px}
+  /* ---------------------------------------------------------- arriving on scroll */
+  @media (prefers-reduced-motion:no-preference){
+    .js .rv{opacity:0; transform:translateY(18px); transition:opacity .45s ease, transform .45s cubic-bezier(.2,.7,.2,1)}
+    .js .rv.in{opacity:1; transform:none}
   }
 
-  .eyebrow{
-    display:inline-flex; align-items:center; gap:9px; margin:0 0 14px;
-    font-size:12px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:var(--beam);
-  }
-  .wordmark{font-size:clamp(42px,6.4vw,68px); line-height:.98; letter-spacing:-.01em}
-  .wordmark em{font-style:normal; color:var(--beam); text-shadow:0 0 28px rgba(69,200,255,.45)}
-  .tagline{margin-top:18px; color:var(--dim); font-size:clamp(16px,1.7vw,18px); line-height:1.6; max-width:40ch}
-  .tagline strong{color:var(--hot); font-weight:700}
-  .cta-row{display:flex; gap:12px; flex-wrap:wrap}
-  @media (max-width:420px){ .cta-row .btn{flex:1 1 auto} }
-  .hero-meta{margin-top:20px; font-size:12px; line-height:1.7; letter-spacing:.06em; color:var(--dim)}
-  .hero-meta b{color:var(--hot)}
+  /* ---------------------------------------------------------- phones: the river runs down the left edge, everything sits beside it */
+  @media (max-width:859px){
+    .banks,.scene--tall .trio,#lab .sec-head{display:block}
+    .bank-l,.bank-r,#lab .sec-head > div{text-align:left; max-width:none}
+    .scene .wrap,.mouth .wrap,#lab .sec-head,#lab .lab-grid,.hero .banks{padding-left:var(--gut)}
+    .scene--wide .bank-l .chips,.scene--wide .bank-l .actions,.scene--tall .bank-l .chips,.scene--tall .bank-l .actions,.scene--tall .bank-l .icon-row{justify-content:flex-start}
 
-  /* ---------------------------------------------------------- highlight reel */
-  .reel{
-    --accent:var(--beam);
-    position:relative; min-width:0;
-    background:var(--bg-panel); border:1px solid var(--line); border-radius:20px; padding:12px;
-    box-shadow:0 30px 80px -40px rgba(0,0,0,.9), 0 0 70px -30px var(--accent);
-    box-shadow:0 30px 80px -40px rgba(0,0,0,.9), 0 0 70px -30px color-mix(in srgb, var(--accent) 60%, transparent);
-    transition:box-shadow .8s ease;
-  }
-  @media (max-width:560px){ .reel{padding:8px; border-radius:16px} }
-  .reel-bar{display:flex; align-items:center; gap:10px; padding:0 0 8px 6px; font-size:11.5px; letter-spacing:.1em; color:var(--dim)}
-  .reel-kicker{display:inline-flex; align-items:center; gap:8px; text-transform:uppercase; white-space:nowrap}
-  .reel-kicker .rec{width:7px; height:7px; border-radius:50%; flex:none; background:var(--accent); box-shadow:0 0 8px 1px var(--accent); transition:background-color .6s ease}
-  .reel[data-running="true"] .reel-kicker .rec{animation:blink 1.6s ease infinite}
-  .reel-count{margin-left:auto; font-variant-numeric:tabular-nums; white-space:nowrap}
-  .reel-count b{color:var(--hot)}
-  .reel-toggle{
-    width:44px; height:44px; flex:none; padding:0; border-radius:11px; cursor:pointer;
-    border:1px solid var(--line); background:var(--bg-raised); color:var(--hot);
-    display:grid; place-items:center; transition:border-color .15s ease;
-  }
-  .reel-toggle svg{width:14px; height:14px}
-  .reel[data-paused="true"] .i-pause, .reel:not([data-paused="true"]) .i-play{display:none}
+    .hero{display:block; padding-top:76px}
+    .ghost{top:27%; font-size:25vw; white-space:normal; text-align:center; width:100%}
+    .hero-mark{width:min(84vw, 46vh); margin:8px auto 0}
+    .hero .banks{margin-top:150px}
+    .hero .bank-r{margin-top:18px}
 
-  /* full screen reel (phone at events): the stage takes the whole screen */
-  .reel:not(.can-full) .reel-full, .reel-full .i-exit, .reel.is-full .reel-full .i-enter{display:none}
-  .reel.is-full .reel-full .i-exit{display:block}
-  .reel.is-full{
-    display:flex; flex-direction:column; width:100vw; height:100vh; height:100dvh; max-width:none; margin:0;
-    border:0; border-radius:0; background:var(--bg-deep);
-    padding:max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right))
-            max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
-  }
-  .reel.is-full .reel-stage{flex:1 1 auto; min-height:0; aspect-ratio:auto; max-height:none}
+    .scene{display:block; min-height:0; padding:64px 0 76px}
+    .name{font-size:clamp(46px,15.5vw,84px)}
+    .scene--tall .name{font-size:clamp(38px,12vw,64px)}
+    /* footage goes edge to edge, over the river */
+    .stage{margin:34px calc(-1 * var(--pad)) 38px calc(-1 * (var(--gut) + var(--pad))) !important}
+    .stage--wide .screen{border-radius:0}
+    .stage--tall .screen{width:min(270px,70vw)}
+    .stage-bar{margin-top:30px; justify-content:flex-start; padding:0 var(--pad) 0 calc(var(--gut) + var(--pad))}
+    .live{display:none}
+    .scene--wide .bank-r{margin-top:18px}
+    .scene--tall .bank-r{margin-top:0}
+    .bank-l + .bank-r{margin-top:26px}
 
-  /* The stage keeps one size for every slide (no layout jump) and is shaped so both
-     orientations read well: tall on phones (portrait clips stay wide), wide on desktop.
-     Landscape clips always fill the stage width; portrait clips sit in a phone frame. */
-  .reel-stage{
-    position:relative; aspect-ratio:3/4; max-height:80vh;
-    border-radius:12px; overflow:hidden; background:var(--bg-deep);
-    isolation:isolate; touch-action:pan-y;
-    container:stage / size;
-  }
-  @media (min-width:561px){ .reel-stage{aspect-ratio:4/3; max-height:72vh; border-radius:14px} }
-  @media (min-width:881px){ .reel-stage{aspect-ratio:5/4; max-height:min(76vh,560px)} }
+    .bend{height:150px}
+    .orn{display:none}
+    .bend .bend-label{left:var(--gut); right:var(--pad); max-width:none; text-align:left}
 
-  .reel:not(.is-ready) .reel-count, .reel:not(.is-ready) .reel-toggle,
-  .reel:not(.is-ready) .reel-foot, .reel:not(.is-ready) .reel-play{display:none}
-  .reel.is-single .reel-toggle, .reel.is-single .reel-dots, .reel.is-single .reel-count{display:none}
+    #lab .lab-grid{grid-template-columns:repeat(2,1fr); gap:20px 14px}
+    #lab .lab-card:nth-child(even){transform:translateY(22px)}
+    #lab .lab-body{padding:50px 11px 11px}
+    #lab .lab-body p,#lab .lab-tags{display:none}
+    .sec-count{margin-top:18px}
 
-  .reel-slide{position:absolute; inset:0; margin:0; opacity:0; visibility:hidden; transition:opacity .7s ease, visibility 0s linear .7s}
-  .reel-slide.is-active{opacity:1; visibility:visible; z-index:1; transition:opacity .7s ease}
-  /* blurred still of the same clip fills the space around the footage */
-  .slide-bg{
-    position:absolute; z-index:0; top:-8%; left:-8%; width:116%; height:116%; max-width:none;
-    object-fit:cover; filter:blur(20px) saturate(1.2) brightness(.42);
+    .mouth .bank-r{margin-top:20px}
+    .pool{margin-top:170px}
+    .principles{grid-template-columns:1fr}
+    .foot-in{grid-template-columns:1fr 1fr}
+    .foot-brand{grid-column:1/-1}
   }
-  .reel-slide::before{
-    content:""; position:absolute; inset:0; z-index:1; pointer-events:none; opacity:.35;
-    background-image:
-      linear-gradient(var(--line) 1px, transparent 1px),
-      linear-gradient(90deg, var(--line) 1px, transparent 1px);
-    background-size:28px 28px; background-position:center;
-  }
-  .slide-media{position:absolute; inset:0; z-index:2; transform:scale(1.04); transition:transform 6s cubic-bezier(.2,.6,.2,1)}
-  .reel-slide.is-active .slide-media{transform:none}
-
-  /* landscape footage: full stage width, vertically centered */
-  .is-landscape .slide-video{
-    position:absolute; left:50%; top:50%; width:100%; height:auto; aspect-ratio:1030 / 480;
-    transform:translate(-50%,-50%); object-fit:cover;
-    box-shadow:0 18px 44px -16px rgba(0,0,0,.95);
-  }
-  @supports (width:1cqh){ .is-landscape .slide-video{width:min(100cqw, 100cqh * 1030 / 480)} }
-
-  /* portrait footage: phone frame as tall as the stage allows */
-  .is-portrait .phone{
-    position:absolute; top:10px; left:50%; transform:translateX(-50%);
-    height:calc(100% - 20px); width:auto; aspect-ratio:1080 / 2316;
-    background:var(--bg-deep); border:1px solid var(--line); border-radius:22px; overflow:hidden;
-    box-shadow:0 24px 50px -24px rgba(0,0,0,.9), 0 0 48px -14px rgba(69,200,255,.55);
-  }
-  /* fit BOTH ways: tall full-screen phones are narrower than the clip, so width can be the limit */
-  @supports (width:1cqh){
-    .is-portrait .phone{
-      top:50%; transform:translate(-50%,-50%); height:auto;
-      width:min(calc((100cqh - 20px) * 1080 / 2316), calc(100cqw - 20px));
-    }
-  }
-  .is-portrait .phone > video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
-
-  .slide-cap{
-    position:absolute; z-index:3; left:0; right:0; bottom:0; margin:0;
-    display:flex; align-items:center; gap:12px; padding:40px 14px 12px;
-    background:linear-gradient(to top, rgba(6,18,31,.94), rgba(6,18,31,.62) 55%, transparent);
-    opacity:0; transform:translateY(8px); transition:opacity .5s ease .2s, transform .5s ease .2s;
-  }
-  .reel-slide.is-active .slide-cap{opacity:1; transform:none}
-  .slide-icon{width:40px; height:40px; border-radius:11px; flex:none; box-shadow:0 8px 18px -8px rgba(0,0,0,.8)}
-  .slide-text{min-width:0; display:flex; flex-direction:column}
-  .slide-name{display:flex; align-items:center; flex-wrap:wrap; gap:4px 8px; font-family:var(--font-head); font-weight:700; font-size:21px; line-height:1.1}
-  .slide-line{margin-top:3px; font-size:12px; line-height:1.4; letter-spacing:.03em; color:var(--accent)}
-  .slide-status{
-    position:absolute; z-index:3; top:12px; right:12px;
-    background:rgba(6,18,31,.78); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
-  }
-  .is-portrait .slide-status{display:none}
-  /* centered phone: the caption covers the game's bottom toolbar, so darken it more */
-  .is-portrait .slide-cap{background:linear-gradient(to top, rgba(6,18,31,.97), rgba(6,18,31,.9) 55%, transparent)}
-  @media (max-width:560px){
-    .slide-icon{width:34px; height:34px; border-radius:9px}
-    .slide-name{font-size:19px}
-    .slide-cap{padding:32px 12px 10px}
-  }
-  /* wide stages: the phone moves right, the caption and status sit beside it */
-  @container stage (min-width:400px) and (orientation:landscape){
-    .is-portrait .phone{top:10px; left:auto; right:max(16px, 7cqw); transform:none}
-    .is-portrait .slide-cap{right:calc((100cqh - 20px) * 1080 / 2316 + max(16px, 7cqw) + 8px); background:none; padding-bottom:16px}
-    .is-portrait .slide-status{display:inline-flex; left:12px; right:auto}
-    .reel-stage[data-orient="portrait"] .reel-play{left:calc(100% - max(16px, 7cqw) - (100cqh - 20px) * 1080 / 4632)}
-  }
-  /* very wide, short stages (phone held sideways): the clip reaches the top edge */
-  @container stage (min-aspect-ratio:3/2){ .is-landscape .slide-status{display:none} }
-  @container stage (max-width:299px){ .slide-status{display:none} }
-
-  /* play control: shown whenever the reel is paused (always at first under reduced motion) */
-  .reel-play{
-    position:absolute; z-index:4; left:50%; top:50%; transform:translate(-50%,-50%);
-    width:68px; height:68px; padding:0; border-radius:50%; cursor:pointer;
-    display:none; place-items:center; color:var(--hot);
-    border:1px solid rgba(232,238,255,.35); background:rgba(6,18,31,.72);
-    -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
-    box-shadow:0 0 0 6px rgba(6,18,31,.25), 0 0 40px -6px var(--accent);
-  }
-  .reel.is-ready[data-paused="true"] .reel-play{display:grid}
-  .reel-play svg{width:24px; height:24px; margin-left:3px}
-
-  .reel-foot{display:flex; align-items:center; justify-content:space-between; gap:8px; padding-top:6px}
-  .reel-dots{display:flex; align-items:center}
-  .reel-dot{
-    width:44px; height:44px; padding:0; border:0; background:none; cursor:pointer;
-    display:inline-grid; place-items:center; border-radius:10px; transition:width .35s ease;
-  }
-  .reel-dot.is-active{width:56px}
-  .reel-dot .track{
-    position:relative; display:block; width:10px; height:6px; border-radius:99px; overflow:hidden;
-    background:var(--dim); opacity:.7; transition:width .35s ease, background-color .35s ease, opacity .35s ease;
-  }
-  .reel-dot.is-active .track{width:44px; background:var(--bg-raised); opacity:1}
-  .reel-dot .fill{position:absolute; inset:0; background:var(--accent); transform-origin:left center; transform:scaleX(0)}
-  .reel-dot:not(.is-active) .fill{visibility:hidden}
-  .reel-link{
-    display:inline-flex; align-items:center; gap:6px; min-height:44px; padding:0 8px; border-radius:10px;
-    font-size:13.5px; font-weight:700; color:var(--accent); text-decoration:none; white-space:nowrap;
-    transition:color .6s ease;
-  }
-  .reel-link svg{width:14px; height:14px; flex:none}
-  @media (max-width:420px){
-    .reel-link .rl-name{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap}
-  }
-  @media (hover:hover){
-    .reel-toggle:hover{border-color:var(--accent)}
-    .reel-play:hover{border-color:var(--accent)}
-    .reel-dot:hover .track{opacity:1}
-    .reel-link:hover{text-decoration:underline; text-underline-offset:3px}
-  }
-
-  /* ---------------------------------------------------------- sections */
-  .section{padding-top:clamp(56px,8vw,88px); scroll-margin-top:12px}
-  .sec-head{
-    display:flex; align-items:flex-end; justify-content:space-between; gap:12px 24px; flex-wrap:wrap;
-    padding-top:28px; margin-bottom:24px; border-top:1px solid var(--line);
-  }
-  .kicker{margin:0 0 10px; font-size:12px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:var(--beam)}
-  .sec-title{font-size:clamp(28px,4vw,40px); line-height:1.08}
-  .sec-title em{font-style:normal; color:var(--beam)}
-  .sec-sub{margin-top:10px; color:var(--dim); font-size:15px; line-height:1.6; max-width:52ch}
-  .sec-count{font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim)}
-  .sec-count b{color:var(--hot)}
-
-  /* ---------------------------------------------------------- game grid */
-  @counter-style pad3{system:extends decimal; pad:3 "0"}
-  .games{display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:20px; counter-reset:game}
-  @media (max-width:760px){ .games{grid-template-columns:minmax(0,1fr)} }
-
-  .game{
-    --accent:var(--beam);
-    counter-increment:game;
-    position:relative; display:flex; flex-direction:column; overflow:hidden;
-    background:var(--bg-panel); border:1px solid var(--line); border-radius:20px;
-    scroll-margin-top:20px;
-    transition:border-color .25s ease, transform .25s ease, box-shadow .25s ease;
-  }
-  .game::before{
-    content:""; position:absolute; z-index:3; inset:0 0 auto; height:2px; pointer-events:none;
-    background:linear-gradient(90deg, transparent, var(--accent) 50%, transparent); opacity:.85;
-  }
-  .game:focus-within, .game:target{
-    border-color:var(--accent);
-    border-color:color-mix(in srgb, var(--accent) 45%, var(--line));
-    box-shadow:0 24px 60px -32px color-mix(in srgb, var(--accent) 60%, transparent);
-  }
-  @media (hover:hover){
-    .game:hover{
-      transform:translateY(-3px);
-      border-color:var(--accent);
-      border-color:color-mix(in srgb, var(--accent) 45%, var(--line));
-      box-shadow:0 24px 60px -32px color-mix(in srgb, var(--accent) 60%, transparent);
-    }
-  }
-
-  /* media: landscape clips use .media--landscape > .screen, portrait (phone-shaped, 1080x2316) phone
-     footage uses .media--portrait > .phone. Both panels share the grid-and-glow backdrop. */
-  .media{
-    position:relative; margin:0; overflow:hidden; border-bottom:1px solid var(--line);
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
-    background:radial-gradient(70% 55% at 50% 45%, rgba(69,200,255,.14), transparent 70%), var(--bg-deep);
-  }
-  .media::before{
-    content:""; position:absolute; inset:0; pointer-events:none; opacity:.45;
-    background-image:
-      linear-gradient(var(--line) 1px, transparent 1px),
-      linear-gradient(90deg, var(--line) 1px, transparent 1px);
-    background-size:28px 28px; background-position:center;
-    -webkit-mask-image:radial-gradient(closest-side, #000 25%, transparent);
-            mask-image:radial-gradient(closest-side, #000 25%, transparent);
-  }
-  .media-badge{
-    position:relative; z-index:1;
-    display:inline-flex; align-items:center; gap:7px; max-width:100%;
-    font-family:var(--font-mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--hot);
-    background:rgba(6,18,31,.76); border:1px solid var(--line);
-    border-color:color-mix(in srgb, var(--accent) 45%, var(--line));
-    border-radius:999px; padding:6px 11px;
-  }
-  .media-badge svg{width:12px; height:12px; flex:none; color:var(--accent)}
-
-  .media--portrait{
-    --phone-h:min(520px, 64vh);
-    padding:clamp(20px,4vw,32px) clamp(16px,4vw,32px);
-  }
-  .phone{
-    position:relative; z-index:1; flex:none;
-    width:min(100%, calc(var(--phone-h) * 1080 / 2316)); aspect-ratio:1080 / 2316;
-    background:var(--bg-deep); border:1px solid var(--line); border-radius:28px; overflow:hidden;
-    box-shadow:0 30px 60px -30px rgba(0,0,0,.9), 0 0 56px -14px rgba(69,200,255,.5);
-  }
-  .phone > video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; border-radius:27px}
-
-  .media--landscape{
-    padding:clamp(12px,3.5vw,32px);
-    background:radial-gradient(70% 60% at 50% 45%, rgba(255,201,74,.12), transparent 70%), var(--bg-deep);
-  }
-  .screen{
-    position:relative; z-index:1; width:100%; max-width:760px; aspect-ratio:1030 / 480;
-    background:var(--bg-deep); border:1px solid var(--line); border-radius:14px; overflow:hidden;
-    box-shadow:0 26px 56px -28px rgba(0,0,0,.95), 0 0 56px -18px rgba(255,201,74,.45);
-  }
-  .screen > video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
-
-  /* feature cards take a full row so the footage sits beside a wide text column */
-  .game--feature{grid-column:1 / -1}
-  @media (min-width:761px){
-    .game--portrait{display:grid; grid-template-columns:auto minmax(0,1fr)}
-    .game--portrait .media--portrait{
-      --phone-h:min(560px, 70vh, 58vw);
-      border-bottom:0; border-right:1px solid var(--line);
-      padding:clamp(28px,4vw,44px) clamp(28px,4.5vw,56px);
-    }
-    .game--portrait .phone{width:calc(var(--phone-h) * 1080 / 2316)}
-  }
-  @media (min-width:900px){
-    .game--wide{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)}
-    .game--wide .media{order:2; border-bottom:0; border-left:1px solid var(--line); padding:clamp(24px,3vw,40px)}
-  }
-  @media (min-width:761px){
-    .game--feature .game-body{justify-content:center; gap:16px; padding:clamp(28px,4vw,48px)}
-    .game--feature .game-pitch{font-size:16px; max-width:54ch}
-    .game--feature .game-cta{margin-top:8px}
-  }
-
-  /* card body */
-  .game-body{display:flex; flex-direction:column; gap:14px; flex:1; padding:22px clamp(18px,3vw,24px) 24px}
-  .game-head{display:flex; align-items:center; gap:14px; min-width:0}
-  .game-head > div{flex:1 1 auto; min-width:0}
-  /* card number (001, 002, ...) from a CSS counter */
-  .game-head::after{
-    content:counter(game, pad3);
-    content:counter(game, pad3) / "";
-    align-self:flex-start; flex:none; padding-top:4px;
-    font-family:var(--font-mono); font-size:12px; letter-spacing:.12em; color:var(--dim);
-  }
-  .game-icon{width:64px; height:64px; border-radius:16px; flex:none; box-shadow:0 10px 24px -12px rgba(0,0,0,.8)}
-  .game-title{display:flex; align-items:center; gap:6px 10px; flex-wrap:wrap}
-  .game-name{font-size:28px; line-height:1.05}
-  .flag{
-    font-family:var(--font-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim);
-    border:1px solid var(--line); border-radius:6px; padding:3px 7px; white-space:nowrap; line-height:1.3;
-  }
-  .slide-name .flag{font-family:var(--font-mono); font-size:10px; font-weight:400; letter-spacing:.1em; background:rgba(6,18,31,.6)}
-  .game-tagline{margin-top:4px; color:var(--accent); font-size:12.5px; letter-spacing:.03em}
-
-  .chips{display:flex; flex-wrap:wrap; gap:6px; list-style:none; margin:0; padding:0}
-  .chip{
-    display:inline-flex; align-items:center; gap:7px;
-    font-family:var(--font-mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--dim);
-    border:1px solid var(--line); border-radius:999px; padding:5px 10px; white-space:nowrap;
-  }
-  .chip--status{color:var(--hot)}
-
-  .game-pitch{color:var(--dim); font-size:15px; line-height:1.62}
-  .mini-label{margin-bottom:-6px; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--dim)}
-  .highlights{display:flex; flex-wrap:wrap; gap:8px; list-style:none; margin:0; padding:0}
-  .highlights li{
-    display:inline-flex; align-items:center; gap:9px;
-    font-size:13px; color:var(--hot);
-    background:var(--bg-raised); border:1px solid var(--line); border-radius:8px; padding:6px 11px;
-  }
-  .highlights li::before{
-    content:""; width:6px; height:6px; flex:none; border-radius:1.5px; transform:rotate(45deg);
-    background:var(--accent); box-shadow:0 0 8px var(--accent);
-  }
-  .game-cta{margin-top:auto; padding-top:6px; display:flex; align-items:center; gap:10px; flex-wrap:wrap}
-  .play-badge{display:inline-flex; border-radius:9px; transition:transform .15s ease}
-  .play-badge img{display:block; height:56px; width:auto}
-  @media (hover:hover){ .play-badge:hover{transform:translateY(-1px)} }
-
-  /* "more games" strip: a full-width row, or the empty grid cell beside a half-width card */
-  .game-next{
-    grid-column:1 / -1; position:relative; overflow:hidden;
-    display:flex; align-items:center; flex-wrap:wrap; gap:14px 20px;
-    padding:22px clamp(18px,3vw,28px); border-radius:20px; border:1px solid var(--line);
-    background:
-      linear-gradient(100deg, rgba(69,200,255,.10), rgba(255,201,74,.06) 55%, transparent 85%),
-      var(--bg-panel);
-  }
-  .game-next.is-cell{grid-column:auto; flex-direction:column; align-items:flex-start; justify-content:center}
-  .next-icon{
-    width:44px; height:44px; flex:none; border-radius:12px; display:grid; place-items:center;
-    color:var(--bg-deep); background:var(--beam); box-shadow:0 0 24px -6px rgba(69,200,255,.7);
-  }
-  .next-icon svg{width:20px; height:20px}
-  .next-copy{flex:1 1 260px; min-width:0}
-  .game-next h3{font-size:21px; line-height:1.15}
-  .game-next p{margin-top:3px; color:var(--dim); font-size:14.5px; line-height:1.55}
-
-  /* ---------------------------------------------------------- studio */
-  .studio{
-    display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.15fr); gap:18px 48px; align-items:end;
-    padding-top:28px; border-top:1px solid var(--line);
-  }
-  @media (max-width:760px){ .studio{grid-template-columns:minmax(0,1fr)} }
-  .studio-copy p{color:var(--dim); font-size:16px; line-height:1.7; max-width:58ch}
-  .studio-copy p + p{margin-top:12px}
-  .studio-copy strong{color:var(--hot); font-weight:700}
-  .principles{list-style:none; margin:28px 0 0; padding:0; display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:14px}
-  @media (max-width:640px){ .principles{grid-template-columns:minmax(0,1fr)} }
-  .principles li{background:var(--bg-panel); border:1px solid var(--line); border-radius:16px; padding:20px}
-  .principles .num{font-size:12px; letter-spacing:.12em; color:var(--beam)}
-  .principles h3{margin-top:8px; font-size:19px}
-  .principles p{margin-top:6px; color:var(--dim); font-size:14.5px; line-height:1.6}
-
-  /* ---------------------------------------------------------- contact */
-  .contact-band{
-    position:relative; overflow:hidden;
-    display:grid; grid-template-columns:minmax(0,1.2fr) auto; gap:24px 40px; align-items:center;
-    background:
-      radial-gradient(80% 140% at 100% 0%, rgba(69,200,255,.14), transparent 60%),
-      var(--bg-panel);
-    border:1px solid var(--line); border-radius:22px; padding:clamp(22px,4vw,40px);
-  }
-  @media (max-width:760px){ .contact-band{grid-template-columns:minmax(0,1fr)} }
-  .contact-copy{margin-top:12px; color:var(--dim); font-size:16px; line-height:1.65; max-width:50ch}
-  .contact-actions{display:flex; flex-direction:column; gap:10px; min-width:0}
-  @media (max-width:760px){ .contact-actions{flex-direction:row; flex-wrap:wrap} }
-
-  /* ---------------------------------------------------------- footer */
-  .site-foot{
-    margin-top:clamp(56px,8vw,80px); padding-block:32px 40px; border-top:1px solid var(--line);
-    display:grid; grid-template-columns:minmax(0,1.6fr) repeat(2, minmax(0,1fr)); gap:24px 32px;
-  }
-  @media (max-width:760px){ .site-foot{grid-template-columns:repeat(2, minmax(0,1fr))} .foot-brand{grid-column:1 / -1} }
-  .foot-brand .brand{min-height:0; font-size:13px; color:var(--dim)}
-  .foot-brand .brand .dot{width:6px; height:6px}
-  .foot-brand p{margin-top:10px; color:var(--dim); font-size:14px; line-height:1.6; max-width:36ch}
-  .contact-link{
-    display:inline-flex; align-items:center; min-height:44px; margin-top:4px;
-    font-size:14px; font-weight:700; color:var(--hot); text-decoration:underline;
-    text-decoration-color:var(--dim); text-underline-offset:5px; overflow-wrap:anywhere;
-  }
-  .foot-h{margin-bottom:4px; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--dim)}
-  .foot-list{list-style:none; margin:0; padding:0}
-  .foot-list a{display:inline-flex; align-items:center; min-height:44px; font-size:14px; color:var(--hot); text-decoration:none}
-  @media (hover:hover){
-    .contact-link:hover{color:var(--beam); text-decoration-color:var(--beam)}
-    .foot-list a:hover{color:var(--beam)}
-  }
-  .fine{grid-column:1 / -1; font-size:12px; color:var(--dim); padding-top:20px; border-top:1px solid var(--line)}
-
-  /* ---------------------------------------------------------- reduced motion */
-  @media (prefers-reduced-motion:reduce){
-    .pulse, .reel[data-running="true"] .reel-kicker .rec{animation:none}
-    .reel-slide, .reel-slide.is-active, .slide-cap, .slide-media, .game, .btn, .reel-dot, .reel-dot .track, .reel, .nav a{transition:none}
-    .slide-media{transform:none}
-    .slide-cap{transform:none}
-    .btn:hover, .game:hover{transform:none}
-  }
+  [id]{scroll-margin-top:72px}
 </style>
 </head>
 <body id="top">
+<a class="skip" href="#main">Skip to the games</a>
 
-<a class="skip" href="#main">Skip to content</a>
-<div class="grid-bg" aria-hidden="true"></div>
-<div class="glow" aria-hidden="true"></div>
+<!-- The logo emblem, traced from the studio logo. Reused everywhere with <use href="#emblem">. -->
+<svg class="defs" aria-hidden="true" focusable="false">
+  <symbol id="emblem" viewBox="0 0 1476 1152"><path fill-rule="evenodd" d="M851 34L850 35L849 39L848 61L850 90L853 102L860 120L873 140L881 149L893 160L906 169L931 182L946 188L974 203L976 205L975 207L972 208L956 206L936 206L919 208L900 213L874 225L861 233L849 243L847 246L847 248L849 249L864 247L883 247L895 250L897 252L896 255L891 257L881 265L872 273L861 286L849 305L841 323L838 336L836 345L837 349L839 349L848 340L859 332L862 331L864 332L864 336L862 357L865 383L867 390L870 402L873 409L881 425L893 441L902 450L908 454L925 461L946 468L951 470L967 476L987 485L991 485L988 481L967 463L948 443L944 439L932 421L924 403L919 390L915 369L915 353L920 325L924 316L936 296L948 284L966 272L979 267L996 263L999 264L1000 266L999 272L999 277L1001 291L1009 305L1018 314L1030 322L1040 325L1054 326L1076 326L1090 327L1110 335L1122 343L1128 350L1135 361L1137 372L1139 374L1142 374L1159 365L1168 358L1173 351L1178 339L1179 331L1178 318L1175 307L1172 305L1163 304L1157 303L1144 295L1135 286L1131 281L1124 268L1122 252L1119 244L1110 234L1092 219L1084 211L1081 204L1075 187L1070 177L1066 170L1056 158L1045 149L1032 140L1001 123L987 110L979 98L973 85L968 68L967 59L965 56L962 59L960 63L959 85L961 102L965 116L969 123L978 136L985 142L1001 148L1015 155L1026 164L1039 181L1043 191L1043 193L1041 193L1025 181L1005 170L983 161L959 155L929 143L914 135L902 126L884 108L871 90L860 64L857 53L854 37L853 35ZM350 107L349 108L349 112L355 127L358 136L372 163L381 177L397 195L410 207L423 216L430 220L440 227L464 238L479 242L496 247L500 246L500 244L475 231L455 219L445 211L431 199L419 186L409 173L408 171L409 170L410 170L455 194L470 200L474 202L482 206L506 214L518 218L529 220L535 222L548 226L576 232L581 234L594 237L658 252L690 264L706 272L712 276L726 288L739 305L744 320L749 354L753 376L757 388L759 392L765 409L773 423L785 441L793 450L814 470L837 486L850 493L860 498L866 500L870 503L885 508L899 514L915 520L930 528L949 541L963 552L974 566L987 586L995 607L998 634L998 646L995 663L984 687L976 699L966 710L951 723L939 731L923 740L919 743L912 745L891 755L871 761L866 763L829 773L823 775L796 781L791 783L784 784L777 787L764 790L754 793L750 795L730 801L717 807L710 809L686 821L677 827L665 838L658 847L653 859L653 867L658 881L666 891L678 900L697 910L728 922L750 928L755 930L772 936L795 948L804 956L808 966L808 970L807 974L802 984L793 991L775 999L739 1008L732 1008L724 1011L688 1017L679 1019L648 1026L611 1037L602 1041L598 1043L591 1045L583 1048L566 1057L549 1068L537 1077L529 1085L520 1095L518 1099L518 1101L519 1102L527 1104L544 1107L554 1108L562 1110L575 1112L583 1114L633 1119L653 1120L672 1122L685 1123L740 1124L801 1123L831 1120L848 1119L872 1117L877 1114L880 1109L889 1100L904 1088L924 1076L930 1074L940 1068L960 1059L992 1041L1009 1029L1021 1018L1026 1012L1034 999L1036 988L1036 980L1034 970L1027 958L1019 950L1009 942L988 929L960 918L950 915L934 909L909 903L904 901L891 897L865 891L859 889L837 883L817 875L807 871L796 862L792 855L790 846L791 839L797 830L807 820L820 812L828 808L833 806L855 796L873 788L892 782L905 776L913 774L925 768L940 762L961 750L980 738L992 729L997 724L1005 718L1013 709L1023 697L1033 681L1045 654L1051 628L1052 608L1050 588L1045 568L1034 546L1025 534L1021 529L1012 521L1001 513L981 502L960 493L921 481L896 475L868 463L852 455L836 444L825 434L813 421L804 408L795 390L791 375L788 353L789 340L792 319L796 312L804 302L806 298L806 295L802 283L798 274L789 263L777 252L764 244L752 239L748 236L714 225L683 219L676 217L668 216L661 213L620 208L610 205L598 204L551 195L529 190L513 187L507 185L472 175L448 167L427 157L421 155L387 135L369 122L353 108ZM1053 241L1053 243L1060 257L1065 264L1077 271L1091 274L1096 276L1099 276L1100 274L1099 272L1091 260L1083 252L1056 240ZM430 267L397 269L338 277L331 279L324 281L318 283L312 284L295 289L290 292L272 297L243 310L235 315L223 320L207 330L173 354L160 366L158 369L161 369L198 348L204 346L217 340L236 333L249 328L275 322L281 320L290 318L297 316L317 314L353 312L371 313L411 316L456 328L474 336L483 340L496 348L513 361L524 373L536 393L540 413L540 431L539 439L541 442L545 442L552 439L575 435L609 435L630 439L646 443L662 451L675 460L683 468L688 477L695 493L696 518L697 521L734 508L755 505L765 503L791 503L793 502L792 500L781 496L773 496L761 493L742 492L723 496L719 495L717 493L717 481L714 469L704 450L692 438L674 425L669 423L658 417L650 415L622 409L600 408L581 409L574 410L571 409L570 406L566 383L563 375L557 364L546 349L536 340L522 329L503 318L485 310L478 307L474 304L475 303L482 302L504 302L525 304L546 307L553 310L563 311L569 313L586 316L602 322L622 328L626 330L641 336L664 348L684 360L707 378L708 378L708 377L706 372L694 358L674 338L662 329L651 321L631 309L608 298L589 291L584 289L546 277L516 272L506 271L492 269L458 267ZM975 300L965 306L954 317L949 326L945 335L944 351L943 359L945 376L949 387L960 407L966 417L978 430L998 450L1035 480L1047 492L1059 507L1071 524L1079 541L1087 569L1090 591L1091 601L1088 631L1079 662L1071 680L1055 705L1056 706L1057 706L1068 698L1090 678L1099 666L1106 656L1114 642L1122 625L1124 617L1126 613L1130 601L1133 581L1133 557L1133 545L1130 529L1121 503L1114 490L1101 471L1089 458L1077 447L1065 438L1047 425L1012 403L996 391L984 378L975 362L971 346L970 337L971 326L976 310L980 301L979 299ZM300 368L292 368L260 373L230 382L221 385L202 393L178 406L166 413L133 438L113 457L93 481L81 498L71 513L67 522L61 533L52 553L41 588L37 609L36 625L33 642L32 655L36 696L38 707L41 721L50 748L53 756L61 773L73 795L85 813L106 838L126 858L138 867L142 869L143 868L131 851L120 834L115 822L112 818L102 791L99 785L99 779L95 762L91 737L91 694L95 671L100 649L112 617L121 600L133 581L152 556L176 532L181 529L192 520L212 508L228 500L258 488L285 483L307 482L331 483L355 487L366 491L385 500L399 509L415 523L423 533L431 545L439 566L442 585L442 606L443 607L445 607L448 601L452 586L454 580L457 564L457 555L455 534L447 511L437 494L425 478L421 475L417 470L406 461L388 449L362 438L343 432L324 429L304 427L290 427L269 429L234 437L198 452L194 456L191 456L191 454L192 452L204 444L217 436L241 424L259 418L264 416L270 415L278 412L316 407L333 408L364 412L398 424L419 436L431 444L449 460L463 476L471 489L483 515L488 539L490 558L488 579L483 603L472 626L463 639L447 655L429 667L422 670L413 675L414 676L417 676L428 674L440 670L452 665L470 654L481 644L491 633L500 621L511 601L514 592L516 581L519 573L521 548L521 537L519 518L513 496L510 487L499 463L481 438L470 426L461 417L444 404L432 397L417 389L399 382L389 379L384 376L373 373L339 368ZM1296 500L1276 501L1261 505L1239 513L1223 521L1206 534L1195 544L1185 557L1182 561L1181 563L1183 563L1185 562L1197 552L1220 540L1242 532L1263 529L1284 529L1304 532L1325 540L1347 553L1367 573L1376 586L1387 611L1390 622L1392 633L1393 662L1390 680L1387 691L1379 711L1367 731L1358 742L1345 754L1333 763L1311 775L1299 780L1296 780L1295 779L1296 776L1301 775L1321 759L1332 749L1345 733L1354 719L1358 709L1362 697L1365 686L1366 675L1366 658L1365 649L1362 637L1354 618L1346 606L1333 594L1320 585L1302 577L1291 574L1282 573L1274 574L1272 574L1272 575L1275 578L1291 584L1307 597L1315 606L1323 620L1327 630L1329 636L1330 652L1330 660L1329 675L1326 684L1323 692L1315 708L1303 722L1298 726L1295 728L1294 727L1295 722L1302 709L1305 688L1304 673L1302 659L1298 650L1293 641L1282 628L1272 620L1257 612L1248 609L1243 609L1220 609L1215 610L1206 613L1191 620L1180 630L1170 643L1165 654L1161 669L1160 675L1162 678L1164 677L1166 672L1172 664L1180 656L1193 648L1208 646L1218 646L1229 649L1236 653L1241 657L1251 668L1256 682L1256 691L1256 703L1251 719L1245 729L1237 740L1219 755L1204 763L1195 766L1185 769L1163 772L1143 772L1122 769L1071 765L1042 766L1016 769L986 777L956 789L934 801L915 813L912 816L911 818L916 817L940 808L960 803L968 802L976 800L1011 797L1035 797L1055 800L1063 802L1095 808L1112 814L1131 820L1146 826L1166 832L1171 834L1183 838L1209 843L1233 846L1250 846L1261 845L1273 843L1284 842L1293 840L1308 837L1318 834L1344 823L1360 814L1376 802L1398 782L1410 768L1419 756L1429 737L1441 708L1443 698L1444 688L1446 675L1447 663L1447 642L1444 626L1441 610L1438 599L1429 578L1416 558L1406 546L1397 537L1380 524L1360 513L1338 505L1321 501ZM305 512L291 513L264 521L243 533L230 542L217 553L209 562L198 577L185 599L178 617L172 639L169 658L169 676L170 692L173 711L178 731L181 741L183 745L189 761L197 775L210 793L220 805L230 815L242 826L272 847L282 852L292 858L312 866L322 870L331 872L338 874L352 878L380 882L385 883L388 885L382 887L375 888L345 888L309 884L294 879L289 877L269 871L253 863L232 851L215 838L197 822L184 807L164 779L152 755L144 732L139 708L137 685L137 671L140 639L139 635L137 637L133 648L131 655L129 661L125 673L123 689L121 705L121 726L122 743L125 761L134 791L145 816L158 837L176 860L197 881L215 895L240 910L248 914L254 916L265 921L287 928L292 930L306 933L340 937L363 937L405 934L420 930L426 928L448 922L461 916L468 914L478 910L500 899L516 890L532 879L560 859L575 846L582 839L585 837L618 805L629 793L632 789L657 762L688 725L720 692L732 680L748 668L776 649L797 640L817 635L847 634L863 636L873 640L888 648L898 656L910 671L913 677L918 683L918 673L914 662L906 647L898 637L891 630L879 621L871 617L864 615L861 613L849 609L825 607L804 609L774 618L750 629L731 640L718 649L707 659L702 662L677 685L609 754L587 775L547 806L541 809L527 819L510 827L487 837L483 839L462 844L443 848L426 849L407 849L383 847L350 839L331 831L308 819L287 803L269 785L260 775L251 762L240 742L232 720L230 715L227 709L223 668L224 657L227 627L239 596L248 580L260 564L271 553L282 544L300 532L313 527L319 526L325 523L343 521L357 520L354 517L340 513L318 511ZM793 542L767 545L755 549L750 551L738 554L711 565L691 576L676 585L643 608L602 641L559 679L534 698L516 711L496 723L481 731L455 741L450 743L426 748L404 750L390 749L377 748L356 744L329 731L315 722L301 710L293 701L280 680L271 661L267 641L266 620L265 618L263 618L261 624L259 634L257 642L255 664L256 686L259 695L262 709L273 735L285 753L294 764L305 774L320 786L339 798L355 806L384 814L405 816L428 816L448 814L455 811L462 810L468 808L479 805L504 794L524 783L553 762L578 742L604 717L645 675L672 650L696 628L729 604L742 596L766 584L792 576L807 572L828 570L856 571L866 572L882 576L905 584L930 599L931 597L928 592L911 577L894 565L876 556L867 553L860 551L855 549L841 545L822 542ZM833 673L826 674L813 676L807 679L799 681L791 685L774 694L751 713L733 730L720 743L705 762L705 764L706 764L712 761L732 744L737 742L756 727L773 715L800 704L819 699L841 698L854 700L866 708L870 714L872 719L872 733L873 734L876 733L882 724L885 718L886 714L886 708L884 703L882 698L878 691L873 685L868 682L857 677L845 673ZM1416 812L1413 814L1395 831L1379 843L1367 851L1351 859L1327 869L1322 871L1286 879L1261 882L1232 882L1208 880L1198 877L1190 876L1169 871L1164 869L1134 859L1120 854L1109 851L1095 845L1083 842L1048 834L1026 831L996 831L975 833L956 836L949 839L935 842L902 854L900 857L904 858L914 858L924 855L956 851L991 851L1022 856L1054 864L1059 866L1075 872L1095 881L1102 884L1111 889L1137 902L1143 904L1157 910L1174 916L1179 918L1189 922L1211 927L1230 929L1244 930L1257 930L1269 927L1280 927L1300 922L1328 910L1344 901L1355 894L1368 883L1378 873L1386 864L1398 850L1406 837L1410 829L1417 814L1417 812ZM766 825L760 828L752 836L747 844L744 854L743 860L744 866L747 875L752 883L764 895L776 903L799 915L834 929L858 942L867 949L874 957L878 965L879 975L877 981L872 989L864 997L851 1006L843 1010L822 1018L801 1024L787 1029L774 1033L759 1038L740 1044L731 1048L729 1051L734 1052L744 1051L751 1049L772 1046L793 1043L799 1041L822 1036L841 1031L861 1023L883 1011L891 1003L899 994L904 979L904 965L900 953L897 949L886 937L866 924L849 916L830 910L815 904L806 901L792 894L780 888L765 876L757 865L754 857L753 853L754 847L757 840L766 826ZM1002 887L1001 888L1002 889L1018 896L1034 904L1051 916L1066 931L1071 937L1078 950L1082 960L1084 967L1087 989L1084 1009L1080 1022L1075 1031L1067 1043L1057 1055L1047 1063L1031 1075L1018 1083L1003 1090L998 1093L998 1094L1000 1095L1010 1094L1018 1091L1025 1090L1030 1088L1038 1086L1053 1082L1065 1076L1072 1074L1093 1061L1109 1047L1117 1038L1121 1032L1129 1017L1132 1009L1135 988L1136 986L1138 986L1155 992L1159 994L1173 998L1191 1000L1206 1000L1238 998L1261 990L1269 986L1284 978L1305 963L1310 958L1310 956L1307 956L1301 958L1279 964L1250 968L1231 967L1203 964L1181 958L1148 947L1107 927L1090 917L1085 915L1076 909L1048 897L1020 889L1006 886ZM132 905L132 907L134 910L155 933L169 946L195 966L229 986L254 998L275 1004L280 1006L294 1009L316 1012L327 1014L341 1015L377 1015L394 1012L417 1009L429 1006L465 994L484 986L497 980L502 978L524 968L532 966L537 963L548 959L581 951L605 948L623 948L637 950L651 951L684 960L691 963L699 966L701 965L701 964L700 962L689 953L669 941L645 929L629 925L611 921L579 919L557 921L521 929L490 941L478 947L471 949L446 959L423 965L418 967L392 972L365 976L324 976L293 972L265 967L259 965L253 964L228 955L206 947L181 935L172 929L167 927L148 915L135 906ZM607 983L589 985L555 994L524 1005L513 1011L505 1013L493 1019L466 1031L449 1036L444 1037L439 1040L432 1041L427 1043L395 1048L354 1050L354 1052L357 1054L395 1070L408 1074L416 1076L421 1078L432 1082L457 1088L461 1088L489 1056L504 1043L532 1024L552 1012L559 1010L580 1000L598 994L603 992L620 988L629 985L630 984L629 983L623 982Z"/></symbol>
+</svg>
 
-<div class="page">
+<header class="top" data-top>
+  <a class="brand" href="#top" aria-label="Mythic Flow Studio, back to top">
+    <svg viewBox="0 0 1476 1152" aria-hidden="true"><use href="#emblem"/></svg><span>Mythic Flow</span>
+  </a>
+  <nav class="nav" aria-label="Primary">
+    <a href="#games">Games</a>
+    <!-- forge:lab-nav:start --><a href="#lab">Lab</a><!-- forge:lab-nav:end -->
+    <a class="nav-opt" href="#studio">Studio</a>
+    <a href="#contact">Contact</a>
+  </nav>
+</header>
 
-  <header class="top">
-    <a class="brand" href="#top" aria-label="Mythic Flow Studio, back to top"><span class="dot" aria-hidden="true"></span>MYTHIC FLOW STUDIO</a>
-    <span class="status-chip"><span class="pulse" aria-hidden="true"></span>Building in the open</span>
-    <nav class="nav" aria-label="Primary">
-      <a href="#games">Games</a>
-      <!-- forge:lab-nav:start --><a href="#lab">Lab</a><!-- forge:lab-nav:end -->
-      <a class="nav-opt" href="#studio">Studio</a>
-      <a href="#contact">Contact</a>
-    </nav>
-  </header>
+<main id="main">
 
-  <main id="main">
-
-    <!-- ======================================================= HERO -->
-    <section class="hero" aria-labelledby="hero-title">
-      <div class="hero-head">
-        <p class="eyebrow"><span class="pulse" aria-hidden="true"></span>Independent game studio · Android</p>
-        <h1 class="wordmark" id="hero-title">Mythic <em>Flow</em><br>Studio</h1>
-        <p class="tagline">Games built around one clear idea each. Every highlight on this page is <strong>real in-game footage</strong>.</p>
+  <!-- ======================================================= HERO: the river starts at the dragon -->
+  <section class="hero" aria-labelledby="hero-title">
+    <p class="ghost" aria-hidden="true">Mythic Flow</p>
+    <div class="hero-mark" data-river-source>
+      <svg viewBox="0 0 1476 1152" role="img" aria-label="Mythic Flow Studio logo: a dragon rising from waves, with a river flowing out below it"><use href="#emblem"/></svg>
+    </div>
+    <div class="wrap banks">
+      <div class="bank-l">
+        <p class="kicker">Independent game studio · Android</p>
+        <h1 id="hero-title">Mythic Flow <small>Studio</small></h1>
       </div>
-
-      <!-- HIGHLIGHT REEL
-           One slide per clip, played in order. Each clip plays through, then the reel moves on.
-           To add a highlight: copy a whole .reel-slide block, set data-game-ref to the id of the
-           game card it belongs to, data-duration to the clip length in seconds, and use
-           class "is-landscape" (landscape clip) or "is-portrait" (phone-shaped 1080x2316 clip, inside .phone).
-           Keep preload="none" on every slide except the first. -->
-      <div class="reel" data-reel role="region" aria-roledescription="carousel" aria-label="Gameplay highlight reel">
-        <div class="reel-bar">
-          <span class="reel-kicker mono"><span class="rec" aria-hidden="true"></span>Highlight reel</span>
-          <span class="reel-count mono" aria-hidden="true"><b data-reel-index>01</b> / <span data-reel-total>04</span></span>
-          <button class="reel-toggle" type="button" data-reel-toggle aria-label="Pause highlight reel">
-            <svg class="i-pause" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><rect x="2.5" y="2" width="3" height="10" rx="1"/><rect x="8.5" y="2" width="3" height="10" rx="1"/></svg>
-            <svg class="i-play" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M3.5 2.2v9.6a.8.8 0 0 0 1.2.7l7.6-4.8a.8.8 0 0 0 0-1.4L4.7 1.5a.8.8 0 0 0-1.2.7Z"/></svg>
-          </button>
-          <!-- full screen: made for showing the reel from a phone at events -->
-          <button class="reel-toggle reel-full" type="button" data-reel-full aria-label="Show highlights full screen">
-            <svg class="i-enter" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 5V1.5H5M9 1.5h3.5V5M12.5 9v3.5H9M5 12.5H1.5V9"/></svg>
-            <svg class="i-exit" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 1.5V5H1.5M12.5 5H9V1.5M9 12.5V9h3.5M1.5 9H5v3.5"/></svg>
-          </button>
-        </div>
-
-        <div class="reel-stage" data-reel-stage data-orient="landscape" aria-live="off">
-
-          <!-- slide 1: Apex Dragon, evolve -->
-          <div class="reel-slide is-landscape is-active" data-slide data-game-ref="apex-dragon" data-name="Apex Dragon" data-duration="6.5"
-               style="--accent: var(--amber)" role="group" aria-roledescription="slide" aria-label="1 of 5: Apex Dragon, grow from Hatchling to Apex">
-            <img class="slide-bg" src="assets/media/apexdragon-evolve-poster.jpg" width="1030" height="480" alt="" decoding="async" fetchpriority="high">
-            <div class="slide-media">
-              <video class="slide-video" muted playsinline preload="metadata" width="1030" height="480"
-                     poster="assets/media/apexdragon-evolve-poster.jpg" src="assets/media/apexdragon-evolve.mp4"
-                     aria-label="Apex Dragon gameplay: a tiny Hatchling grows up, flashing gold each time it evolves, to Young Dragon, Elder and finally Apex."></video>
-            </div>
-            <span class="chip chip--status slide-status"><span class="pulse pulse--amber" aria-hidden="true"></span>On Google Play</span>
-            <p class="slide-cap">
-              <span class="slide-text">
-                <span class="slide-name">Apex Dragon</span>
-                <span class="slide-line mono">Hatchling to Apex</span>
-              </span>
-            </p>
-          </div>
-
-          <!-- slide 2: BEAMLOCK, level 200 -->
-          <div class="reel-slide is-portrait" data-slide data-game-ref="beamlock" data-name="BEAMLOCK" data-duration="8.8"
-               style="--accent: var(--beam)" role="group" aria-roledescription="slide" aria-label="2 of 5: BEAMLOCK, level 200, the finale">
-            <img class="slide-bg" src="assets/media/beamlock-level200-poster.jpg" width="720" height="1544" alt="" decoding="async">
-            <div class="slide-media">
-              <div class="phone">
-                <video class="slide-video" muted playsinline preload="none" width="720" height="1544"
-                       poster="assets/media/beamlock-level200-poster.jpg" src="assets/media/beamlock-level200.mp4"
-                       aria-label="BEAMLOCK gameplay, level 200, the finale: a tutorial hand routes the laser from the emitter through splitters, switches, a door and a crate, with color mixing, until all three rings light up for a three-star clear."></video>
-              </div>
-            </div>
-            <span class="chip chip--status slide-status"><span class="pulse" aria-hidden="true"></span>In closed testing</span>
-            <p class="slide-cap">
-              <img class="slide-icon" src="assets/img/beamlock-icon-224.webp" width="40" height="40" alt="" decoding="async">
-              <span class="slide-text">
-                <span class="slide-name">BEAMLOCK</span>
-                <span class="slide-line mono">Level 200, the finale</span>
-              </span>
-            </p>
-          </div>
-
-          <!-- slide 3: Apex Dragon, boss fight -->
-          <div class="reel-slide is-landscape" data-slide data-game-ref="apex-dragon" data-name="Apex Dragon" data-duration="6.2"
-               style="--accent: var(--amber)" role="group" aria-roledescription="slide" aria-label="3 of 5: Apex Dragon, boss boar fight">
-            <img class="slide-bg" src="assets/media/apexdragon-boss-poster.jpg" width="1030" height="480" alt="" decoding="async">
-            <div class="slide-media">
-              <video class="slide-video" muted playsinline preload="none" width="1030" height="480"
-                     poster="assets/media/apexdragon-boss-poster.jpg" src="assets/media/apexdragon-boss.mp4"
-                     aria-label="Apex Dragon gameplay: a huge Apex 9 dragon fights the glowing purple boss boar, slips out of its red charge warning, breathes blue fire and brings it down."></video>
-            </div>
-            <span class="chip chip--status slide-status"><span class="pulse pulse--amber" aria-hidden="true"></span>On Google Play</span>
-            <p class="slide-cap">
-              <span class="slide-text">
-                <span class="slide-name">Apex Dragon</span>
-                <span class="slide-line mono">Boss fight at Apex 9</span>
-              </span>
-            </p>
-          </div>
-
-          <!-- slide 4: BEAMLOCK, level 160 -->
-          <div class="reel-slide is-portrait" data-slide data-game-ref="beamlock" data-name="BEAMLOCK" data-duration="8.35"
-               style="--accent: var(--beam)" role="group" aria-roledescription="slide" aria-label="4 of 5: BEAMLOCK, level 160, Spectrum Master">
-            <img class="slide-bg" src="assets/media/beamlock-level160-poster.jpg" width="720" height="1544" alt="" decoding="async">
-            <div class="slide-media">
-              <div class="phone">
-                <video class="slide-video" muted playsinline preload="none" width="720" height="1544"
-                       poster="assets/media/beamlock-level160-poster.jpg" src="assets/media/beamlock-level160.mp4"
-                       aria-label="BEAMLOCK gameplay, level 160, Spectrum Master: the beam is split, a door opens, and the colors are mixed to light the ring."></video>
-              </div>
-            </div>
-            <span class="chip chip--status slide-status"><span class="pulse" aria-hidden="true"></span>In closed testing</span>
-            <p class="slide-cap">
-              <img class="slide-icon" src="assets/img/beamlock-icon-224.webp" width="40" height="40" alt="" decoding="async">
-              <span class="slide-text">
-                <span class="slide-name">BEAMLOCK</span>
-                <span class="slide-line mono">Level 160, Spectrum Master</span>
-              </span>
-            </p>
-          </div>
-
-          <!-- slide 5: Apex Dragon, duel -->
-          <div class="reel-slide is-landscape" data-slide data-game-ref="apex-dragon" data-name="Apex Dragon" data-duration="6.2"
-               style="--accent: var(--amber)" role="group" aria-roledescription="slide" aria-label="5 of 5: Apex Dragon, duel another player">
-            <img class="slide-bg" src="assets/media/apexdragon-fight-poster.jpg" width="1030" height="480" alt="" decoding="async">
-            <div class="slide-media">
-              <video class="slide-video" muted playsinline preload="none" width="1030" height="480"
-                     poster="assets/media/apexdragon-fight-poster.jpg" src="assets/media/apexdragon-fight.mp4"
-                     aria-label="Apex Dragon gameplay: two Apex dragons, a red one and a purple one, circle each other and trade blue fire breath."></video>
-            </div>
-            <span class="chip chip--status slide-status"><span class="pulse pulse--amber" aria-hidden="true"></span>On Google Play</span>
-            <p class="slide-cap">
-              <span class="slide-text">
-                <span class="slide-name">Apex Dragon</span>
-                <span class="slide-line mono">Duel other players online</span>
-              </span>
-            </p>
-          </div>
-
-          <!-- forge:reel:start -->
-          <!-- prototype: Firefly Bloom (from Mythic Forge) -->
-          <div class="reel-slide is-portrait" data-slide data-game-ref="lab" data-name="Firefly Bloom" data-duration="8"
-               style="--accent: var(--beam)" role="group" aria-roledescription="slide" aria-label="Prototype: Firefly Bloom">
-            <img class="slide-bg" src="lab/firefly-bloom/clip-poster.jpg" width="720" height="1544" alt="" decoding="async">
-            <div class="slide-media">
-              <div class="phone">
-                <video class="slide-video" muted playsinline preload="none" width="720" height="1544"
-                     poster="lab/firefly-bloom/clip-poster.jpg" src="lab/firefly-bloom/clip.mp4"
-                     aria-label="Firefly Bloom prototype gameplay"></video>
-              </div>
-            </div>
-            <span class="chip chip--status slide-status"><span class="pulse" aria-hidden="true"></span>Prototype · play it free</span>
-            <p class="slide-cap">
-              <span class="slide-text">
-                <span class="slide-name">Firefly Bloom <span class="flag">Prototype</span></span>
-                <span class="slide-line mono">Drag matching firefly pods to merge and bloom a moonlit…</span>
-              </span>
-            </p>
-          </div>
-          <!-- prototype: Orbit Snap (from Mythic Forge) -->
-          <div class="reel-slide is-portrait" data-slide data-game-ref="lab" data-name="Orbit Snap" data-duration="8"
-               style="--accent: var(--beam)" role="group" aria-roledescription="slide" aria-label="Prototype: Orbit Snap">
-            <img class="slide-bg" src="lab/orbit-snap/clip-poster.jpg" width="720" height="1544" alt="" decoding="async">
-            <div class="slide-media">
-              <div class="phone">
-                <video class="slide-video" muted playsinline preload="none" width="720" height="1544"
-                     poster="lab/orbit-snap/clip-poster.jpg" src="lab/orbit-snap/clip.mp4"
-                     aria-label="Orbit Snap prototype gameplay"></video>
-              </div>
-            </div>
-            <span class="chip chip--status slide-status"><span class="pulse" aria-hidden="true"></span>Prototype · play it free</span>
-            <p class="slide-cap">
-              <span class="slide-text">
-                <span class="slide-name">Orbit Snap <span class="flag">Prototype</span></span>
-                <span class="slide-line mono">Read a spinning ring&#39;s angle and release at the perfect…</span>
-              </span>
-            </p>
-          </div>
-          <!-- prototype: Boiler Brawl (from Mythic Forge) -->
-          <div class="reel-slide is-portrait" data-slide data-game-ref="lab" data-name="Boiler Brawl" data-duration="8"
-               style="--accent: var(--beam)" role="group" aria-roledescription="slide" aria-label="Prototype: Boiler Brawl">
-            <img class="slide-bg" src="lab/boiler-brawl/clip-poster.jpg" width="720" height="1544" alt="" decoding="async">
-            <div class="slide-media">
-              <div class="phone">
-                <video class="slide-video" muted playsinline preload="none" width="720" height="1544"
-                     poster="lab/boiler-brawl/clip-poster.jpg" src="lab/boiler-brawl/clip.mp4"
-                     aria-label="Boiler Brawl prototype gameplay"></video>
-              </div>
-            </div>
-            <span class="chip chip--status slide-status"><span class="pulse" aria-hidden="true"></span>Prototype · play it free</span>
-            <p class="slide-cap">
-              <span class="slide-text">
-                <span class="slide-name">Boiler Brawl <span class="flag">Prototype</span></span>
-                <span class="slide-line mono">A brass-plated jalopy idles in a gear-toothed arena…</span>
-              </span>
-            </p>
-          </div>
-          <!-- prototype: Midnight Brew (from Mythic Forge) -->
-          <div class="reel-slide is-portrait" data-slide data-game-ref="lab" data-name="Midnight Brew" data-duration="8"
-               style="--accent: var(--beam)" role="group" aria-roledescription="slide" aria-label="Prototype: Midnight Brew">
-            <img class="slide-bg" src="lab/midnight-brew/clip-poster.jpg" width="720" height="1544" alt="" decoding="async">
-            <div class="slide-media">
-              <div class="phone">
-                <video class="slide-video" muted playsinline preload="none" width="720" height="1544"
-                     poster="lab/midnight-brew/clip-poster.jpg" src="lab/midnight-brew/clip.mp4"
-                     aria-label="Midnight Brew prototype gameplay"></video>
-              </div>
-            </div>
-            <span class="chip chip--status slide-status"><span class="pulse" aria-hidden="true"></span>Prototype · play it free</span>
-            <p class="slide-cap">
-              <span class="slide-text">
-                <span class="slide-name">Midnight Brew <span class="flag">Prototype</span></span>
-                <span class="slide-line mono">MIDNIGHT POTION SHOP (memory game): an alchemist&#39;s shelf…</span>
-              </span>
-            </p>
-          </div>
-          <!-- forge:reel:end -->
-
-          <button class="reel-play" type="button" data-reel-play aria-label="Play highlight reel">
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.6v14.8a1.1 1.1 0 0 0 1.7.9l11.4-7.4a1.1 1.1 0 0 0 0-1.8L8.7 3.7A1.1 1.1 0 0 0 7 4.6Z"/></svg>
-          </button>
-        </div>
-
-        <div class="reel-foot">
-          <div class="reel-dots" data-reel-dots role="group" aria-label="Choose a highlight"></div>
-          <a class="reel-link" href="#apex-dragon" data-reel-link>
-            <span>View<span class="rl-name"> <span data-reel-link-name>Apex Dragon</span></span></span>
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5"/></svg>
-          </a>
-        </div>
-      </div>
-
-      <div class="hero-actions">
+      <div class="bank-r">
+        <p class="tagline">Games built around one clear idea each. Follow the river: every clip on it is <strong>real in-game footage</strong>.</p>
         <div class="cta-row">
           <a class="btn btn-primary" href="#games">
-            Explore the games
+            Follow the river
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5"/></svg>
           </a>
           <a class="btn btn-ghost" href="#contact">Get in touch</a>
         </div>
-        <p class="hero-meta mono"><b data-game-count>02</b> games in the works · all clips captured in-game</p>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <!-- ======================================================= GAMES -->
-    <section class="section" id="games" aria-labelledby="games-title">
-      <div class="sec-head">
-        <div>
-          <p class="kicker">Our games</p>
-          <h2 class="sec-title" id="games-title">Everything we're building</h2>
-          <p class="sec-sub">Different genres, one standard: a core idea you get in seconds, shown in real gameplay.</p>
+  <div class="bend bend--l" id="games" aria-hidden="true">
+    <svg class="orn" viewBox="20 300 760 800"><use href="#emblem"/></svg>
+    <p class="bend-label mono">Downstream · 01<b>Apex Dragon</b></p>
+  </div>
+
+  <!--
+    HOW TO ADD A GAME
+    1. Copy one whole <section class="scene ..."> block and the <div class="bend ..."> before it.
+    2. Give the section a unique id, and set --accent (a color token) and --world (the scene's deep color).
+    3. Landscape footage: copy the Apex Dragon block (scene--wide). Phone-shaped footage: copy BEAMLOCK (scene--tall).
+    4. Each clip is one <button data-clip> in the stage bar; the first one must match the <video>'s src and poster.
+    5. Alternate bend--l and bend--r so the river swings the other way each time.
+    Every clip must be real in-game footage.
+  -->
+
+  <!-- ================= GAME SCENE: APEX DRAGON ================= -->
+  <section class="scene scene--wide" id="apex-dragon" data-game data-name="Apex Dragon" style="--accent: var(--amber); --world:#0f2a1b" aria-labelledby="apex-name">
+    <div class="scene-art" aria-hidden="true"><img src="assets/media/apexdragon-evolve-poster.jpg" width="1030" height="480" alt="" loading="lazy" decoding="async"></div>
+    <div class="wrap">
+      <div class="banks rv">
+        <div class="bank-l">
+          <p class="kicker"><span class="pulse" aria-hidden="true"></span><b>01</b> On Google Play</p>
+          <h2 class="name" id="apex-name">Apex<br>Dragon</h2>
+          <p class="mono tagline-game">hatch · eat · grow · rule</p>
         </div>
-        <p class="sec-count mono"><b data-game-count>02</b> games</p>
+        <div class="bank-r">
+          <p class="pitch">An online multiplayer, free-for-all dragon arena in a stylized forest. Pick one of 17 dragons, hatch it tiny, eat everything smaller than you and grow through seven stages to Apex and beyond, while other players' dragons hunt for the top of the leaderboard. Three boss boars guard their zones, and beating one grants its power.</p>
+        </div>
       </div>
 
-      <!--
-        HOW TO ADD A GAME
-        1. Copy one whole <article class="game" data-game ...> ... </article> block and paste it
-           after the last game (before the "more games" strip).
-        2. Give it a unique id and set style="--accent: var(--token)" to one of the :root color tokens.
-        3. Swap the media, name, tagline, chips, pitch, highlights and CTA.
-           Landscape clip: copy the Apex Dragon block (figure.media--landscape > .screen).
-           Portrait (phone-shaped 1080x2316) clip: copy the BEAMLOCK block (figure.media--portrait > .phone).
-           Keep "game--feature" for a full-width row; drop it for a half-width card.
-        4. Add its clips to the highlight reel in the hero (see the note above the reel).
-        The card numbers (001, 002, ...), the game counters and the grid layout update automatically.
-      -->
-      <div class="games">
+      <!-- MEDIA: real in-game footage, landscape 1030x480, no audio. The clips play one after another. -->
+      <figure class="stage stage--wide rv" data-stage>
+        <div class="screen">
+          <video muted playsinline preload="metadata" width="1030" height="480"
+                 poster="assets/media/apexdragon-evolve-poster.jpg" src="assets/media/apexdragon-evolve.mp4"
+                 aria-label="Apex Dragon gameplay: a tiny Hatchling grows up, flashing gold each time it evolves, to Young Dragon, Elder and finally Apex."></video>
+        </div>
+        <figcaption class="stage-bar">
+          <span class="live mono"><span class="pulse" aria-hidden="true"></span>Real gameplay</span>
+          <button class="clip is-on" type="button" data-clip aria-pressed="true"
+                  data-src="assets/media/apexdragon-evolve.mp4" data-poster="assets/media/apexdragon-evolve-poster.jpg"
+                  data-label="Apex Dragon gameplay: a tiny Hatchling grows up, flashing gold each time it evolves, to Young Dragon, Elder and finally Apex.">Evolution</button>
+          <button class="clip" type="button" data-clip aria-pressed="false"
+                  data-src="assets/media/apexdragon-boss.mp4" data-poster="assets/media/apexdragon-boss-poster.jpg"
+                  data-label="Apex Dragon gameplay: a huge Apex 9 dragon fights the glowing purple boss boar, slips out of its red charge warning, breathes blue fire and brings it down.">Boss fight</button>
+          <button class="clip" type="button" data-clip aria-pressed="false"
+                  data-src="assets/media/apexdragon-fight.mp4" data-poster="assets/media/apexdragon-fight-poster.jpg"
+                  data-label="Apex Dragon gameplay: two Apex dragons, a red one and a purple one, circle each other and trade blue fire breath.">Duel</button>
+          <button class="full" type="button" data-full aria-label="Show this clip full screen">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10"/></svg>
+          </button>
+        </figcaption>
+      </figure>
 
-        <!-- ================= GAME BLOCK: APEX DRAGON ================= -->
-        <article class="game game--feature game--wide" id="apex-dragon" data-game data-name="Apex Dragon" style="--accent: var(--amber)">
-          <!-- MEDIA: real in-game footage, landscape (1030x480, 6.5 s loop, no audio):
-               a Hatchling evolving through the stages up to Apex. -->
-          <figure class="media media--landscape">
-            <div class="screen">
-              <video muted loop playsinline controls preload="metadata" width="1030" height="480"
-                     poster="assets/media/apexdragon-evolve-poster.jpg" src="assets/media/apexdragon-evolve.mp4"
-                     aria-label="Apex Dragon gameplay: a tiny Hatchling grows up, flashing gold each time it evolves, to Young Dragon, Elder and finally Apex."></video>
-            </div>
-            <figcaption class="media-badge">
+      <div class="banks rv">
+        <div class="bank-l">
+          <ul class="chips" aria-label="Game details">
+            <li class="chip">Online multiplayer</li>
+            <li class="chip">Free-for-all arena</li>
+            <li class="chip">Android</li>
+          </ul>
+          <div class="actions">
+            <a class="btn btn-ghost" href="assets/media/apexdragon-trailer.mp4" data-trailer-open>
               <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="6" cy="6" r="5"/><path d="M4.9 3.9v4.2L8.2 6Z" fill="currentColor" stroke="none"/></svg>
-              Real gameplay · Evolution
-            </figcaption>
-          </figure>
-
-          <div class="game-body">
-            <div class="game-head">
-              <div>
-                <div class="game-title">
-                  <h3 class="game-name">Apex Dragon</h3>
-                </div>
-                <p class="game-tagline mono">hatch · eat · grow · rule</p>
-              </div>
-            </div>
-
-            <ul class="chips" aria-label="Game details">
-              <li class="chip">Online multiplayer</li>
-              <li class="chip">Free-for-all arena</li>
-              <li class="chip">Android</li>
-              <li class="chip chip--status"><span class="pulse pulse--amber" aria-hidden="true"></span>On Google Play</li>
-            </ul>
-
-            <p class="game-pitch">An online multiplayer, free-for-all dragon arena in a stylized forest. Pick one of 17 dragons, hatch it tiny, eat everything smaller than you and grow through seven stages to Apex and beyond, while other players' dragons hunt for the top of the leaderboard. Three boss boars guard their zones, and beating one grants its power.</p>
-
-            <p class="mini-label mono" aria-hidden="true">Highlights</p>
-            <ul class="highlights" aria-label="Highlights">
-              <li>Hatchling → Whelp → Juvenile → … → Apex</li>
-              <li>Dash at Whelp, fire breath at Juvenile</li>
-              <li>17 dragons to choose from</li>
-              <li>Live leaderboard</li>
-              <li>Boss boars with telegraphed attacks</li>
-              <li>Boss powers: Inferno breath, Void dash</li>
-            </ul>
-
-            <div class="game-cta">
-              <a class="play-badge" href="https://play.google.com/store/apps/details?id=com.daniel.apexdragon" target="_blank" rel="noopener">
-                <img src="assets/img/google-play-badge.png" width="564" height="168" alt="Get it on Google Play" loading="lazy" decoding="async">
-              </a>
-              <a class="btn btn-ghost" href="assets/media/apexdragon-trailer.mp4" data-trailer-open>
-                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="6" cy="6" r="5"/><path d="M4.9 3.9v4.2L8.2 6Z" fill="currentColor" stroke="none"/></svg>
-                Watch the trailer
-              </a>
-            </div>
+              Watch the trailer
+            </a>
+            <a class="play-badge" href="https://play.google.com/store/apps/details?id=com.daniel.apexdragon" target="_blank" rel="noopener">
+              <img src="assets/img/google-play-badge.png" width="564" height="168" alt="Get it on Google Play" loading="lazy" decoding="async">
+            </a>
           </div>
-        </article>
-        <!-- ================= /GAME BLOCK ================= -->
-
-        <!-- ================= GAME BLOCK: BEAMLOCK ================= -->
-        <article class="game game--feature game--portrait" id="beamlock" data-game data-name="BEAMLOCK" style="--accent: var(--beam)">
-          <!-- MEDIA: real in-game footage, portrait 1080x2316, recorded at a real phone resolution (level 200 "Beamlock", 9 s loop, no audio).
-               The script at the bottom plays clips only while visible and never autoplays
-               under reduced motion (poster + native play control instead). -->
-          <figure class="media media--portrait">
-            <div class="phone">
-              <video muted loop playsinline controls preload="metadata" width="720" height="1544"
-                     poster="assets/media/beamlock-level200-poster.jpg" src="assets/media/beamlock-level200.mp4"
-                     aria-label="BEAMLOCK gameplay, level 200: the laser from the emitter is routed through splitters, switches, a door and a crate, with color mixing, until all three rings light up for a three-star clear."></video>
-            </div>
-            <figcaption class="media-badge">
-              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="6" cy="6" r="5"/><path d="M4.9 3.9v4.2L8.2 6Z" fill="currentColor" stroke="none"/></svg>
-              Real gameplay · Level 200
-            </figcaption>
-          </figure>
-
-          <div class="game-body">
-            <div class="game-head">
-              <img class="game-icon" src="assets/img/beamlock-icon-224.webp" width="64" height="64" alt="" loading="lazy" decoding="async">
-              <div>
-                <div class="game-title"><h3 class="game-name">BEAMLOCK</h3></div>
-                <p class="game-tagline mono">bend the light · lock the switches</p>
-              </div>
-            </div>
-
-            <ul class="chips" aria-label="Game details">
-              <li class="chip">Puzzle</li>
-              <li class="chip">Android</li>
-              <li class="chip">200 levels</li>
-              <li class="chip chip--status"><span class="pulse" aria-hidden="true"></span>In closed testing</li>
-            </ul>
-
-            <p class="game-pitch">A grid laser-routing puzzle. Place mirrors, trip switches and mix colors to guide the beam through every ring on the board.</p>
-
-            <p class="mini-label mono" aria-hidden="true">Highlights</p>
-            <ul class="highlights" aria-label="Highlights">
-              <li>Mirrors &amp; reflection</li>
-              <li>Switches &amp; doors</li>
-              <li>Splitters</li>
-              <li>Portals</li>
-              <li>Color mixing</li>
-              <li>Daily challenge</li>
-            </ul>
-
-            <div class="game-cta">
-              <!-- CLOSED TEST: replace this mailto with the Google Group / Play opt-in link when it's ready.
-                   At public release, add the Google Play link or badge next to it. -->
-              <a class="btn btn-accent" href="mailto:hello@mythicflowstudio.com?subject=BEAMLOCK%20closed%20test">Join the closed test</a>
-            </div>
-          </div>
-        </article>
-        <!-- ================= /GAME BLOCK ================= -->
-
-        <!-- Keep this last: it fills an empty grid cell, or becomes a full-width strip. -->
-        <aside class="game-next" aria-labelledby="next-title">
-          <span class="next-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 1.5c.4 3.9 2.6 6.6 7.5 7.5v2c-4.9.9-7.1 3.6-7.5 7.5h-.1c-.4-3.9-2.6-6.6-7.4-7.5V9c4.8-.9 7-3.6 7.4-7.5Z"/></svg></span>
-          <div class="next-copy">
-            <h3 id="next-title">More games in the works</h3>
-            <p>New projects land here first, with real gameplay highlights from their builds.</p>
-          </div>
-          <a class="btn btn-ghost" href="#contact">Follow along</a>
-        </aside>
-
+        </div>
+        <div class="bank-r">
+          <p class="mini mono" aria-hidden="true">Highlights</p>
+          <ul class="hl" aria-label="Highlights">
+            <li>Hatchling → Whelp → Juvenile → … → Apex</li>
+            <li>Dash at Whelp, fire breath at Juvenile</li>
+            <li>17 dragons to choose from</li>
+            <li>Live leaderboard</li>
+            <li>Boss boars with telegraphed attacks</li>
+            <li>Boss powers: Inferno breath, Void dash</li>
+          </ul>
+        </div>
       </div>
-    </section>
+    </div>
+  </section>
+  <!-- ================= /GAME SCENE ================= -->
+
+  <div class="bend bend--r" aria-hidden="true">
+    <svg class="orn" viewBox="20 300 760 800"><use href="#emblem"/></svg>
+    <p class="bend-label mono">Downstream · 02<b>BEAMLOCK</b></p>
+  </div>
+
+  <!-- ================= GAME SCENE: BEAMLOCK ================= -->
+  <section class="scene scene--tall" id="beamlock" data-game data-name="BEAMLOCK" style="--accent: var(--beam); --world:#081a2e" aria-labelledby="beamlock-name">
+    <div class="scene-art" aria-hidden="true"><img src="assets/media/beamlock-level200-poster.jpg" width="720" height="1544" alt="" loading="lazy" decoding="async"></div>
+    <div class="wrap trio">
+      <div class="bank-l rv">
+        <p class="kicker"><span class="pulse" aria-hidden="true"></span><b>02</b> In closed testing</p>
+        <h2 class="name" id="beamlock-name">Beamlock</h2>
+        <div class="icon-row">
+          <p class="mono tagline-game">bend the light ·<br>lock the switches</p>
+          <img class="game-icon" src="assets/img/beamlock-icon-224.webp" width="64" height="64" alt="" loading="lazy" decoding="async">
+        </div>
+        <ul class="chips" aria-label="Game details">
+          <li class="chip">Puzzle</li>
+          <li class="chip">Android</li>
+          <li class="chip">200 levels</li>
+        </ul>
+        <div class="actions">
+          <!-- CLOSED TEST: replace this mailto with the Google Group / Play opt-in link when it's ready.
+               At public release, add the Google Play link or badge next to it. -->
+          <a class="btn btn-accent" href="mailto:hello@mythicflowstudio.com?subject=BEAMLOCK%20closed%20test">Join the closed test</a>
+        </div>
+      </div>
+
+      <!-- MEDIA: real in-game footage, portrait 1080x2316, recorded at a real phone resolution, no audio. -->
+      <figure class="stage stage--tall rv" data-stage>
+        <div class="screen">
+          <video muted playsinline preload="metadata" width="720" height="1544"
+                 poster="assets/media/beamlock-level200-poster.jpg" src="assets/media/beamlock-level200.mp4"
+                 aria-label="BEAMLOCK gameplay, level 200: the laser from the emitter is routed through splitters, switches, a door and a crate, with color mixing, until all three rings light up for a three-star clear."></video>
+        </div>
+        <figcaption class="stage-bar">
+          <button class="clip is-on" type="button" data-clip aria-pressed="true"
+                  data-src="assets/media/beamlock-level200.mp4" data-poster="assets/media/beamlock-level200-poster.jpg"
+                  data-label="BEAMLOCK gameplay, level 200: the laser from the emitter is routed through splitters, switches, a door and a crate, with color mixing, until all three rings light up for a three-star clear.">Level 200</button>
+          <button class="clip" type="button" data-clip aria-pressed="false"
+                  data-src="assets/media/beamlock-level160.mp4" data-poster="assets/media/beamlock-level160-poster.jpg"
+                  data-label="BEAMLOCK gameplay, level 160, Spectrum Master: the beam is split, a door opens, and the colors are mixed to light the ring.">Level 160</button>
+          <button class="full" type="button" data-full aria-label="Show this clip full screen">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10"/></svg>
+          </button>
+        </figcaption>
+      </figure>
+
+      <div class="bank-r rv">
+        <p class="pitch">A grid laser-routing puzzle. Place mirrors, trip switches and mix colors to guide the beam through every ring on the board.</p>
+        <p class="mini mono" aria-hidden="true">Highlights</p>
+        <ul class="hl" aria-label="Highlights">
+          <li>Mirrors &amp; reflection</li>
+          <li>Switches &amp; doors</li>
+          <li>Splitters</li>
+          <li>Portals</li>
+          <li>Color mixing</li>
+          <li>Daily challenge</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+  <!-- ================= /GAME SCENE ================= -->
+
+  <div class="bend bend--l" aria-hidden="true">
+    <svg class="orn" viewBox="20 300 760 800"><use href="#emblem"/></svg>
+    <p class="bend-label mono">More games in the works<b>New projects land here first</b></p>
+  </div>
 
     <!-- forge:lab:start -->
     <!-- Generated by Mythic Forge ("Website" page): edits here are overwritten on the next publish. -->
@@ -1145,84 +648,83 @@
     </script>
     <!-- forge:lab:end -->
 
-    <!-- ======================================================= STUDIO -->
-    <section class="section" id="studio" aria-labelledby="studio-title">
-      <div class="studio">
-        <div>
-          <p class="kicker">The studio</p>
-          <h2 class="sec-title" id="studio-title">One clear idea per game, polished until it <em>flows</em>.</h2>
-        </div>
-        <div class="studio-copy">
-          <p>Mythic Flow Studio is an independent game studio making games for Android. Every project starts from one idea you can grasp in seconds, like <strong>bending a beam of light</strong> or <strong>growing a dragon</strong>, and we build outward until it feels right in your hands.</p>
-          <p>The genres change from game to game. The standard doesn't.</p>
-        </div>
+  <!-- ======================================================= STUDIO: the river reaches the pool -->
+  <section class="mouth" id="studio" aria-labelledby="studio-title">
+    <div class="wrap banks rv">
+      <div class="bank-l">
+        <p class="kicker">The studio</p>
+        <h2 class="sec-title" id="studio-title">One clear idea per game, polished until it <em>flows</em>.</h2>
       </div>
-      <ul class="principles">
-        <li>
-          <span class="num mono">01</span>
-          <h3>One idea, done well</h3>
-          <p>Each game is built around a single core mechanic, and everything else serves it.</p>
-        </li>
-        <li>
-          <span class="num mono">02</span>
-          <h3>Readable at a glance</h3>
-          <p>Clear visuals and controls, designed to make sense on a phone screen.</p>
-        </li>
-        <li>
-          <span class="num mono">03</span>
-          <h3>Built in the open</h3>
-          <p>Every clip on this site is captured in-game. No mockups, no pre-rendered trailers.</p>
-        </li>
-      </ul>
-    </section>
-
-    <!-- ======================================================= CONTACT -->
-    <section class="section" id="contact" aria-labelledby="contact-title">
-      <div class="contact-band">
-        <div>
-          <p class="kicker">Follow along</p>
-          <h2 class="sec-title" id="contact-title">Be first to play what's next.</h2>
-          <p class="contact-copy">Want in on the BEAMLOCK closed test, Apex Dragon news or new highlights? Drop us a line. Players, press and partners all welcome.</p>
-        </div>
-        <div class="contact-actions">
-          <a class="btn btn-primary" href="mailto:hello@mythicflowstudio.com">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.8" y="3.2" width="12.4" height="9.6" rx="2"/><path d="m2.5 4.5 5.5 4.2 5.5-4.2"/></svg>
-            hello@mythicflowstudio.com
-          </a>
-          <a class="btn btn-ghost" href="mailto:hello@mythicflowstudio.com?subject=Press%20%26%20partnerships">Press &amp; partnerships</a>
-        </div>
+      <div class="bank-r studio-copy">
+        <p>Mythic Flow Studio is an independent game studio making games for Android. Every project starts from one idea you can grasp in seconds, like <strong>bending a beam of light</strong> or <strong>growing a dragon</strong>, and we build outward until it feels right in your hands.</p>
+        <p>The genres change from game to game. The standard doesn't.</p>
       </div>
-    </section>
+    </div>
+    <div class="pool" data-river-pool aria-hidden="true">
+      <svg viewBox="0 0 1476 1152"><use href="#emblem"/></svg>
+    </div>
+    <ul class="principles wrap rv">
+      <li>
+        <span class="mono">01</span>
+        <h3>One idea, done well</h3>
+        <p>Each game is built around a single core mechanic, and everything else serves it.</p>
+      </li>
+      <li>
+        <span class="mono">02</span>
+        <h3>Readable at a glance</h3>
+        <p>Clear visuals and controls, designed to make sense on a phone screen.</p>
+      </li>
+      <li>
+        <span class="mono">03</span>
+        <h3>Built in the open</h3>
+        <p>Every clip on this site is captured in-game. No mockups, no pre-rendered trailers.</p>
+      </li>
+    </ul>
+  </section>
 
-  </main>
+  <!-- ======================================================= CONTACT -->
+  <section class="contact" id="contact" aria-labelledby="contact-title">
+    <svg class="orn-big" viewBox="0 0 1476 1152" aria-hidden="true"><use href="#emblem"/></svg>
+    <div class="wrap rv">
+      <p class="kicker">Follow along</p>
+      <h2 class="sec-title" id="contact-title">Be first to play what's next.</h2>
+      <p class="contact-copy">Want in on the BEAMLOCK closed test, Apex Dragon news or new highlights? Drop us a line. Players, press and partners all welcome.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="mailto:hello@mythicflowstudio.com">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.8" y="3.2" width="12.4" height="9.6" rx="2"/><path d="m2.5 4.5 5.5 4.2 5.5-4.2"/></svg>
+          hello@mythicflowstudio.com
+        </a>
+        <a class="btn btn-ghost" href="mailto:hello@mythicflowstudio.com?subject=Press%20%26%20partnerships">Press &amp; partnerships</a>
+      </div>
+    </div>
+  </section>
 
-  <footer class="site-foot">
+</main>
+
+<footer class="site-foot">
+  <div class="foot-in">
     <div class="foot-brand">
-      <p class="brand"><span class="dot" aria-hidden="true"></span>MYTHIC FLOW STUDIO</p>
+      <p class="brand"><svg viewBox="0 0 1476 1152" aria-hidden="true"><use href="#emblem"/></svg><span>Mythic Flow Studio</span></p>
       <p>Independent games for Android, built around one clear idea each.</p>
       <a class="contact-link" href="mailto:hello@mythicflowstudio.com">hello@mythicflowstudio.com</a>
     </div>
-
     <nav aria-label="Games">
-      <p class="foot-h mono">Games</p>
+      <p class="mono">Games</p>
       <ul class="foot-list">
         <li><a href="#apex-dragon">Apex Dragon</a></li>
         <li><a href="#beamlock">BEAMLOCK</a></li>
       </ul>
     </nav>
-
     <nav aria-label="Studio">
-      <p class="foot-h mono">Studio</p>
+      <p class="mono">Studio</p>
       <ul class="foot-list">
         <li><a href="#studio">The studio</a></li>
         <li><a href="#contact">Contact</a></li>
       </ul>
     </nav>
-
     <p class="fine mono">© <span data-year>2026</span> Mythic Flow Studio · All footage captured in-game</p>
-  </footer>
-
-</div>
+  </div>
+</footer>
 
 <!-- Apex Dragon trailer (1280x720, 61 s, no audio): plays only when opened -->
 <dialog class="trailer" id="apex-trailer" aria-label="Apex Dragon trailer">
@@ -1241,51 +743,69 @@
   'use strict';
 
   const doc = document;
-  const reduce = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
-  const onChange = (mq, fn) => {
-    if (mq.addEventListener) mq.addEventListener('change', fn);
-    else if (mq.addListener) mq.addListener(fn);
-  };
-  const pad = (n) => String(n).padStart(2, '0');
+  const mq = (q) => (window.matchMedia ? window.matchMedia(q) : { matches: false });
+  const reduce = mq('(prefers-reduced-motion: reduce)');
+  const phone = mq('(max-width: 859px)');
   const hasIO = 'IntersectionObserver' in window;
-  const games = Array.from(doc.querySelectorAll('[data-game]'));
+  const quietPlay = (v) => { const p = v.play(); if (p && p.catch) p.catch(() => {}); };
 
-  /* ---------- counters & year */
-  doc.querySelectorAll('[data-game-count]').forEach((el) => { el.textContent = pad(games.length); });
   doc.querySelectorAll('[data-year]').forEach((el) => { el.textContent = new Date().getFullYear(); });
 
-  /* ---------- "more games" strip: fill the empty cell beside an odd half-width card */
-  const nextTile = doc.querySelector('.game-next');
-  if (nextTile) {
-    const halfCards = games.filter((g) => !g.classList.contains('game--feature')).length;
-    nextTile.classList.toggle('is-cell', halfCards % 2 === 1);
-  }
+  /* ---------- top bar: clear over the hero, solid once the page moves */
+  const top = doc.querySelector('[data-top]');
+  const stick = () => { if (top) top.classList.toggle('is-stuck', window.scrollY > 40); };
 
-  function quietPlay(video, onBlocked) {
-    let p = null;
-    try { p = video.play(); } catch (_) { /* old browsers */ }
-    if (p && typeof p.catch === 'function') {
-      p.catch((err) => { if (err && err.name === 'NotAllowedError' && onBlocked) onBlocked(); });
-    }
-  }
-
-  /* ---------- card clips: play only while visible; under reduced motion never autoplay
-     (the poster stays up and the native controls let the viewer play on demand) */
-  const cardVideos = Array.from(doc.querySelectorAll('.games video'));
-  const prepCard = (v) => { v.muted = true; v.playsInline = true; v.controls = !!reduce.matches; };
-  function refreshCard(v) {
-    if (!v._visible || doc.hidden) { v.pause(); return; }
-    if (!reduce.matches) quietPlay(v, () => { v.controls = true; });
-  }
-  cardVideos.forEach(prepCard);
+  /* ---------- blocks arrive as they scroll into view */
+  const arriving = doc.querySelectorAll('.rv');
   if (hasIO) {
-    const cardIO = new IntersectionObserver((entries) => {
-      entries.forEach((e) => { e.target._visible = e.isIntersecting && e.intersectionRatio >= 0.3; refreshCard(e.target); });
-    }, { threshold: [0, 0.35] });
-    cardVideos.forEach((v) => cardIO.observe(v));
+    const seen = new IntersectionObserver((entries) => {
+      entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); seen.unobserve(e.target); } });
+    }, { threshold: 0.05, rootMargin: '0px 0px 12% 0px' });   // starts just before the block enters, so fast scrolling never shows a gap
+    arriving.forEach((el) => seen.observe(el));
   } else {
-    cardVideos.forEach((v) => { v._visible = true; refreshCard(v); });
+    arriving.forEach((el) => el.classList.add('in'));
   }
+
+  /* ---------- stages: each game's clips play one after another, only while on screen */
+  doc.querySelectorAll('[data-stage]').forEach((stage) => {
+    const video = stage.querySelector('video');
+    const clips = Array.from(stage.querySelectorAll('[data-clip]'));
+    let current = 0;
+    let onScreen = false;
+
+    const show = (index, play) => {
+      current = (index + clips.length) % clips.length;
+      const clip = clips[current];
+      clips.forEach((b) => { b.classList.toggle('is-on', b === clip); b.setAttribute('aria-pressed', String(b === clip)); });
+      if (video.getAttribute('src') !== clip.dataset.src) {
+        video.poster = clip.dataset.poster;
+        video.src = clip.dataset.src;
+        video.setAttribute('aria-label', clip.dataset.label);
+      }
+      if (play) quietPlay(video);
+    };
+
+    clips.forEach((b, i) => b.addEventListener('click', () => show(i, true)));
+    video.addEventListener('ended', () => {
+      if (clips.length > 1) show(current + 1, onScreen && !reduce.matches);
+      else { video.currentTime = 0; if (onScreen && !reduce.matches) quietPlay(video); }
+    });
+    if (reduce.matches) video.controls = true;   // no autoplay under reduced motion: the viewer starts it
+
+    if (hasIO) {
+      new IntersectionObserver((entries) => {
+        onScreen = entries[0].isIntersecting;
+        if (onScreen && !reduce.matches) quietPlay(video); else video.pause();
+      }, { threshold: 0.35 }).observe(stage);
+    }
+
+    const full = stage.querySelector('[data-full]');
+    if (full) full.addEventListener('click', () => {
+      const enter = video.requestFullscreen || video.webkitRequestFullscreen || video.webkitEnterFullscreen;
+      if (!enter) return;
+      try { const p = enter.call(video); if (p && p.catch) p.catch(() => {}); } catch (err) { /* full screen refused: stay inline */ }
+    });
+  });
 
   /* ---------- trailer: opens in a dialog and plays; closing it (button, Esc, tap outside) stops it */
   const trailer = doc.getElementById('apex-trailer');
@@ -1302,229 +822,228 @@
     trailer.addEventListener('close', () => tv.pause());   // Esc / back gesture
   }
 
-  /* ---------- highlight reel: each clip plays through once, then the reel moves on */
-  function initReel(reel) {
-    const stage = reel.querySelector('[data-reel-stage]');
-    const dotsWrap = reel.querySelector('[data-reel-dots]');
-    const toggle = reel.querySelector('[data-reel-toggle]');
-    const playBtn = reel.querySelector('[data-reel-play]');
-    const fullBtn = reel.querySelector('[data-reel-full]');
-    const link = reel.querySelector('[data-reel-link]');
-    const linkName = reel.querySelector('[data-reel-link-name]');
-    const idxEl = reel.querySelector('[data-reel-index]');
-    const totalEl = reel.querySelector('[data-reel-total]');
-    const slideEls = Array.from(stage.querySelectorAll('[data-slide]'));
-    if (!slideEls.length) return;
+  /* ---------- the river
+     One continuous river runs down the page, from the dragon in the hero to the pool in the studio section.
+     Every host element gets its own piece, so only the pieces on screen are redrawn.
+     A piece is described by a few waypoints; between them the centre line eases from one to the next.
+     On wide screens the river runs down the middle; on phones it runs down the left edge. */
+  const RIVER = {
+    hosts: '.hero, .bend, .scene, #lab, .mouth',
+    width: { wide: 104, phone: 40 },     // keep in step with --rw in the styles
+    phoneSpine: 28,                     // px from the left edge on phones
+    step: 5,                            // px between outline points
+    litLine: 0.78,                      // the river is lit down to this share of the viewport height
+    overlap: 6,                         // px each piece reaches up into the one above, so no seam shows between them
+    // dark flow lines inside the water, like the cuts in the logo's waves: each lane repeats, and drifts downstream
+    lanes: [
+      { at: -0.27, every: 430, long: 240, shift: 0, speed: 60 },
+      { at: 0.04, every: 370, long: 170, shift: 140, speed: 80 },
+      { at: 0.29, every: 520, long: 270, shift: 300, speed: 52 },
+    ],
+  };
 
-    const total = slideEls.length;
-    let current = 0;
-    let userPaused = !!reduce.matches;   // reduced motion: nothing plays until the viewer presses play
-    let hover = false;
-    let focusHold = false;
-    let inView = true;
-    let raf = 0;
-    let last = 0;
+  const ease = (t) => (t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t));
+  const px = (n) => n.toFixed(1);
 
-    const playing = () => !userPaused && inView && !doc.hidden;          // the active clip may play
-    const rotating = () => playing() && !hover && !focusHold && total > 1; // ...and may hand over to the next
+  const rivers = Array.from(doc.querySelectorAll(RIVER.hosts)).map((host) => {
+    host.classList.add('has-river');
+    const layer = doc.createElement('div');
+    layer.className = 'river';
+    layer.setAttribute('aria-hidden', 'true');
+    layer.innerHTML = '<svg class="dim"><path class="body"/></svg><div class="lit"><svg><path class="body"/><path class="streak"/></svg></div>';
+    host.prepend(layer);
+    return {
+      host,
+      lit: layer.querySelector('.lit'),
+      svgs: layer.querySelectorAll('svg'),
+      bodies: layer.querySelectorAll('.body'),
+      streak: layer.querySelector('.streak'),
+      onScreen: !hasIO,
+      litHeight: -1,
+      shape: null,
+    };
+  });
 
-    const blocked = () => { userPaused = true; sync(); }; // autoplay refused (e.g. data saver): show the play control
+  /** Where this piece of river runs: its waypoints, its width, and where it starts and stops. */
+  function measure(river) {
+    const host = river.host;
+    const box = host.getBoundingClientRect();
+    const w = host.clientWidth, h = host.clientHeight;
+    const isPhone = phone.matches;
+    const spine = isPhone ? RIVER.phoneSpine : w / 2;
+    const place = (el) => { const b = el.getBoundingClientRect(); return { x: b.left - box.left, y: b.top - box.top, w: b.width, h: b.height }; };
+    const shape = {
+      w, h,
+      width: isPhone ? RIVER.width.phone : RIVER.width.wide,
+      wander: isPhone ? 5 : Math.min(36, w * 0.028),   // how far the river strays from its line, in px
+      pageTop: box.top + window.scrollY,
+      from: 0, to: h,
+      points: [{ y: 0, x: spine }, { y: h, x: spine }],
+      sourceWidth: 0,       // > 0: the river starts this wide (the logo's own river) and narrows
+      stillStart: false,    // no wandering near a fixed start or end, so it meets the art exactly
+      stillEnd: false,
+    };
 
-    const slides = slideEls.map((el, i) => {
-      const video = el.querySelector('video');
-      const name = el.dataset.name || '';
-      const lineEl = el.querySelector('.slide-line');
-      const line = lineEl ? lineEl.textContent.trim() : '';
-      const accent = el.style.getPropertyValue('--accent').trim();
-
-      const dot = doc.createElement('button');
-      dot.type = 'button';
-      dot.className = 'reel-dot';
-      dot.setAttribute('aria-label', 'Highlight ' + (i + 1) + ': ' + name + (line ? ', ' + line : ''));
-      if (accent) dot.style.setProperty('--accent', accent);
-      dot.innerHTML = '<span class="track" aria-hidden="true"><span class="fill"></span></span>';
-      dot.addEventListener('click', () => go(i));
-      dotsWrap.appendChild(dot);
-
-      const s = {
-        el, video, dot, fill: dot.querySelector('.fill'), name, accent,
-        gameRef: el.dataset.gameRef || '', portrait: el.classList.contains('is-portrait'),
-        dur: parseFloat(el.dataset.duration) || 8, failed: !video, elapsed: 0, stuck: 0, lastT: -1
-      };
-      if (video) {
-        video.muted = true;
-        video.playsInline = true;
-        video.loop = false;
-        video.controls = false;
-        video.addEventListener('ended', () => onEnded(s));
-        video.addEventListener('error', () => { s.failed = true; sync(); }); // fall back to the clip's duration
-      }
-      return s;
-    });
-
-    function onEnded(s) {
-      if (s !== slides[current]) return;
-      if (rotating()) { go(current + 1); return; }
-      if (playing()) { s.video.currentTime = 0; quietPlay(s.video, blocked); } // held by hover/focus: replay it
+    const source = host.querySelector('[data-river-source]');
+    if (source) {
+      // the river continues the one drawn in the logo: it starts behind the solid band at the emblem's lower edge
+      const s = place(source);
+      shape.from = s.y + s.h * 0.95;
+      shape.sourceWidth = s.w * 0.16;
+      shape.stillStart = true;
+      const x0 = s.x + s.w * 0.48, fall = h - shape.from, swing = Math.min(90, w * 0.06);
+      shape.points = isPhone
+        ? [{ y: shape.from, x: x0 }, { y: shape.from + 165, x: spine }, { y: h, x: spine }]                       // sweeps to the left edge
+        : [{ y: shape.from, x: x0 }, { y: shape.from + fall * 0.34, x: x0 - swing }, { y: shape.from + fall * 0.62, x: spine + swing * 0.45 }, { y: h, x: spine }];
     }
 
-    function sync() {
-      const run = rotating();
-      const act = playing();
-      reel.dataset.running = String(run);
-      reel.dataset.paused = String(userPaused);
-      toggle.setAttribute('aria-label', userPaused ? 'Play highlight reel' : 'Pause highlight reel');
-      stage.setAttribute('aria-live', run ? 'off' : 'polite');
-      slides.forEach((s, k) => { if (k !== current && s.video) s.video.pause(); });
-      const s = slides[current];
-      if (s.video) {
-        if (act && !s.failed) quietPlay(s.video, blocked);
-        else s.video.pause();
-      }
-      if (act) {
-        if (!raf) { last = 0; raf = requestAnimationFrame(tick); }
-      } else if (raf) {
-        cancelAnimationFrame(raf); raf = 0;
-      }
+    const pool = host.querySelector('[data-river-pool]');
+    if (pool) {
+      const p = place(pool);
+      shape.to = p.y + p.h / 2;
+      shape.stillEnd = true;
+      shape.points = [{ y: 0, x: spine }, { y: Math.max(0, p.y - 150), x: spine }, { y: shape.to, x: p.x + p.w / 2 }];
     }
 
-    // progress bar follows the clip; also advances after the clip's duration if the clip can't play
-    function tick(now) {
-      raf = 0;
-      const s = slides[current];
-      const dt = last ? Math.min((now - last) / 1000, 0.25) : 0;
-      last = now;
-      let p = 0;
-      if (s.failed) {
-        s.elapsed += dt;
-        p = s.elapsed / s.dur;
-        if (p >= 1) {
-          if (rotating()) { go(current + 1); return; }
-          s.elapsed = 0; p = 0;
-        }
-      } else {
-        const v = s.video;
-        const d = isFinite(v.duration) && v.duration > 0 ? v.duration : s.dur;
-        p = v.currentTime / d;
-        // watchdog: a clip that stalls for too long must not freeze the reel
-        if (rotating() && !v.ended) {
-          if (v.currentTime === s.lastT) {
-            s.stuck += dt;
-            if (s.stuck > Math.max(10, s.dur)) { go(current + 1); return; }
-          } else { s.stuck = 0; s.lastT = v.currentTime; }
-        }
-      }
-      s.fill.style.transform = 'scaleX(' + Math.max(0, Math.min(1, p)).toFixed(4) + ')';
-      if (playing()) raf = requestAnimationFrame(tick);
+    if (host.classList.contains('bend') && !isPhone) {
+      const side = host.classList.contains('bend--l') ? -1 : 1;
+      shape.points = [{ y: 0, x: spine }, { y: h / 2, x: spine + side * Math.min(w * 0.2, 280) }, { y: h, x: spine }];
     }
-
-    function go(i) {
-      const prev = slides[current];
-      current = ((i % total) + total) % total;
-      const s = slides[current];
-      if (prev !== s) {
-        if (prev.video) { prev.video.pause(); try { prev.video.currentTime = 0; } catch (_) { /* not loaded yet */ } }
-        prev.fill.style.transform = 'scaleX(0)';
-        prev.elapsed = 0;
-      }
-      s.elapsed = 0; s.stuck = 0; s.lastT = -1;
-      slides.forEach((t, k) => {
-        const on = k === current;
-        t.el.classList.toggle('is-active', on);
-        t.el.setAttribute('aria-hidden', on ? 'false' : 'true');
-        t.el.inert = !on;
-        t.dot.classList.toggle('is-active', on);
-        if (on) t.dot.setAttribute('aria-current', 'true'); else t.dot.removeAttribute('aria-current');
-      });
-      idxEl.textContent = pad(current + 1);
-      if (s.accent) reel.style.setProperty('--accent', s.accent);
-      stage.dataset.orient = s.portrait ? 'portrait' : 'landscape';
-      link.href = s.gameRef ? '#' + s.gameRef : '#games';
-      linkName.textContent = s.name;
-      sync();
-    }
-
-    toggle.addEventListener('click', () => { userPaused = !userPaused; focusHold = false; sync(); });
-    playBtn.addEventListener('click', () => { userPaused = false; focusHold = false; sync(); toggle.focus(); });
-
-    // full screen: the whole reel keeps cycling (Android/desktop); iPhone only allows a single video
-    if (fullBtn) {
-      const fsEl = () => doc.fullscreenElement || doc.webkitFullscreenElement || null;
-      const req = reel.requestFullscreen || reel.webkitRequestFullscreen;
-      const iosVideo = () => { const v = slides[current].video; return v && v.webkitEnterFullscreen ? v : null; };
-      if (req || iosVideo()) reel.classList.add('can-full');
-      fullBtn.addEventListener('click', () => {
-        if (fsEl()) { (doc.exitFullscreen || doc.webkitExitFullscreen).call(doc); return; }
-        userPaused = false; focusHold = false; hover = false; sync();
-        if (req) { try { Promise.resolve(req.call(reel)).catch(() => {}); } catch (_) { /* denied */ } }
-        else if (iosVideo()) iosVideo().webkitEnterFullscreen();
-      });
-      const onFs = () => {
-        const on = fsEl() === reel;
-        reel.classList.toggle('is-full', on);
-        fullBtn.setAttribute('aria-label', on ? 'Exit full screen' : 'Show highlights full screen');
-        if (on) hover = false;
-        sync();
-      };
-      doc.addEventListener('fullscreenchange', onFs);
-      doc.addEventListener('webkitfullscreenchange', onFs);
-    }
-
-    // mouse over the reel holds the current highlight (it keeps looping, the reel doesn't advance)
-    reel.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') { hover = true; sync(); } });
-    reel.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') { hover = false; sync(); } });
-
-    // keyboard focus inside the reel holds it too (except on the play/pause controls)
-    reel.addEventListener('focusin', (e) => {
-      let kb = true;
-      try { kb = e.target.matches(':focus-visible'); } catch (_) { /* older browsers */ }
-      if (e.target !== toggle && e.target !== playBtn && e.target !== fullBtn && kb) { focusHold = true; sync(); }
-    });
-    reel.addEventListener('focusout', (e) => {
-      if (!reel.contains(e.relatedTarget)) { focusHold = false; sync(); }
-    });
-
-    dotsWrap.addEventListener('keydown', (e) => {
-      const k = e.key;
-      if (k !== 'ArrowRight' && k !== 'ArrowLeft' && k !== 'Home' && k !== 'End') return;
-      e.preventDefault();
-      go(k === 'Home' ? 0 : k === 'End' ? total - 1 : current + (k === 'ArrowRight' ? 1 : -1));
-      slides[current].dot.focus();
-    });
-
-    // touch: drag sideways on the stage to change highlight
-    let sx = null, sy = null;
-    stage.addEventListener('pointerdown', (e) => { if (e.pointerType !== 'mouse') { sx = e.clientX; sy = e.clientY; } });
-    stage.addEventListener('pointerup', (e) => {
-      if (sx === null) return;
-      const dx = e.clientX - sx, dy = e.clientY - sy;
-      sx = sy = null;
-      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) go(current + (dx < 0 ? 1 : -1));
-    });
-    stage.addEventListener('pointercancel', () => { sx = sy = null; });
-
-    // off screen or in a background tab: pause
-    if (hasIO) {
-      new IntersectionObserver(([e]) => {
-        inView = e.isIntersecting && e.intersectionRatio >= 0.2;
-        sync();
-      }, { threshold: [0, 0.2] }).observe(reel);
-    }
-    doc.addEventListener('visibilitychange', sync);
-
-    onChange(reduce, () => { if (reduce.matches) userPaused = true; sync(); });
-
-    totalEl.textContent = pad(total);
-    reel.classList.add('is-ready');
-    if (total < 2) reel.classList.add('is-single');
-    go(0);
+    // where drawing starts: at the source, or a few px above the top so it overlaps the piece before it
+    shape.start = shape.stillStart ? shape.from : -RIVER.overlap;
+    river.shape = shape;
   }
 
-  const reel = doc.querySelector('[data-reel]');
-  if (reel) initReel(reel);
+  /** x of the river's centre line at height y (y counts from the top of the host). */
+  function centre(s, y) {
+    const p = s.points;
+    let i = 0;
+    while (i < p.length - 2 && y > p[i + 1].y) i++;
+    const a = p[i], b = p[i + 1];
+    const x = a.x + (b.x - a.x) * ease((y - a.y) / ((b.y - a.y) || 1));
+    // a slow wander, measured from the top of the page so neighbouring pieces meet exactly
+    const Y = s.pageTop + y;
+    const still = (s.stillStart ? ease((y - s.from) / 220) : 1) * (s.stillEnd ? ease((s.to - y) / 220) : 1);
+    return x + still * s.wander * (Math.sin(Y / 150) + 0.5 * Math.sin(Y / 63 + 2));
+  }
 
-  doc.addEventListener('visibilitychange', () => cardVideos.forEach(refreshCard));
-  onChange(reduce, () => cardVideos.forEach((v) => { prepCard(v); refreshCard(v); }));
+  /** Half the river's width at height y. */
+  function halfWidth(s, y) {
+    const Y = s.pageTop + y;
+    let half = (s.width / 2) * (1 + 0.09 * Math.sin(Y / 170 + 1) + 0.05 * Math.sin(Y / 61));
+    if (s.sourceWidth) half += (s.sourceWidth / 2 - half) * (1 - ease((y - s.from) / 260));
+    return half;
+  }
+
+  /** The river's cross-section at height y: its centre, and the step (ox, oy) from the centre to the
+      right-hand edge for a half-width of 1. In open water that step is square to the flow, so the river
+      keeps its width through a bend. Close to where two pieces meet it turns level, so both pieces are
+      cut along the same straight line and join without a notch. */
+  function section(s, y) {
+    const x = centre(s, y);
+    const slope = (centre(s, y + 2) - centre(s, y - 2)) / 4;
+    const len = Math.sqrt(1 + slope * slope);
+    const toJoin = Math.min(s.stillStart ? Infinity : y, s.stillEnd ? Infinity : s.h - y);
+    const square = ease(toJoin / 60);
+    return { x, ox: square / len + (1 - square) * len, oy: square * -slope / len };
+  }
+
+  const outline = (left, right) => 'M' + left.join('L') + 'L' + right.reverse().join('L') + 'Z';
+  const at = (c, y, reach) => px(c.x + c.ox * reach) + ' ' + px(y + c.oy * reach);
+
+  function drawBody(river) {
+    const s = river.shape, left = [], right = [];
+    for (let y = s.start; ; y += RIVER.step) {
+      if (y > s.to) y = s.to;
+      const c = section(s, y), half = halfWidth(s, y);
+      left.push(at(c, y, -half));
+      right.push(at(c, y, half));
+      if (y === s.to) break;
+    }
+    const d = outline(left, right);
+    river.bodies.forEach((path) => path.setAttribute('d', d));
+    const over = RIVER.overlap;
+    river.svgs.forEach((svg) => { svg.setAttribute('viewBox', '0 ' + -over + ' ' + s.w + ' ' + (s.h + over)); svg.style.height = (s.h + over) + 'px'; });
+  }
+
+  function drawStreaks(river, seconds) {
+    const s = river.shape;
+    let d = '';
+    for (const lane of RIVER.lanes) {
+      let left = null, right = null;
+      for (let y = s.start; y <= s.to; y += RIVER.step) {
+        const along = (((s.pageTop + y + lane.shift - seconds * lane.speed) % lane.every) + lane.every) % lane.every;
+        const half = halfWidth(s, y);
+        const thick = along < lane.long ? half * 0.16 * Math.sin(Math.PI * along / lane.long) : 0;
+        if (thick > 0.35) {
+          const c = section(s, y), mid = lane.at * half * 2;
+          (left = left || []).push(at(c, y, mid - thick));
+          (right = right || []).push(at(c, y, mid + thick));
+        } else if (left) { d += outline(left, right); left = right = null; }
+      }
+      if (left) d += outline(left, right);
+    }
+    river.streak.setAttribute('d', d);
+  }
+
+  /** Uncover the bright river down to the "lit line" of the viewport, so it flows on as the page scrolls. */
+  function light() {
+    const line = reduce.matches ? Infinity : window.scrollY + window.innerHeight * RIVER.litLine;
+    for (const river of rivers) {
+      if (!river.shape) continue;
+      // the first piece, at the dragon, is always lit
+      const height = river.shape.sourceWidth ? river.shape.h : Math.max(0, Math.min(river.shape.h, line - river.shape.pageTop));
+      if (Math.abs(height - river.litHeight) >= 1) {
+        river.litHeight = height;
+        river.lit.style.height = (height > 0 ? height + RIVER.overlap : 0) + 'px';
+        river.lit.classList.toggle('is-full', height >= river.shape.h);   // a fully lit piece has no fading tip
+      }
+    }
+  }
+
+  function layout() {
+    const seconds = reduce.matches ? 0 : performance.now() / 1000;
+    for (const river of rivers) { measure(river); drawBody(river); drawStreaks(river, seconds); }
+    light();
+  }
+
+  if (rivers.length) {
+    let pending = 0;
+    const relayout = () => { clearTimeout(pending); pending = setTimeout(layout, 80); };
+    layout();
+    window.addEventListener('resize', relayout);
+    window.addEventListener('load', layout);
+    if (doc.fonts && doc.fonts.ready) doc.fonts.ready.then(layout);
+    if ('ResizeObserver' in window) { const ro = new ResizeObserver(relayout); rivers.forEach((r) => ro.observe(r.host)); }
+
+    if (hasIO) {
+      const near = new IntersectionObserver((entries) => {
+        entries.forEach((e) => { const river = rivers.find((r) => r.host === e.target); if (river) river.onScreen = e.isIntersecting; });
+      }, { rootMargin: '120px 0px' });
+      rivers.forEach((r) => near.observe(r.host));
+    }
+
+    // the flow lines drift downstream, about 30 times a second, and only in the pieces on screen
+    let last = 0;
+    const flow = (now) => {
+      if (!reduce.matches && now - last > 32) {
+        last = now;
+        for (const river of rivers) if (river.onScreen && river.shape) drawStreaks(river, now / 1000);
+      }
+      requestAnimationFrame(flow);
+    };
+    requestAnimationFrame(flow);
+  }
+
+  /* ---------- one scroll listener for the top bar and the river */
+  let queued = false;
+  const onScroll = () => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => { queued = false; stick(); light(); });
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+  stick();
 })();
 </script>
 </body>
