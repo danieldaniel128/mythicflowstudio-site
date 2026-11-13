@@ -26,7 +26,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono&amp;family=Manrope:wght@400;700;800&amp;display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&amp;display=swap">
 
 <script type="application/ld+json">
 {
@@ -87,214 +87,218 @@
 <style>
   /* =========================================================== tokens
      The studio's look comes from the logo: white tribal strokes on near-black, and a river.
-     Each game scene adds its own --accent and --world (one of the game color tokens).
-     --bg-deep, --bg-panel, --line, --dim, --hot are kept because the Forge lab block uses them. */
+     Colour appears only inside the game footage, in the glow it casts, and in each game's --accent.
+     --bg-deep, --bg-panel, --line and --dim are kept because the Forge lab block uses them. */
   :root{
-    --void:#0a0a0c; --void-2:#131316; --ink:#f5f5f1; --mist:#a9a9a4; --rule:rgba(255,255,255,.16);
-    --beam:#45C8FF; --beam-deep:#1E7FB8; --amber:#FFC94A;
-    --bg-deep:var(--void); --bg-panel:var(--void-2); --bg-raised:#1d1d22; --line:var(--rule); --hot:var(--ink); --dim:var(--mist);
+    --void:#0a0a0c; --void-2:#131316; --ink:#f5f5f1; --mist:#a8a8a3; --rule:rgba(255,255,255,.16);
+    --beam:#45C8FF; --amber:#FFC94A;
+    --bg-deep:var(--void); --bg-panel:var(--void-2); --line:var(--rule); --dim:var(--mist);
 
     --accent:var(--ink);
     --pad:clamp(16px,4vw,40px);
-    --rw:104px;                                 /* river width: keep in step with RIVER.width in the script */
-    --bank-gap:calc(var(--rw) + 2 * clamp(34px,5.5vw,84px));   /* clear water between the two banks of text */
-    --gut:0px;                                  /* phones: room on the left for the river */
-    --font:Manrope,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-    --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --rw:104px;                                            /* the river's width: the script sets the real value */
+    --gap:calc(var(--rw) + 2 * clamp(26px,4.2vw,60px));    /* clear water between two banks of text */
+    --gut:64px;                                            /* phones: room on the left for the river */
+    --font:Montserrat,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   }
-  @media (max-width:859px){ :root{ --rw:40px; --gut:62px } }
 
   *,*::before,*::after{box-sizing:border-box}
   html{color-scheme:dark; background:var(--void); -webkit-text-size-adjust:100%; text-size-adjust:100%}
   @media (prefers-reduced-motion:no-preference){ html{scroll-behavior:smooth} }
-  body{margin:0; background:var(--void); color:var(--ink); font:400 16px/1.55 var(--font); -webkit-font-smoothing:antialiased; overflow-x:clip}
-  h1,h2,h3{margin:0; font-weight:800; text-transform:uppercase; letter-spacing:.04em; line-height:1.02; text-wrap:balance}
+  body{margin:0; background:var(--void); color:var(--ink); font:400 16px/1.6 var(--font); -webkit-font-smoothing:antialiased; overflow-x:clip}
+  h1,h2,h3{margin:0; font-weight:700; text-transform:uppercase; letter-spacing:.04em; line-height:1.02; text-wrap:balance}
   p{margin:0}
   a{color:inherit}
   img,video{display:block; max-width:100%}
-  em{font-style:normal; color:var(--accent)}
-  .mono,.kicker{font-family:var(--mono); font-size:12px; font-weight:400; letter-spacing:.1em; text-transform:uppercase; color:var(--mist)}
-  .mono b{font-weight:400; color:var(--ink)}
+  [hidden]{display:none !important}
+  [id]{scroll-margin-top:72px}
+  .label,.kicker,.mono{font-family:var(--font); font-size:12px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:var(--mist)}
+  .mono b{font-weight:600; color:var(--ink)}
   :focus-visible{outline:2px solid var(--ink); outline-offset:3px; border-radius:6px}
-  .skip{position:absolute; left:-999px; top:8px; z-index:50; background:var(--ink); color:var(--void); padding:10px 16px; border-radius:999px; font-weight:800}
+  .skip{position:absolute; left:-999px; top:8px; z-index:50; background:var(--ink); color:var(--void); padding:10px 16px; border-radius:999px; font-weight:700}
   .skip:focus{left:12px}
-  .wrap{position:relative; z-index:1; width:min(1240px, 100% - 2 * var(--pad)); margin-inline:auto}
+  .wrap{width:min(1240px, 100% - 2 * var(--pad)); margin-inline:auto}
   svg.defs{position:absolute; width:0; height:0; overflow:hidden}
 
-  /* ---------------------------------------------------------- buttons, chips */
+  /* ---------------------------------------------------------- buttons */
   .btn{display:inline-flex; align-items:center; justify-content:center; gap:10px; min-height:48px; padding:0 24px; border-radius:999px;
-       border:1.5px solid var(--ink); font:800 13px/1 var(--font); letter-spacing:.1em; text-transform:uppercase; text-decoration:none;
+       border:1.5px solid var(--ink); font:700 13px/1 var(--font); letter-spacing:.12em; text-transform:uppercase; text-decoration:none;
        cursor:pointer; transition:transform .15s ease, background .15s ease, color .15s ease}
   .btn svg{width:16px; height:16px; flex:none}
   .btn-primary,.btn-accent{background:var(--ink); color:var(--void)}
-  .btn-ghost{background:rgba(10,10,12,.55); color:var(--ink)}
+  .btn-ghost{background:var(--void); color:var(--ink)}
   @media (hover:hover){
     .btn:hover{transform:translateY(-2px)}
     .btn-ghost:hover{background:var(--ink); color:var(--void)}
   }
-  .chips{display:flex; flex-wrap:wrap; gap:8px; list-style:none; margin:0; padding:0}
-  .chip{display:inline-flex; align-items:center; gap:8px; padding:6px 13px; border:1px solid var(--rule); border-radius:999px;
-        background:rgba(10,10,12,.5); font-size:12.5px; font-weight:700; letter-spacing:.02em}
-  .chip--status{border-color:var(--accent); color:var(--accent)}
+  .cta-row,.actions{display:flex; flex-wrap:wrap; align-items:center; gap:12px}
   .pulse{width:8px; height:8px; border-radius:50%; background:var(--accent); flex:none}
   @media (prefers-reduced-motion:no-preference){
     .pulse{animation:pulse 2.2s ease-out infinite}
     @keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb, var(--accent) 60%, transparent)} 100%{box-shadow:0 0 0 10px transparent}}
   }
 
-  /* ---------------------------------------------------------- the river
-     The script adds one .river layer to every element in RIVER.hosts and draws it there.
-     .dim is the whole river, faint; .lit is the same river in full white, uncovered as you scroll. */
-  .has-river{position:relative; isolation:isolate}
-  .river{position:absolute; inset:0; z-index:0; pointer-events:none}
-  .river svg{position:absolute; left:0; top:0; width:100%; display:block}
-  .river .dim{opacity:.15; top:-6px}          /* each piece reaches 6px up into the one above: RIVER.overlap */
-  .river .lit{position:absolute; left:0; right:0; top:-6px; height:0; overflow:hidden;
-              -webkit-mask-image:linear-gradient(180deg, #000 calc(100% - 80px), transparent); mask-image:linear-gradient(180deg, #000 calc(100% - 80px), transparent)}
-  .river .lit.is-full{-webkit-mask-image:none; mask-image:none}
-  .river .body{fill:var(--ink)}
-  .river .streak{fill:var(--void)}
+  /* ---------------------------------------------------------- the river and what lies on it
+     The script draws the whole river into one layer under the content (see THE RIVER in the script).
+     The content must not be lifted above or below that layer piece by piece: no z-index, transform
+     or opacity on anything that holds an island or a glow. */
+  main{position:relative; isolation:isolate}
+  .river{position:absolute; inset:0; z-index:-1; overflow:hidden; pointer-events:none}
+  .river svg{position:absolute; left:0; top:0; display:block}
+  .river .water path{fill:var(--ink)}
+  .river .cuts path{fill:var(--void)}
 
-  /* ---------------------------------------------------------- top bar */
+  /* an island: real footage. The river divides round it, so the water is its frame. */
+  .stage{position:relative; margin:0}
+  .screen{position:relative; overflow:hidden; background:#000; border-radius:clamp(14px,2.2vw,30px)}
+  .screen video{display:block; width:100%; height:100%; object-fit:cover}
+  .stage--wide .screen{aspect-ratio:1030/480}
+  .stage--tall .screen{aspect-ratio:720/1544}
+  /* the footage's own colours, spilled softly onto the black under the river */
+  .glow{position:absolute; z-index:-2; inset:-14% -7%; opacity:.62; pointer-events:none; filter:blur(56px) saturate(1.35);
+        -webkit-mask-image:radial-gradient(closest-side, #000 35%, transparent); mask-image:radial-gradient(closest-side, #000 35%, transparent)}
+  .glow img{width:100%; height:100%; object-fit:cover}
+  .stage--tall .glow{inset:-8% -60%}
+
+  /* ---------------------------------------------------------- top bar and side rail */
   .top{position:fixed; inset:0 0 auto 0; z-index:30; display:flex; align-items:center; justify-content:space-between; gap:14px;
-       padding:12px var(--pad); border-bottom:1px solid transparent; transition:background .3s ease, border-color .3s ease}
-  .top.is-stuck{background:rgba(10,10,12,.78); border-bottom-color:var(--rule); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px)}
-  .brand{display:inline-flex; align-items:center; gap:12px; min-height:44px; font-weight:800; font-size:13px; letter-spacing:.24em; text-decoration:none; text-transform:uppercase}
+       padding:10px var(--pad); border-bottom:1px solid transparent; transition:background .3s ease, border-color .3s ease}
+  .top.is-stuck{background:rgba(10,10,12,.94); border-bottom-color:var(--rule)}
+  .brand{display:inline-flex; align-items:center; gap:12px; min-height:44px; font-weight:600; font-size:13px; letter-spacing:.26em; text-decoration:none; text-transform:uppercase}
   .brand svg{width:44px; height:34px; fill:var(--ink); flex:none}
   .nav{display:flex; align-items:center; gap:clamp(14px,2.6vw,34px)}
-  .nav a{display:inline-flex; align-items:center; min-height:44px; font-weight:700; font-size:13px; letter-spacing:.12em; text-transform:uppercase; text-decoration:none; opacity:.8}
-  .nav a:hover{opacity:1; text-decoration:underline; text-underline-offset:7px}
-  @media (max-width:560px){ .brand span{display:none} .nav{gap:14px} .nav a{font-size:12px; letter-spacing:.08em} .nav-opt{display:none !important} }
+  .nav a{position:relative; display:inline-flex; align-items:center; min-height:44px; font-weight:600; font-size:12.5px; letter-spacing:.16em; text-transform:uppercase; text-decoration:none; opacity:.72; transition:opacity .2s ease}
+  .nav a::after{content:""; position:absolute; left:0; right:0; bottom:8px; height:2px; background:var(--ink); transform:scaleX(0); transform-origin:left; transition:transform .25s ease}
+  .nav a:hover,.nav a[aria-current]{opacity:1}
+  .nav a[aria-current]::after{transform:scaleX(1)}
 
-  /* ---------------------------------------------------------- hero: the dragon, and the river's source */
-  .hero{min-height:100svh; display:grid; grid-template-rows:1fr auto; row-gap:clamp(20px,4vh,44px); padding:84px 0 clamp(30px,6vh,64px); overflow:hidden}
-  .ghost{position:absolute; left:50%; top:42%; z-index:-1; margin:0; transform:translate(-50%,-50%); white-space:nowrap; user-select:none;
-         font-weight:800; font-size:13.4vw; line-height:.9; letter-spacing:.03em; text-transform:uppercase; color:rgba(255,255,255,.055)}
-  .hero-mark{position:relative; z-index:2; align-self:center; justify-self:center; width:min(64vw, 640px, 82vh); aspect-ratio:1476/1152}
-  .hero-mark svg{width:100%; height:100%; fill:var(--ink); overflow:visible}
-  .banks{display:grid; grid-template-columns:1fr 1fr; column-gap:var(--bank-gap); align-items:end}
-  .bank-l{justify-self:end; text-align:right}
-  .bank-r{justify-self:start}
-  .hero h1{font-size:clamp(30px,4.2vw,62px); letter-spacing:.14em; line-height:1.08; margin-top:12px}
-  .hero h1 small{display:block; font-size:.42em; letter-spacing:.56em; margin-top:.5em; color:var(--mist); font-weight:700}
-  .hero .banks{column-gap:calc(var(--bank-gap) + 170px)}
-  .hero .tagline{max-width:34ch; font-size:clamp(16px,1.5vw,19px); color:var(--mist)}
-  .hero .tagline strong{color:var(--ink)}
-  .cta-row{display:flex; flex-wrap:wrap; gap:12px; margin-top:20px}
+  .rail{position:fixed; right:16px; top:50%; z-index:25; display:none; gap:6px; transform:translateY(-50%)}
+  .rail a{display:flex; align-items:center; justify-content:flex-end; gap:10px; min-height:26px; text-decoration:none}
+  .rail i{width:9px; height:9px; border-radius:50%; border:1.5px solid var(--ink); opacity:.45; transition:transform .2s ease, opacity .2s ease, background .2s ease}
+  .rail span{font-size:10.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; opacity:0; transform:translateX(6px); transition:opacity .2s ease, transform .2s ease}
+  .rail a:hover span,.rail a:focus-visible span,.rail a[aria-current] span{opacity:1; transform:none}
+  .rail a[aria-current] i{background:var(--ink); opacity:1; transform:scale(1.35)}
+  @media (min-width:1320px){ .rail{display:grid} }
+
+  /* ---------------------------------------------------------- hero: the logo, and the river leaving it */
+  .hero{position:relative; min-height:100svh; display:flex; flex-direction:column; align-items:center; padding:78px 0 clamp(32px,6vh,58px)}
+  .hero-mark{--mark:clamp(290px, min(40vw, (100svh - 462px) * 1.28), 560px); width:var(--mark); aspect-ratio:1476/1152; flex:none}
+  .hero-mark svg{display:block; width:100%; height:100%; fill:var(--ink)}
+  .hero-name{display:grid; grid-template-columns:1fr var(--gap) 1fr; align-items:end; width:min(1240px, 100% - 2 * var(--pad));
+             margin-top:auto; padding-top:clamp(104px,15vh,170px); font-size:clamp(48px,7.4vw,112px); font-weight:600; letter-spacing:.07em; line-height:.84}
+  .word-l{justify-self:end; margin-right:-.07em}
+  .word-r{justify-self:start; white-space:nowrap}
+  .hero-name small{margin-left:.1em; font-size:.16em; font-weight:600; letter-spacing:.56em; color:var(--mist)}
+  .hero-gap{align-self:stretch}
+  .hero-foot{display:grid; grid-template-columns:1fr var(--gap) 1fr; align-items:start; width:min(1240px, 100% - 2 * var(--pad)); margin-top:clamp(22px,3.6vh,38px)}
+  .hero-line{justify-self:end; max-width:30ch; text-align:right; color:var(--mist); font-size:clamp(15px,1.25vw,18px)}
+  .hero-line strong{color:var(--ink); font-weight:600}
+  .hero-foot .cta-row{grid-column:3}
+  @media (max-width:1139px){ .hero-name small{display:none} }
   @media (prefers-reduced-motion:no-preference){
-    .hero-mark svg{animation:rise 1.1s cubic-bezier(.2,.7,.2,1) both, drift 8s ease-in-out 1.1s infinite}
-    @keyframes rise{from{opacity:0; transform:translateY(26px) scale(.96)} to{opacity:1; transform:none}}
-    @keyframes drift{50%{transform:translateY(-7px)}}
+    .hero-mark svg{animation:appear .7s ease both}
+    .hero-name .word,.hero-foot > *{animation:appear .7s ease .75s both}
+    @keyframes appear{from{opacity:0} to{opacity:1}}
   }
 
-  /* ---------------------------------------------------------- game scenes: one whole screen per game */
-  .scene{--world:#15151a; min-height:100svh; display:grid; align-items:center; padding:clamp(72px,12vh,150px) 0;
-         background:linear-gradient(180deg, var(--void) 0, var(--world) 15%, var(--world) 85%, var(--void) 100%)}
-  .scene-art{position:absolute; inset:0; z-index:-1; overflow:hidden;
-             -webkit-mask-image:linear-gradient(180deg, transparent 0, #000 24%, #000 76%, transparent 100%);
-                     mask-image:linear-gradient(180deg, transparent 0, #000 24%, #000 76%, transparent 100%)}
-  .scene-art img{width:100%; height:100%; object-fit:cover; filter:blur(48px) saturate(1.3); transform:scale(1.25); opacity:.5}
-  .scene .kicker{display:inline-flex; align-items:center; gap:10px; color:var(--accent)}
-  .scene .kicker b{color:var(--ink); font-weight:400}
-  .name{font-size:clamp(50px,8vw,116px); line-height:.9; letter-spacing:.01em; margin:14px 0 16px}
-  .tagline-game{color:var(--accent)}
-  .pitch{font-size:clamp(16px,1.35vw,18.5px); max-width:46ch}
-  .hl{list-style:none; margin:0; padding:0; display:grid; gap:9px; font-weight:700}
-  .hl li{display:flex; gap:12px; align-items:baseline}
-  .hl li::before{content:""; flex:none; width:18px; height:2px; background:var(--accent); transform:translateY(-4px)}
-  .mini{margin-bottom:14px}
-  .actions{display:flex; flex-wrap:wrap; gap:14px; align-items:center}
+  /* ---------------------------------------------------------- game scenes: the footage is the scene */
+  .game{position:relative; padding-top:clamp(70px,10vh,118px); overflow-x:clip}   /* the glow may be wider than the screen */
+  .banks,.game-head,.game-more{display:grid; grid-template-columns:1fr var(--gap) 1fr}
+  .game-head{align-items:end}
+  .gap{align-self:stretch}
+  .bank-l{justify-self:end; text-align:right}
+  .bank-r{grid-column:3; justify-self:start}
+  .status{display:inline-flex; align-items:center; gap:10px; color:var(--accent)}
+  .game-name{margin-top:14px; font-size:clamp(50px,7.6vw,118px); font-weight:800; line-height:.9; letter-spacing:.01em}
+  .hook{font-size:clamp(15px,1.5vw,21px); font-weight:700; letter-spacing:.22em; line-height:1.5; text-transform:uppercase; color:var(--accent)}
+  .actions{margin-top:22px}
   .play-badge{display:inline-block; border-radius:10px}
   .play-badge img{height:60px; width:auto}
-  .icon-row{display:flex; align-items:center; gap:14px}
-  .game-icon{width:64px; height:64px; border-radius:15px; box-shadow:0 0 0 1.5px rgba(255,255,255,.85)}
+  .game-icon{width:56px; height:56px; border-radius:14px}
 
-  /* the stage: real footage, moored on the river. White rim like the logo, with ripples around it. */
-  .stage{position:relative; margin:0}
-  .screen{position:relative; overflow:hidden; background:#000; border-radius:clamp(14px,2vw,26px);
-          box-shadow:0 0 0 2px rgba(255,255,255,.92), 0 0 0 13px rgba(255,255,255,.10), 0 0 0 32px rgba(255,255,255,.05), 0 44px 100px rgba(0,0,0,.65)}
-  .screen video{width:100%; height:100%; object-fit:cover}
-  .stage--wide .screen{aspect-ratio:1030/480}
-  .stage--tall .screen{aspect-ratio:720/1544; width:min(300px, 26vw); margin-inline:auto; border-radius:clamp(22px,2.6vw,36px)}
-  .stage-bar{display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:8px; margin-top:44px}
-  .clip,.full{min-height:40px; padding:0 15px; border-radius:999px; border:1px solid rgba(255,255,255,.3); background:var(--void); color:var(--ink);
-              font:700 11.5px/1 var(--font); letter-spacing:.1em; text-transform:uppercase; cursor:pointer; transition:background .15s ease, color .15s ease}
-  .clip.is-on{background:var(--ink); color:var(--void); border-color:var(--ink)}
-  .full{display:inline-flex; align-items:center; justify-content:center; padding:0; width:40px}
+  .stage--wide{width:min(1120px, 100% - 2 * var(--pad)); margin:clamp(112px,14vh,150px) auto 0}
+  .game-more{padding-top:clamp(56px,8vh,88px); min-height:clamp(390px,50vh,470px)}
+  .more{justify-self:end; width:100%; max-width:33rem}
+
+  .clips{display:flex; flex-wrap:wrap; align-items:center; gap:8px}
+  .live{display:flex; align-items:center; gap:8px; width:100%; margin-bottom:4px; color:var(--accent)}
+  .clip,.full{position:relative; overflow:hidden; min-height:40px; padding:0 16px; border-radius:999px; border:1px solid rgba(255,255,255,.32); background:var(--void); color:var(--ink);
+              font:600 11.5px/1 var(--font); letter-spacing:.14em; text-transform:uppercase; cursor:pointer; transition:border-color .15s ease}
+  .clip.is-on{border-color:var(--ink)}
+  .clip.is-on::before{content:""; position:absolute; inset:0 auto 0 0; width:calc(var(--played, 0) * 100%); background:rgba(255,255,255,.22)}   /* how much of the clip has played */
+  .full{display:inline-flex; align-items:center; justify-content:center; width:40px; padding:0}
   .full svg{width:15px; height:15px}
-  .live{display:inline-flex; align-items:center; gap:8px; min-height:40px; padding:0 14px; border-radius:999px; background:var(--void); border:1px solid var(--accent); color:var(--accent)}
+  .pitch{margin:22px 0; color:#dcdcd6; font-size:clamp(15.5px,1.22vw,18px)}
+  .hl{list-style:none; margin:0; padding:0; display:grid; grid-template-columns:1fr 1fr; gap:0 26px; font-size:14px; font-weight:600}
+  .hl li{padding:9px 0; border-top:1px solid var(--rule)}
 
-  /* landscape game: two banks above the stage, two below */
-  .scene--wide .banks{align-items:center}
-  .scene--wide .stage{margin:clamp(40px,7vh,76px) 0 clamp(34px,6vh,64px)}
-  .scene--wide .bank-l .chips,.scene--wide .bank-l .actions{justify-content:flex-end}
-  .scene--wide .bank-l .actions{margin-top:22px}
-  /* portrait game: the phone stands in the river, a bank on each side */
-  .scene--tall .trio{display:grid; grid-template-columns:1fr auto 1fr; column-gap:clamp(34px,5vw,84px); align-items:center}
-  .scene--tall .name{font-size:clamp(34px,4.7vw,66px)}
-  .scene--tall .bank-l .chips,.scene--tall .bank-l .actions,.scene--tall .bank-l .icon-row{justify-content:flex-end}
-  .scene--tall .bank-l .chips{margin:18px 0 22px}
-  .scene--tall .pitch{margin-bottom:26px}
+  /* a phone-shaped clip: the island stands to one side, the words beside it */
+  .game--tall{padding-top:clamp(30px,5vh,70px)}
+  .duo{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,.9fr); grid-template-rows:auto auto; column-gap:clamp(40px,6vw,100px)}
+  .copy-head{grid-column:1; grid-row:1; align-self:end; justify-self:end; width:100%; max-width:34rem}
+  .copy-more{grid-column:1; grid-row:2; align-self:start; justify-self:end; width:100%; max-width:34rem}
+  .game--tall .game-name{font-size:clamp(44px,6vw,94px)}
+  .game--tall .hook{margin-top:16px; font-size:clamp(14px,1.2vw,17px); letter-spacing:.16em}
+  .game--tall .clips{margin-top:24px}
+  .stage--tall{grid-column:2; grid-row:1 / 3; align-self:center; justify-self:center}
+  .stage--tall .screen{height:min(76svh,680px); border-radius:clamp(22px,2.6vw,38px)}
 
-  /* ---------------------------------------------------------- bends: open water between scenes */
-  .bend{height:clamp(300px,58vh,520px)}
-  .orn{position:absolute; z-index:-1; top:50%; width:min(44vw,520px); aspect-ratio:760/800; transform:translateY(-50%); fill:rgba(255,255,255,.045)}
-  .bend--l .orn{right:max(2vw, 50% - 640px)}
-  .bend--r .orn{left:max(2vw, 50% - 640px); transform:translateY(-50%) scaleX(-1)}
-  .bend-label{position:absolute; z-index:1; top:50%; transform:translateY(-50%); max-width:min(30ch, 34vw); line-height:1.7}
-  .bend--l .bend-label{left:calc(50% + 70px)}
-  .bend--r .bend-label{right:calc(50% + 70px); text-align:right}
-  .bend-label b{display:block; font:800 clamp(18px,2vw,26px)/1.15 var(--font); letter-spacing:.08em; color:var(--ink); margin-top:4px}
-
-  /* ---------------------------------------------------------- prototype lab (the block itself is written by Mythic Forge) */
-  #lab{padding:clamp(60px,10vh,120px) 0 clamp(80px,13vh,160px)}
-  #lab .sec-head,#lab .lab-grid{position:relative; z-index:1; width:min(1240px, 100% - 2 * var(--pad)); margin-inline:auto}
-  #lab .sec-head{display:grid; grid-template-columns:1fr 1fr; column-gap:var(--bank-gap); align-items:end}
-  #lab .sec-head > div{justify-self:end; text-align:right; max-width:30rem}
-  .sec-title{font-size:clamp(32px,4.6vw,64px); margin:12px 0 14px}
-  .sec-sub{color:var(--mist); font-size:clamp(15px,1.3vw,18px)}
-  .sec-count{justify-self:start}
-  .sec-count b{font:800 clamp(40px,5vw,72px)/1 var(--font); letter-spacing:.02em; margin-right:10px}
-  #lab .lab-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:clamp(14px,2vw,26px); margin-top:clamp(36px,6vh,60px)}
-  #lab .lab-card{position:relative; border:0; border-radius:clamp(18px,2vw,28px); background:#000; overflow:hidden;
-                 box-shadow:0 0 0 2px rgba(255,255,255,.92), 0 0 0 11px rgba(255,255,255,.09), 0 30px 70px rgba(0,0,0,.6)}
-  #lab .lab-card:nth-child(even){transform:translateY(clamp(18px,3.4vw,44px))}
-  #lab .lab-media{aspect-ratio:9/16; background:#000}
-  #lab .lab-body{position:absolute; left:0; right:0; bottom:0; flex:none; gap:8px; padding:70px 16px 16px;
-                 background:linear-gradient(180deg, transparent, rgba(0,0,0,.9) 46%); pointer-events:none}
-  #lab .lab-body h3{font-size:clamp(15px,1.5vw,19px); letter-spacing:.08em}
-  #lab .lab-body p{color:#d6d6d0; font-size:13px; line-height:1.45; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
-  #lab .lab-tags li{border-color:rgba(255,255,255,.3); color:var(--ink); background:rgba(0,0,0,.4)}
-  #lab .lab-play{pointer-events:auto; align-self:stretch; min-height:42px; margin-top:6px}
+  /* ---------------------------------------------------------- prototype lab: small round pools along the river
+     (the block itself is written by Mythic Forge; only its look is set here) */
+  #lab{--pool:clamp(180px,18vw,250px); position:relative; display:grid; grid-template-columns:1fr 1fr; width:min(1240px, 100% - 2 * var(--pad)); margin-inline:auto;
+       padding:clamp(120px,17vh,190px) 0 clamp(30px,5vh,60px)}
+  #lab .sec-head{grid-column:1; grid-row:1; align-self:start; display:block; max-width:27rem}
+  .sec-title{margin:12px 0 14px; font-size:clamp(30px,4vw,56px)}
+  #lab .sec-title{font-size:clamp(28px,3.3vw,46px)}
+  .sec-sub{color:var(--mist); font-size:clamp(15px,1.2vw,17px)}
+  .sec-count{margin-top:14px}
+  #lab .lab-grid{grid-column:1 / -1; grid-row:1; display:block; margin:0; padding-top:50px}
+  #lab .lab-card{display:grid; align-items:center; column-gap:26px; width:calc(34% + var(--pool) / 2); border:0; border-radius:0; background:none; overflow:visible}
+  #lab .lab-card:nth-child(odd){grid-template-columns:var(--pool) minmax(0,1fr); margin-left:calc(66% - var(--pool) / 2)}
+  #lab .lab-card:nth-child(even){grid-template-columns:minmax(0,1fr) var(--pool); text-align:right}
+  #lab .lab-card:nth-child(even) .lab-media{grid-column:2; grid-row:1}
+  #lab .lab-card:nth-child(even) .lab-body{grid-column:1; grid-row:1; align-items:flex-end}
+  #lab .lab-card:nth-child(even) .lab-tags{justify-content:flex-end}
+  #lab .lab-card + .lab-card{margin-top:calc(var(--pool) * -.2)}
+  #lab .lab-media,#lab .lab-media.is-wide{display:block; aspect-ratio:1; border-radius:50%; overflow:hidden; background:#000}
+  #lab .lab-media img,#lab .lab-media video{width:100%; height:100%; object-fit:cover; transition:transform .4s ease}
+  #lab .lab-body{display:flex; flex-direction:column; gap:8px; padding:0; flex:none}
+  #lab .lab-body h3{font-size:clamp(16px,1.6vw,21px); letter-spacing:.08em}
+  #lab .lab-body p{color:var(--mist); font-size:13.5px; line-height:1.5; display:-webkit-box; -webkit-line-clamp:3; line-clamp:3; -webkit-box-orient:vertical; overflow:hidden}
+  #lab .lab-tags{display:flex; flex-wrap:wrap; gap:6px; margin:0; padding:0; list-style:none}
+  #lab .lab-tags li{padding:3px 9px; border:1px solid var(--rule); border-radius:999px; color:var(--mist); font-size:11px}
+  #lab .lab-play{align-self:flex-start; min-height:40px; margin-top:6px; padding:0 20px}
+  #lab .lab-card:nth-child(even) .lab-play{align-self:flex-end}
+  @media (hover:hover){ #lab .lab-media:hover video,#lab .lab-media:hover img{transform:scale(1.06)} }
 
   /* ---------------------------------------------------------- studio: the river reaches the pool */
-  .mouth{padding:clamp(70px,11vh,130px) 0 0}
-  .mouth .banks{align-items:center}
+  .studio{position:relative; padding-top:clamp(150px,20vh,230px)}
+  .studio .banks{align-items:center}
+  .studio em{font-style:normal; text-decoration:underline wavy; text-decoration-thickness:3px; text-underline-offset:.16em}
   .studio-copy{display:grid; gap:14px; max-width:44ch; color:var(--mist)}
-  .studio-copy strong{color:var(--ink)}
-  .pool{position:relative; z-index:1; display:grid; place-items:center; width:clamp(170px,22vw,260px); aspect-ratio:1; margin:clamp(110px,18vh,190px) auto clamp(96px,15vh,150px);
-        border-radius:50%; background:var(--void);
-        box-shadow:0 0 0 2px var(--ink), 0 0 0 20px rgba(255,255,255,.09), 0 0 0 50px rgba(255,255,255,.05), 0 0 0 90px rgba(255,255,255,.025)}
-  .pool svg{width:66%; fill:var(--ink)}
-  .principles{list-style:none; padding:0; margin:0 auto; display:grid; grid-template-columns:repeat(3,1fr); gap:clamp(20px,4vw,56px)}
+  .studio-copy strong{color:var(--ink); font-weight:600}
+  .pool{display:grid; place-items:center; width:clamp(170px,20vw,250px); aspect-ratio:1; margin:clamp(130px,18vh,190px) auto clamp(110px,16vh,160px); border-radius:50%; background:var(--void)}
+  .pool svg{width:64%; fill:var(--ink)}
+  .principles{list-style:none; padding:0; margin-top:0; margin-bottom:0; display:grid; grid-template-columns:repeat(3,1fr); gap:clamp(20px,4vw,56px)}
   .principles li{border-top:2px solid var(--ink); padding-top:18px}
-  .principles h3{font-size:clamp(17px,1.7vw,22px); letter-spacing:.08em; margin:10px 0 8px}
+  .principles h3{margin:10px 0 8px; font-size:clamp(16px,1.6vw,21px); letter-spacing:.08em}
   .principles p{color:var(--mist)}
 
   /* ---------------------------------------------------------- contact + footer */
   .contact{position:relative; overflow:hidden; text-align:center; padding:clamp(90px,15vh,170px) 0}
-  .contact .sec-title{font-size:clamp(34px,6vw,88px)}
-  .contact-copy{max-width:52ch; margin:0 auto; color:var(--mist); font-size:clamp(16px,1.4vw,19px)}
+  .contact .wrap{position:relative}
+  .contact .sec-title{font-size:clamp(32px,5.6vw,84px)}
+  .contact-copy{max-width:52ch; margin:0 auto; color:var(--mist); font-size:clamp(16px,1.3vw,19px)}
   .contact .cta-row{justify-content:center; margin-top:30px}
-  .contact .orn-big{position:absolute; z-index:0; left:50%; top:50%; width:min(120vw,1100px); transform:translate(-50%,-50%); fill:rgba(255,255,255,.035)}
+  .contact .orn-big{position:absolute; left:50%; top:50%; width:min(120vw,1100px); transform:translate(-50%,-50%); fill:rgba(255,255,255,.035)}
   .site-foot{border-top:1px solid var(--rule); padding:38px var(--pad) 44px}
   .foot-in{width:min(1240px,100%); margin-inline:auto; display:grid; grid-template-columns:2fr 1fr 1fr; gap:28px}
   .site-foot p{color:var(--mist); font-size:14px}
   .foot-brand .brand{margin-bottom:6px; color:var(--ink)}
   .foot-list{list-style:none; margin:10px 0 0; padding:0; display:grid; gap:4px}
-  .foot-list a,.contact-link{display:inline-flex; align-items:center; min-height:32px; text-decoration:none; font-weight:700}
+  .foot-list a,.contact-link{display:inline-flex; align-items:center; min-height:32px; text-decoration:none; font-weight:600}
   .foot-list a:hover,.contact-link:hover{text-decoration:underline; text-underline-offset:5px}
-  .fine{grid-column:1/-1; padding-top:18px; border-top:1px solid var(--rule)}
+  .fine{grid-column:1 / -1; padding-top:18px; border-top:1px solid var(--rule)}
 
   /* ---------------------------------------------------------- trailer dialog */
   .trailer{width:min(1100px, calc(100vw - 32px)); max-width:none; padding:0; border:0; background:transparent; overflow:visible}
@@ -305,59 +309,74 @@
                  border:1px solid rgba(255,255,255,.4); background:rgba(10,10,12,.8); color:var(--ink)}
   .trailer-close svg{width:18px; height:18px}
 
-  /* ---------------------------------------------------------- arriving on scroll */
+  /* ---------------------------------------------------------- arriving on scroll (never on an island: it must not move after the river is drawn) */
   @media (prefers-reduced-motion:no-preference){
     .js .rv{opacity:0; transform:translateY(18px); transition:opacity .45s ease, transform .45s cubic-bezier(.2,.7,.2,1)}
     .js .rv.in{opacity:1; transform:none}
   }
 
-  /* ---------------------------------------------------------- phones: the river runs down the left edge, everything sits beside it */
-  @media (max-width:859px){
-    .banks,.scene--tall .trio,#lab .sec-head{display:block}
-    .bank-l,.bank-r,#lab .sec-head > div{text-align:left; max-width:none}
-    .scene .wrap,.mouth .wrap,#lab .sec-head,#lab .lab-grid,.hero .banks{padding-left:var(--gut)}
-    .scene--wide .bank-l .chips,.scene--wide .bank-l .actions,.scene--tall .bank-l .chips,.scene--tall .bank-l .actions,.scene--tall .bank-l .icon-row{justify-content:flex-start}
+  /* ---------------------------------------------------------- phones: the river runs down the left edge, the islands lie on it */
+  @media (max-width:899px){
+    .wrap{width:auto; margin:0; padding:0 var(--pad) 0 var(--gut)}
+    /* in a single column nothing is pushed to one side (browsers apply justify-self to plain blocks too) */
+    .word-l,.word-r,.bank-l,.bank-r,.more,.copy-head,.copy-more,.hero-line,.sec-count,.stage--tall{justify-self:auto}
+    .top{padding:8px var(--pad)}
+    .brand span{display:none}
+    .nav{gap:16px}
+    .nav-opt{display:none !important}
+    .glow{display:none}
+    .game{background:radial-gradient(90% 34% at 50% 46%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 70%)}
 
-    .hero{display:block; padding-top:76px}
-    .ghost{top:27%; font-size:25vw; white-space:normal; text-align:center; width:100%}
-    .hero-mark{width:min(84vw, 46vh); margin:8px auto 0}
-    .hero .banks{margin-top:150px}
-    .hero .bank-r{margin-top:18px}
+    .hero{display:block; min-height:0; padding:64px 0 36px}
+    .hero-mark{--mark:min(84vw, 44svh * 1.28); margin:0 auto}
+    .hero-name{display:block; width:auto; margin:0; padding:24px var(--pad) 0 0; text-align:right; font-size:clamp(34px,10.6vw,50px); line-height:1.02}
+    .word{display:block; margin:0}
+    .hero-gap{display:none}
+    .hero-name small{display:block; margin:12px 0 0; font-size:11px}
+    .hero-foot{display:block; width:auto; margin-top:96px; padding:0 var(--pad) 0 var(--gut)}
+    .hero-line{max-width:none; text-align:left}
+    .hero-foot .cta-row{margin-top:18px}
 
-    .scene{display:block; min-height:0; padding:64px 0 76px}
-    .name{font-size:clamp(46px,15.5vw,84px)}
-    .scene--tall .name{font-size:clamp(38px,12vw,64px)}
-    /* footage goes edge to edge, over the river */
-    .stage{margin:34px calc(-1 * var(--pad)) 38px calc(-1 * (var(--gut) + var(--pad))) !important}
-    .stage--wide .screen{border-radius:0}
-    .stage--tall .screen{width:min(270px,70vw)}
-    .stage-bar{margin-top:30px; justify-content:flex-start; padding:0 var(--pad) 0 calc(var(--gut) + var(--pad))}
-    .live{display:none}
-    .scene--wide .bank-r{margin-top:18px}
-    .scene--tall .bank-r{margin-top:0}
-    .bank-l + .bank-r{margin-top:26px}
+    .game{padding-top:58px}
+    .banks,.game-head,.game-more,.duo{display:block}
+    .bank-l,.bank-r{text-align:left}
+    .game-name{font-size:clamp(44px,14.6vw,84px)}
+    .game--tall .game-name{font-size:clamp(36px,11.4vw,64px)}
+    .game-head .bank-r{margin-top:18px}
+    .actions{margin-top:16px}
+    .stage--wide{width:auto; margin:60px 10px 0}
+    .stage--wide .screen{border-radius:14px}
+    .game-more{min-height:0; padding-top:42px}
+    .more,.copy-head,.copy-more{max-width:none}
+    .hl{grid-template-columns:1fr}
+    .game--tall{padding-top:64px}
+    .stage--tall{width:fit-content; margin:60px 0 0 calc(30px - var(--gut))}
+    .stage--tall .screen{height:auto; width:min(76vw,310px); border-radius:26px}
+    .copy-more{margin-top:42px}
+    .copy-more .pitch{margin-top:0}
 
-    .bend{height:150px}
-    .orn{display:none}
-    .bend .bend-label{left:var(--gut); right:var(--pad); max-width:none; text-align:left}
+    #lab{--pool:120px; display:block; width:auto; margin:0; padding:76px var(--pad) 10px 0}
+    #lab .sec-head{max-width:none; padding-left:var(--gut)}
+    #lab .lab-grid{padding:30px 0 0 10px}
+    #lab .lab-card,#lab .lab-card:nth-child(odd),#lab .lab-card:nth-child(even){grid-template-columns:var(--pool) minmax(0,1fr); column-gap:16px; width:auto; margin:0 0 22px; text-align:left}
+    #lab .lab-card:nth-child(even) .lab-media{grid-column:1}
+    #lab .lab-card:nth-child(even) .lab-body{grid-column:2; align-items:flex-start}
+    #lab .lab-card:nth-child(even) .lab-tags{justify-content:flex-start}
+    #lab .lab-card:nth-child(even) .lab-play{align-self:flex-start}
+    #lab .lab-body p{-webkit-line-clamp:2; line-clamp:2}
+    #lab .lab-tags{display:none}
 
-    #lab .lab-grid{grid-template-columns:repeat(2,1fr); gap:20px 14px}
-    #lab .lab-card:nth-child(even){transform:translateY(22px)}
-    #lab .lab-body{padding:50px 11px 11px}
-    #lab .lab-body p,#lab .lab-tags{display:none}
-    .sec-count{margin-top:18px}
-
-    .mouth .bank-r{margin-top:20px}
-    .pool{margin-top:170px}
+    .studio{padding-top:84px}
+    .studio .bank-r{margin-top:20px}
+    .pool{margin:176px auto 110px}
     .principles{grid-template-columns:1fr}
     .foot-in{grid-template-columns:1fr 1fr}
-    .foot-brand{grid-column:1/-1}
+    .foot-brand{grid-column:1 / -1}
   }
-  [id]{scroll-margin-top:72px}
 </style>
 </head>
 <body id="top">
-<a class="skip" href="#main">Skip to the games</a>
+<a class="skip" href="#apex-dragon">Skip to the games</a>
 
 <!-- The logo emblem, traced from the studio logo. Reused everywhere with <use href="#emblem">. -->
 <svg class="defs" aria-hidden="true" focusable="false">
@@ -369,78 +388,97 @@
     <svg viewBox="0 0 1476 1152" aria-hidden="true"><use href="#emblem"/></svg><span>Mythic Flow</span>
   </a>
   <nav class="nav" aria-label="Primary">
-    <a href="#games">Games</a>
+    <a href="#games" data-way="apex-dragon beamlock">Games</a>
     <!-- forge:lab-nav:start --><a href="#lab">Lab</a><!-- forge:lab-nav:end -->
     <a class="nav-opt" href="#studio">Studio</a>
     <a href="#contact">Contact</a>
   </nav>
 </header>
 
+<!-- Side rail on wide screens: where you are on the river. A link whose section is missing hides itself. -->
+<nav class="rail" aria-label="On this page">
+  <a href="#apex-dragon"><span>Apex Dragon</span><i aria-hidden="true"></i></a>
+  <a href="#beamlock"><span>BEAMLOCK</span><i aria-hidden="true"></i></a>
+  <a href="#lab"><span>Prototypes</span><i aria-hidden="true"></i></a>
+  <a href="#studio"><span>Studio</span><i aria-hidden="true"></i></a>
+  <a href="#contact"><span>Contact</span><i aria-hidden="true"></i></a>
+</nav>
+
 <main id="main">
 
-  <!-- ======================================================= HERO: the river starts at the dragon -->
+  <!-- ======================================================= HERO: the logo, and the river leaving it
+       [data-river-source] is the emblem the river starts from. [data-river-via] marks a spot the river
+       must pass through on wide screens (here: the gap between the two words). -->
   <section class="hero" aria-labelledby="hero-title">
-    <p class="ghost" aria-hidden="true">Mythic Flow</p>
     <div class="hero-mark" data-river-source>
       <svg viewBox="0 0 1476 1152" role="img" aria-label="Mythic Flow Studio logo: a dragon rising from waves, with a river flowing out below it"><use href="#emblem"/></svg>
     </div>
-    <div class="wrap banks">
-      <div class="bank-l">
-        <p class="kicker">Independent game studio · Android</p>
-        <h1 id="hero-title">Mythic Flow <small>Studio</small></h1>
-      </div>
-      <div class="bank-r">
-        <p class="tagline">Games built around one clear idea each. Follow the river: every clip on it is <strong>real in-game footage</strong>.</p>
-        <div class="cta-row">
-          <a class="btn btn-primary" href="#games">
-            Follow the river
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5"/></svg>
-          </a>
-          <a class="btn btn-ghost" href="#contact">Get in touch</a>
-        </div>
+    <h1 class="hero-name" id="hero-title">
+      <span class="word word-l">Mythic</span>
+      <i class="hero-gap" data-river-via aria-hidden="true"></i>
+      <span class="word word-r">Flow <small>Studio</small></span>
+    </h1>
+    <div class="hero-foot">
+      <p class="hero-line">Independent game studio for Android. Games built around <strong>one clear idea</strong> each, shown in <strong>real in-game footage</strong>.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="#games">
+          See the games
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5"/></svg>
+        </a>
+        <a class="btn btn-ghost" href="#contact">Get in touch</a>
       </div>
     </div>
   </section>
 
-  <div class="bend bend--l" id="games" aria-hidden="true">
-    <svg class="orn" viewBox="20 300 760 800"><use href="#emblem"/></svg>
-    <p class="bend-label mono">Downstream · 01<b>Apex Dragon</b></p>
-  </div>
-
   <!--
     HOW TO ADD A GAME
-    1. Copy one whole <section class="scene ..."> block and the <div class="bend ..."> before it.
-    2. Give the section a unique id, and set --accent (a color token) and --world (the scene's deep color).
-    3. Landscape footage: copy the Apex Dragon block (scene--wide). Phone-shaped footage: copy BEAMLOCK (scene--tall).
-    4. Each clip is one <button data-clip> in the stage bar; the first one must match the <video>'s src and poster.
-    5. Alternate bend--l and bend--r so the river swings the other way each time.
-    Every clip must be real in-game footage.
+    1. Copy one whole <section class="game ..."> block. Landscape footage: copy Apex Dragon (game--wide).
+       Phone-shaped footage: copy BEAMLOCK (game--tall).
+    2. Give the section a unique id and data-place, and set --accent to one of the color tokens.
+    3. The footage frame carries data-river-island: the river finds it by itself and wraps round it.
+    4. Each clip is one <button data-clip>; the first one must match the <video>'s src and poster.
+    5. Add the game to the side rail (nav.rail) and to the footer list.
+    Every clip must be real in-game footage. Nothing that holds the footage may be moved with a
+    transform or given a z-index: the river is drawn where the footage is measured to be.
   -->
+  <div class="games" id="games">
 
   <!-- ================= GAME SCENE: APEX DRAGON ================= -->
-  <section class="scene scene--wide" id="apex-dragon" data-game data-name="Apex Dragon" style="--accent: var(--amber); --world:#0f2a1b" aria-labelledby="apex-name">
-    <div class="scene-art" aria-hidden="true"><img src="assets/media/apexdragon-evolve-poster.jpg" width="1030" height="480" alt="" loading="lazy" decoding="async"></div>
-    <div class="wrap">
-      <div class="banks rv">
-        <div class="bank-l">
-          <p class="kicker"><span class="pulse" aria-hidden="true"></span><b>01</b> On Google Play</p>
-          <h2 class="name" id="apex-name">Apex<br>Dragon</h2>
-          <p class="mono tagline-game">hatch · eat · grow · rule</p>
-        </div>
-        <div class="bank-r">
-          <p class="pitch">An online multiplayer, free-for-all dragon arena in a stylized forest. Pick one of 17 dragons, hatch it tiny, eat everything smaller than you and grow through seven stages to Apex and beyond, while other players' dragons hunt for the top of the leaderboard. Three boss boars guard their zones, and beating one grants its power.</p>
+  <section class="game game--wide" id="apex-dragon" data-place="apex-dragon" data-stage style="--accent: var(--amber)" aria-labelledby="apex-name">
+    <div class="game-head wrap">
+      <div class="bank-l rv">
+        <p class="label status"><span class="pulse" aria-hidden="true"></span>01 · On Google Play</p>
+        <h2 class="game-name" id="apex-name">Apex<br>Dragon</h2>
+      </div>
+      <i class="gap" data-river-via aria-hidden="true"></i>
+      <div class="bank-r rv">
+        <p class="hook">Hatch · Eat · Grow · Rule</p>
+        <div class="actions">
+          <a class="play-badge" href="https://play.google.com/store/apps/details?id=com.daniel.apexdragon" target="_blank" rel="noopener">
+            <img src="assets/img/google-play-badge.png" width="564" height="168" alt="Get it on Google Play" decoding="async">
+          </a>
+          <a class="btn btn-ghost" href="assets/media/apexdragon-trailer.mp4" data-trailer-open>
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="6" cy="6" r="5"/><path d="M4.9 3.9v4.2L8.2 6Z" fill="currentColor" stroke="none"/></svg>
+            Watch the trailer
+          </a>
         </div>
       </div>
+    </div>
 
-      <!-- MEDIA: real in-game footage, landscape 1030x480, no audio. The clips play one after another. -->
-      <figure class="stage stage--wide rv" data-stage>
-        <div class="screen">
-          <video muted playsinline preload="metadata" width="1030" height="480"
-                 poster="assets/media/apexdragon-evolve-poster.jpg" src="assets/media/apexdragon-evolve.mp4"
-                 aria-label="Apex Dragon gameplay: a tiny Hatchling grows up, flashing gold each time it evolves, to Young Dragon, Elder and finally Apex."></video>
-        </div>
-        <figcaption class="stage-bar">
-          <span class="live mono"><span class="pulse" aria-hidden="true"></span>Real gameplay</span>
+    <!-- MEDIA: real in-game footage, landscape 1030x480, no audio. The clips play one after another. -->
+    <figure class="stage stage--wide">
+      <div class="glow" aria-hidden="true"><img src="assets/media/apexdragon-evolve-poster.jpg" width="1030" height="480" alt="" loading="lazy" decoding="async"></div>
+      <div class="screen" data-river-island>
+        <video data-footage muted playsinline preload="metadata" width="1030" height="480"
+               poster="assets/media/apexdragon-evolve-poster.jpg" src="assets/media/apexdragon-evolve.mp4"
+               aria-label="Apex Dragon gameplay: a tiny Hatchling grows up, flashing gold each time it evolves, to Young Dragon, Elder and finally Apex."></video>
+      </div>
+    </figure>
+
+    <div class="game-more wrap">
+      <div class="more rv">
+        <div class="clips" role="group" aria-label="Choose a clip">
+          <span class="label live"><span class="pulse" aria-hidden="true"></span>Real gameplay</span>
           <button class="clip is-on" type="button" data-clip aria-pressed="true"
                   data-src="assets/media/apexdragon-evolve.mp4" data-poster="assets/media/apexdragon-evolve-poster.jpg"
                   data-label="Apex Dragon gameplay: a tiny Hatchling grows up, flashing gold each time it evolves, to Young Dragon, Elder and finally Apex.">Evolution</button>
@@ -453,78 +491,52 @@
           <button class="full" type="button" data-full aria-label="Show this clip full screen">
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10"/></svg>
           </button>
-        </figcaption>
-      </figure>
-
-      <div class="banks rv">
-        <div class="bank-l">
-          <ul class="chips" aria-label="Game details">
-            <li class="chip">Online multiplayer</li>
-            <li class="chip">Free-for-all arena</li>
-            <li class="chip">Android</li>
-          </ul>
-          <div class="actions">
-            <a class="btn btn-ghost" href="assets/media/apexdragon-trailer.mp4" data-trailer-open>
-              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="6" cy="6" r="5"/><path d="M4.9 3.9v4.2L8.2 6Z" fill="currentColor" stroke="none"/></svg>
-              Watch the trailer
-            </a>
-            <a class="play-badge" href="https://play.google.com/store/apps/details?id=com.daniel.apexdragon" target="_blank" rel="noopener">
-              <img src="assets/img/google-play-badge.png" width="564" height="168" alt="Get it on Google Play" loading="lazy" decoding="async">
-            </a>
-          </div>
         </div>
-        <div class="bank-r">
-          <p class="mini mono" aria-hidden="true">Highlights</p>
-          <ul class="hl" aria-label="Highlights">
-            <li>Hatchling → Whelp → Juvenile → … → Apex</li>
-            <li>Dash at Whelp, fire breath at Juvenile</li>
-            <li>17 dragons to choose from</li>
-            <li>Live leaderboard</li>
-            <li>Boss boars with telegraphed attacks</li>
-            <li>Boss powers: Inferno breath, Void dash</li>
-          </ul>
-        </div>
+        <p class="pitch">An online multiplayer, free-for-all dragon arena in a stylized forest. Pick one of 17 dragons, hatch it tiny, eat everything smaller than you and grow through seven stages to Apex and beyond, while other players' dragons hunt for the top of the leaderboard. Three boss boars guard their zones, and beating one grants its power.</p>
+        <ul class="hl" aria-label="Highlights">
+          <li>Hatchling → Whelp → Juvenile → … → Apex</li>
+          <li>Dash at Whelp, fire breath at Juvenile</li>
+          <li>17 dragons to choose from</li>
+          <li>Live leaderboard</li>
+          <li>Boss boars with telegraphed attacks</li>
+          <li>Boss powers: Inferno breath, Void dash</li>
+        </ul>
       </div>
     </div>
   </section>
   <!-- ================= /GAME SCENE ================= -->
 
-  <div class="bend bend--r" aria-hidden="true">
-    <svg class="orn" viewBox="20 300 760 800"><use href="#emblem"/></svg>
-    <p class="bend-label mono">Downstream · 02<b>BEAMLOCK</b></p>
-  </div>
-
   <!-- ================= GAME SCENE: BEAMLOCK ================= -->
-  <section class="scene scene--tall" id="beamlock" data-game data-name="BEAMLOCK" style="--accent: var(--beam); --world:#081a2e" aria-labelledby="beamlock-name">
-    <div class="scene-art" aria-hidden="true"><img src="assets/media/beamlock-level200-poster.jpg" width="720" height="1544" alt="" loading="lazy" decoding="async"></div>
-    <div class="wrap trio">
-      <div class="bank-l rv">
-        <p class="kicker"><span class="pulse" aria-hidden="true"></span><b>02</b> In closed testing</p>
-        <h2 class="name" id="beamlock-name">Beamlock</h2>
-        <div class="icon-row">
-          <p class="mono tagline-game">bend the light ·<br>lock the switches</p>
-          <img class="game-icon" src="assets/img/beamlock-icon-224.webp" width="64" height="64" alt="" loading="lazy" decoding="async">
-        </div>
-        <ul class="chips" aria-label="Game details">
-          <li class="chip">Puzzle</li>
-          <li class="chip">Android</li>
-          <li class="chip">200 levels</li>
-        </ul>
-        <div class="actions">
-          <!-- CLOSED TEST: replace this mailto with the Google Group / Play opt-in link when it's ready.
-               At public release, add the Google Play link or badge next to it. -->
-          <a class="btn btn-accent" href="mailto:hello@mythicflowstudio.com?subject=BEAMLOCK%20closed%20test">Join the closed test</a>
-        </div>
+  <section class="game game--tall" id="beamlock" data-place="beamlock" data-stage style="--accent: var(--beam)" aria-labelledby="beamlock-name">
+    <div class="wrap duo">
+      <div class="copy-head rv">
+        <p class="label status"><span class="pulse" aria-hidden="true"></span>02 · In closed testing</p>
+        <h2 class="game-name" id="beamlock-name">Beamlock</h2>
+        <p class="hook">Bend the light · Lock the switches</p>
       </div>
 
       <!-- MEDIA: real in-game footage, portrait 1080x2316, recorded at a real phone resolution, no audio. -->
-      <figure class="stage stage--tall rv" data-stage>
-        <div class="screen">
-          <video muted playsinline preload="metadata" width="720" height="1544"
+      <figure class="stage stage--tall">
+        <div class="glow" aria-hidden="true"><img src="assets/media/beamlock-level200-poster.jpg" width="720" height="1544" alt="" loading="lazy" decoding="async"></div>
+        <div class="screen" data-river-island>
+          <video data-footage muted playsinline preload="metadata" width="720" height="1544"
                  poster="assets/media/beamlock-level200-poster.jpg" src="assets/media/beamlock-level200.mp4"
                  aria-label="BEAMLOCK gameplay, level 200: the laser from the emitter is routed through splitters, switches, a door and a crate, with color mixing, until all three rings light up for a three-star clear."></video>
         </div>
-        <figcaption class="stage-bar">
+      </figure>
+
+      <div class="copy-more rv">
+        <p class="pitch">A grid laser-routing puzzle. Place mirrors, trip switches and mix colors to guide the beam through every ring on the board.</p>
+        <ul class="hl" aria-label="Highlights">
+          <li>Mirrors &amp; reflection</li>
+          <li>Switches &amp; doors</li>
+          <li>Splitters</li>
+          <li>Portals</li>
+          <li>Color mixing</li>
+          <li>Daily challenge</li>
+        </ul>
+        <div class="clips" role="group" aria-label="Choose a clip">
+          <span class="label live"><span class="pulse" aria-hidden="true"></span>Real gameplay</span>
           <button class="clip is-on" type="button" data-clip aria-pressed="true"
                   data-src="assets/media/beamlock-level200.mp4" data-poster="assets/media/beamlock-level200-poster.jpg"
                   data-label="BEAMLOCK gameplay, level 200: the laser from the emitter is routed through splitters, switches, a door and a crate, with color mixing, until all three rings light up for a three-star clear.">Level 200</button>
@@ -534,31 +546,21 @@
           <button class="full" type="button" data-full aria-label="Show this clip full screen">
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10"/></svg>
           </button>
-        </figcaption>
-      </figure>
-
-      <div class="bank-r rv">
-        <p class="pitch">A grid laser-routing puzzle. Place mirrors, trip switches and mix colors to guide the beam through every ring on the board.</p>
-        <p class="mini mono" aria-hidden="true">Highlights</p>
-        <ul class="hl" aria-label="Highlights">
-          <li>Mirrors &amp; reflection</li>
-          <li>Switches &amp; doors</li>
-          <li>Splitters</li>
-          <li>Portals</li>
-          <li>Color mixing</li>
-          <li>Daily challenge</li>
-        </ul>
+        </div>
+        <div class="actions">
+          <img class="game-icon" src="assets/img/beamlock-icon-224.webp" width="56" height="56" alt="" loading="lazy" decoding="async">
+          <!-- CLOSED TEST: replace this mailto with the Google Group / Play opt-in link when it's ready.
+               At public release, add the Google Play link or badge next to it. -->
+          <a class="btn btn-accent" href="mailto:hello@mythicflowstudio.com?subject=BEAMLOCK%20closed%20test">Join the closed test</a>
+        </div>
       </div>
     </div>
   </section>
   <!-- ================= /GAME SCENE ================= -->
 
-  <div class="bend bend--l" aria-hidden="true">
-    <svg class="orn" viewBox="20 300 760 800"><use href="#emblem"/></svg>
-    <p class="bend-label mono">More games in the works<b>New projects land here first</b></p>
   </div>
 
-    <!-- forge:lab:start -->
+  <!-- forge:lab:start -->
     <!-- Generated by Mythic Forge ("Website" page): edits here are overwritten on the next publish. -->
     <style>
       .lab-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:18px; margin-top:22px}
@@ -648,14 +650,16 @@
     </script>
     <!-- forge:lab:end -->
 
-  <!-- ======================================================= STUDIO: the river reaches the pool -->
-  <section class="mouth" id="studio" aria-labelledby="studio-title">
-    <div class="wrap banks rv">
-      <div class="bank-l">
-        <p class="kicker">The studio</p>
+  <!-- ======================================================= STUDIO -->
+  <!-- The river ends here: it circles the pool ([data-river-pool]) that holds the emblem. -->
+  <section class="studio" id="studio" data-place="studio" aria-labelledby="studio-title">
+    <div class="wrap banks">
+      <div class="bank-l rv">
+        <p class="label">The studio</p>
         <h2 class="sec-title" id="studio-title">One clear idea per game, polished until it <em>flows</em>.</h2>
       </div>
-      <div class="bank-r studio-copy">
+      <i class="gap" data-river-via aria-hidden="true"></i>
+      <div class="bank-r studio-copy rv">
         <p>Mythic Flow Studio is an independent game studio making games for Android. Every project starts from one idea you can grasp in seconds, like <strong>bending a beam of light</strong> or <strong>growing a dragon</strong>, and we build outward until it feels right in your hands.</p>
         <p>The genres change from game to game. The standard doesn't.</p>
       </div>
@@ -663,19 +667,19 @@
     <div class="pool" data-river-pool aria-hidden="true">
       <svg viewBox="0 0 1476 1152"><use href="#emblem"/></svg>
     </div>
-    <ul class="principles wrap rv">
-      <li>
-        <span class="mono">01</span>
+    <ul class="principles wrap">
+      <li class="rv">
+        <span class="label">01</span>
         <h3>One idea, done well</h3>
         <p>Each game is built around a single core mechanic, and everything else serves it.</p>
       </li>
-      <li>
-        <span class="mono">02</span>
+      <li class="rv">
+        <span class="label">02</span>
         <h3>Readable at a glance</h3>
         <p>Clear visuals and controls, designed to make sense on a phone screen.</p>
       </li>
-      <li>
-        <span class="mono">03</span>
+      <li class="rv">
+        <span class="label">03</span>
         <h3>Built in the open</h3>
         <p>Every clip on this site is captured in-game. No mockups, no pre-rendered trailers.</p>
       </li>
@@ -683,10 +687,10 @@
   </section>
 
   <!-- ======================================================= CONTACT -->
-  <section class="contact" id="contact" aria-labelledby="contact-title">
+  <section class="contact" id="contact" data-place="contact" aria-labelledby="contact-title">
     <svg class="orn-big" viewBox="0 0 1476 1152" aria-hidden="true"><use href="#emblem"/></svg>
     <div class="wrap rv">
-      <p class="kicker">Follow along</p>
+      <p class="label">Follow along</p>
       <h2 class="sec-title" id="contact-title">Be first to play what's next.</h2>
       <p class="contact-copy">Want in on the BEAMLOCK closed test, Apex Dragon news or new highlights? Drop us a line. Players, press and partners all welcome.</p>
       <div class="cta-row">
@@ -709,20 +713,20 @@
       <a class="contact-link" href="mailto:hello@mythicflowstudio.com">hello@mythicflowstudio.com</a>
     </div>
     <nav aria-label="Games">
-      <p class="mono">Games</p>
+      <p class="label">Games</p>
       <ul class="foot-list">
         <li><a href="#apex-dragon">Apex Dragon</a></li>
         <li><a href="#beamlock">BEAMLOCK</a></li>
       </ul>
     </nav>
     <nav aria-label="Studio">
-      <p class="mono">Studio</p>
+      <p class="label">Studio</p>
       <ul class="foot-list">
         <li><a href="#studio">The studio</a></li>
         <li><a href="#contact">Contact</a></li>
       </ul>
     </nav>
-    <p class="fine mono">© <span data-year>2026</span> Mythic Flow Studio · All footage captured in-game</p>
+    <p class="fine label">© <span data-year>2026</span> Mythic Flow Studio · All footage captured in-game</p>
   </div>
 </footer>
 
@@ -742,18 +746,19 @@
 (() => {
   'use strict';
 
-  const doc = document;
+  const doc = document, root = doc.documentElement;
   const mq = (q) => (window.matchMedia ? window.matchMedia(q) : { matches: false });
+  const onChange = (query, fn) => { if (query.addEventListener) query.addEventListener('change', fn); else if (query.addListener) query.addListener(fn); };
   const reduce = mq('(prefers-reduced-motion: reduce)');
-  const phone = mq('(max-width: 859px)');
+  const phone = mq('(max-width: 899px)');          // the same breakpoint as the styles: below it the river runs down the left edge
   const hasIO = 'IntersectionObserver' in window;
-  const quietPlay = (v) => { const p = v.play(); if (p && p.catch) p.catch(() => {}); };
+  const quietPlay = (video) => { const p = video.play(); if (p && p.catch) p.catch(() => {}); };
 
   doc.querySelectorAll('[data-year]').forEach((el) => { el.textContent = new Date().getFullYear(); });
 
   /* ---------- top bar: clear over the hero, solid once the page moves */
-  const top = doc.querySelector('[data-top]');
-  const stick = () => { if (top) top.classList.toggle('is-stuck', window.scrollY > 40); };
+  const topBar = doc.querySelector('[data-top]');
+  const stick = () => { if (topBar) topBar.classList.toggle('is-stuck', window.scrollY > 40); };
 
   /* ---------- blocks arrive as they scroll into view */
   const arriving = doc.querySelectorAll('.rv');
@@ -766,17 +771,35 @@
     arriving.forEach((el) => el.classList.add('in'));
   }
 
-  /* ---------- stages: each game's clips play one after another, only while on screen */
+  /* ---------- wayfinding: the link of the section being read is marked in the top bar and on the side rail */
+  const wayLinks = Array.from(doc.querySelectorAll('.nav a[href^="#"], .rail a[href^="#"]'));
+  const leadsTo = (a) => (a.dataset.way || a.getAttribute('href').slice(1)).split(' ');
+  doc.querySelectorAll('.rail a').forEach((a) => { a.hidden = !doc.querySelector(a.getAttribute('href')); });   // the lab can be empty
+  if (hasIO && wayLinks.length) {
+    const mark = (place) => wayLinks.forEach((a) => {
+      if (leadsTo(a).includes(place)) a.setAttribute('aria-current', 'true'); else a.removeAttribute('aria-current');
+    });
+    const reading = new IntersectionObserver((entries) => {
+      entries.forEach((e) => { if (e.isIntersecting) mark(e.target.dataset.place || e.target.id); });
+    }, { rootMargin: '-45% 0px -54% 0px' });           // a thin line just above the middle of the screen
+    doc.querySelectorAll('[data-place], #lab').forEach((el) => reading.observe(el));
+    // above the first game nothing is marked
+    const hero = doc.querySelector('.hero');
+    if (hero) new IntersectionObserver((entries) => { if (entries[0].isIntersecting) mark(''); }, { rootMargin: '-45% 0px -54% 0px' }).observe(hero);
+  }
+
+  /* ---------- game footage: each game's clips play one after another, only while on screen */
   doc.querySelectorAll('[data-stage]').forEach((stage) => {
-    const video = stage.querySelector('video');
+    const video = stage.querySelector('video[data-footage]');
     const clips = Array.from(stage.querySelectorAll('[data-clip]'));
+    if (!video || !clips.length) return;
     let current = 0;
-    let onScreen = false;
+    let onScreen = !hasIO;
 
     const show = (index, play) => {
       current = (index + clips.length) % clips.length;
       const clip = clips[current];
-      clips.forEach((b) => { b.classList.toggle('is-on', b === clip); b.setAttribute('aria-pressed', String(b === clip)); });
+      clips.forEach((b) => { b.classList.toggle('is-on', b === clip); b.setAttribute('aria-pressed', String(b === clip)); b.style.removeProperty('--played'); });
       if (video.getAttribute('src') !== clip.dataset.src) {
         video.poster = clip.dataset.poster;
         video.src = clip.dataset.src;
@@ -784,20 +807,27 @@
       }
       if (play) quietPlay(video);
     };
+    // under reduced motion nothing plays by itself: the viewer gets the player's own controls instead
+    const settle = () => {
+      video.controls = reduce.matches;
+      if (onScreen && !reduce.matches) quietPlay(video); else video.pause();
+    };
 
     clips.forEach((b, i) => b.addEventListener('click', () => show(i, true)));
-    video.addEventListener('ended', () => {
-      if (clips.length > 1) show(current + 1, onScreen && !reduce.matches);
-      else { video.currentTime = 0; if (onScreen && !reduce.matches) quietPlay(video); }
+    video.addEventListener('timeupdate', () => {
+      if (video.duration) clips[current].style.setProperty('--played', (video.currentTime / video.duration).toFixed(3));
     });
-    if (reduce.matches) video.controls = true;   // no autoplay under reduced motion: the viewer starts it
-
+    video.addEventListener('ended', () => {
+      const fullScreen = doc.fullscreenElement === video;       // changing the file can throw a phone out of full screen, so there the clip repeats
+      if (clips.length > 1 && !fullScreen) { show(current + 1, onScreen && !reduce.matches); return; }
+      video.currentTime = 0;
+      if (fullScreen || (onScreen && !reduce.matches)) quietPlay(video);
+    });
+    onChange(reduce, settle);
     if (hasIO) {
-      new IntersectionObserver((entries) => {
-        onScreen = entries[0].isIntersecting;
-        if (onScreen && !reduce.matches) quietPlay(video); else video.pause();
-      }, { threshold: 0.35 }).observe(stage);
+      new IntersectionObserver((entries) => { onScreen = entries[0].isIntersecting; settle(); }, { threshold: 0.35 }).observe(video);
     }
+    settle();
 
     const full = stage.querySelector('[data-full]');
     if (full) full.addEventListener('click', () => {
@@ -822,227 +852,626 @@
     trailer.addEventListener('close', () => tv.pause());   // Esc / back gesture
   }
 
-  /* ---------- the river
-     One continuous river runs down the page, from the dragon in the hero to the pool in the studio section.
-     Every host element gets its own piece, so only the pieces on screen are redrawn.
-     A piece is described by a few waypoints; between them the centre line eases from one to the next.
-     On wide screens the river runs down the middle; on phones it runs down the left edge. */
+  /* =====================================================================================
+     THE RIVER
+     One river runs down the page. It starts as the river drawn in the logo, visits every
+     island (a game's footage, a prototype) and ends by circling the pool in the studio section.
+
+     It is one shape, worked out in page coordinates and drawn into one layer under the content:
+       1. measure()  reads where the logo, the islands and the pool are;
+       2. route()    lays the river's centre line through them;
+       3. shape...() turns the line into water: a ribbon, and round each island a collar
+                     that is thick where the river arrives and leaves and thin at the far sides;
+       4. pour()     draws as much of it as the reader has reached, so it flows down as they scroll;
+       5. flow()     moves the dark flow lines, like the cuts in the logo's waves.
+     On phones the river runs down the left edge and the islands lie on it.
+     ===================================================================================== */
   const RIVER = {
-    hosts: '.hero, .bend, .scene, #lab, .mouth',
-    width: { wide: 104, phone: 40 },     // keep in step with --rw in the styles
-    phoneSpine: 28,                     // px from the left edge on phones
-    step: 5,                            // px between outline points
-    litLine: 0.78,                      // the river is lit down to this share of the viewport height
-    overlap: 6,                         // px each piece reaches up into the one above, so no seam shows between them
-    // dark flow lines inside the water, like the cuts in the logo's waves: each lane repeats, and drifts downstream
+    islands: '[data-river-island], [data-river-pool], #lab .lab-media',
+    // where the logo's own river leaves the emblem, in the emblem's drawing units (it is 1476 units wide)
+    mouth: {
+      units: 1476,
+      left: [518, 1100],         // the tip of the tongue: the left bank meets the emblem's lower edge
+      right: [880, 1109],        // the right bank meets it
+      heading: 45,               // degrees left of straight down: the way the logo's river is flowing there
+      turn: 250,                 // radius of the bend that brings it round to straight down
+    },
+    width: { min: 78, max: 112, phone: 44 },   // on wide screens the river keeps the logo river's own width, within these limits
+    phoneSpine: 28,              // phones: how far the river's centre is from the left edge
+    step: 6,                     // px between points of the centre line
+    wander: { wide: 13, phone: 3 },            // how far the river strays from its line where nothing pins it
+    pourAhead: 70,               // the river is poured to this many px below the bottom of the screen
+    collar: { side: 0.06, peak: 0.3, reach: 0.6 },    // collar thickness (shares of the river's width) and how far it spreads (share of the island's width)
+    // dark flow lines inside the water: each lane repeats along the river and drifts downstream
     lanes: [
       { at: -0.27, every: 430, long: 240, shift: 0, speed: 60 },
       { at: 0.04, every: 370, long: 170, shift: 140, speed: 80 },
       { at: 0.29, every: 520, long: 270, shift: 300, speed: 52 },
     ],
+    // flow lines in a collar: they run away from where the river arrives and towards where it leaves
+    collarLanes: [
+      { at: 0.56, from: 0.1, to: 0.5, long: 0.3, shift: 0, speed: 0.11 },
+      { at: 0.3, from: 0.22, to: 0.66, long: 0.26, shift: 0.5, speed: 0.08 },
+    ],
   };
 
+  const main = doc.getElementById('main');
+  const SVG = 'http://www.w3.org/2000/svg';
   const ease = (t) => (t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t));
+  const clamp = (n, low, high) => Math.max(low, Math.min(high, n));
   const px = (n) => n.toFixed(1);
+  const spot = (p) => px(p.x) + ' ' + px(p.y);
+  const loop = (points) => 'M' + points.map(spot).join('L') + 'Z';
 
-  const rivers = Array.from(doc.querySelectorAll(RIVER.hosts)).map((host) => {
-    host.classList.add('has-river');
-    const layer = doc.createElement('div');
-    layer.className = 'river';
-    layer.setAttribute('aria-hidden', 'true');
-    layer.innerHTML = '<svg class="dim"><path class="body"/></svg><div class="lit"><svg><path class="body"/><path class="streak"/></svg></div>';
-    host.prepend(layer);
-    return {
-      host,
-      lit: layer.querySelector('.lit'),
-      svgs: layer.querySelectorAll('svg'),
-      bodies: layer.querySelectorAll('.body'),
-      streak: layer.querySelector('.streak'),
-      onScreen: !hasIO,
-      litHeight: -1,
-      shape: null,
-    };
-  });
+  /* ---------- 1. measure: every reading of the page happens here, before anything is drawn */
+  function measure() {
+    const frame = main.getBoundingClientRect();
+    const place = (el) => { const b = el.getBoundingClientRect(); return { x: b.left - frame.left, y: b.top - frame.top, w: b.width, h: b.height }; };
+    const found = { w: frame.width, h: frame.height, top: frame.top + window.scrollY, isPhone: phone.matches, source: null, islands: [], vias: [] };
 
-  /** Where this piece of river runs: its waypoints, its width, and where it starts and stops. */
-  function measure(river) {
-    const host = river.host;
-    const box = host.getBoundingClientRect();
-    const w = host.clientWidth, h = host.clientHeight;
-    const isPhone = phone.matches;
-    const spine = isPhone ? RIVER.phoneSpine : w / 2;
-    const place = (el) => { const b = el.getBoundingClientRect(); return { x: b.left - box.left, y: b.top - box.top, w: b.width, h: b.height }; };
-    const shape = {
-      w, h,
-      width: isPhone ? RIVER.width.phone : RIVER.width.wide,
-      wander: isPhone ? 5 : Math.min(36, w * 0.028),   // how far the river strays from its line, in px
-      pageTop: box.top + window.scrollY,
-      from: 0, to: h,
-      points: [{ y: 0, x: spine }, { y: h, x: spine }],
-      sourceWidth: 0,       // > 0: the river starts this wide (the logo's own river) and narrows
-      stillStart: false,    // no wandering near a fixed start or end, so it meets the art exactly
-      stillEnd: false,
-    };
+    const mark = main.querySelector('[data-river-source]');
+    if (mark) found.source = place(mark);
 
-    const source = host.querySelector('[data-river-source]');
-    if (source) {
-      // the river continues the one drawn in the logo: it starts behind the solid band at the emblem's lower edge
-      const s = place(source);
-      shape.from = s.y + s.h * 0.95;
-      shape.sourceWidth = s.w * 0.16;
-      shape.stillStart = true;
-      const x0 = s.x + s.w * 0.48, fall = h - shape.from, swing = Math.min(90, w * 0.06);
-      shape.points = isPhone
-        ? [{ y: shape.from, x: x0 }, { y: shape.from + 165, x: spine }, { y: h, x: spine }]                       // sweeps to the left edge
-        : [{ y: shape.from, x: x0 }, { y: shape.from + fall * 0.34, x: x0 - swing }, { y: shape.from + fall * 0.62, x: spine + swing * 0.45 }, { y: h, x: spine }];
+    main.querySelectorAll(RIVER.islands).forEach((el) => {
+      const box = place(el);
+      if (box.w < 8 || box.h < 8) return;
+      const corner = getComputedStyle(el).borderTopLeftRadius;
+      const size = Math.min(box.w, box.h);
+      const radius = Math.min(size / 2, corner.endsWith('%') ? size * parseFloat(corner) / 100 : parseFloat(corner) || 0);
+      found.islands.push({ box, radius, round: radius >= size / 2 - 1, end: el.hasAttribute('data-river-pool') });
+    });
+    found.islands.sort((a, b) => a.box.y - b.box.y);
+
+    main.querySelectorAll('[data-river-via]').forEach((el) => { const box = place(el); if (box.w > 0 || box.h > 0) found.vias.push(box); });
+    return found;
+  }
+
+  /* ---------- 2. route: the river's centre line */
+
+  /** Adds a curve from a to b to the line, a point every few px. `still` keeps the river from straying there. */
+  function addCurve(line, a, c1, c2, b, still) {
+    const length = (Math.hypot(c1.x - a.x, c1.y - a.y) + Math.hypot(c2.x - c1.x, c2.y - c1.y) + Math.hypot(b.x - c2.x, b.y - c2.y) + Math.hypot(b.x - a.x, b.y - a.y)) / 2;
+    const pieces = Math.max(2, Math.ceil(length / RIVER.step));
+    for (let i = line.length ? 1 : 0; i <= pieces; i++) {      // the first point is already there: it ended the curve before
+      const t = i / pieces, u = 1 - t;
+      line.push({
+        x: u * u * u * a.x + 3 * u * u * t * c1.x + 3 * u * t * t * c2.x + t * t * t * b.x,
+        y: u * u * u * a.y + 3 * u * u * t * c1.y + 3 * u * t * t * c2.y + t * t * t * b.y,
+        still,
+      });
+    }
+  }
+
+  /** How the logo's river leaves the emblem: its two banks, how wide it is, and the bend that turns it straight down. */
+  function mouthOf(source) {
+    const m = RIVER.mouth;
+    const scale = source.w / m.units;
+    const at = (u) => ({ x: source.x + u[0] * scale, y: source.y + u[1] * scale });
+    const angle = m.heading * Math.PI / 180;
+    const flow = { x: -Math.sin(angle), y: Math.cos(angle) };        // the way the water is heading
+    const across = { x: Math.cos(angle), y: Math.sin(angle) };       // from its left bank to its right bank
+    const left = at(m.left), right = at(m.right);
+    const width = (right.x - left.x) * across.x + (right.y - left.y) * across.y;
+    // the first full cross-section is level with the tip of the left bank; above it the emblem's lower edge cuts the river at a slant
+    const start = { x: left.x + across.x * width / 2, y: left.y + across.y * width / 2, tx: flow.x, ty: flow.y };
+    const turn = m.turn * scale;
+    const straight = { x: start.x + across.x * turn - turn, y: start.y + across.y * turn, tx: 0, ty: 1 };
+    const handle = (4 / 3) * Math.tan(angle / 4) * turn;             // makes the curve between them a true arc
+    start.out = handle; straight.in = handle;
+    // where each bank leaves the emblem, stepped back a little so the join sits inside the logo's own white
+    const tuck = 5 * scale + 2;
+    const leftBank = { x: left.x - flow.x * tuck, y: left.y - flow.y * tuck };
+    const rightBank = { x: right.x - flow.x * tuck, y: right.y - flow.y * tuck };
+    return { start, straight, width, flow, leftBank, rightBank, tip: left, top: Math.min(leftBank.y, rightBank.y) };
+  }
+
+  /** The places the river must pass, in order, each with the direction it flows there (where that is fixed). */
+  function stopsOf(found, mouth) {
+    const down = { tx: 0, ty: 1 };
+    const stops = [mouth.start, mouth.straight];
+    const middle = (box) => ({ x: box.x + box.w / 2, y: box.y + box.h / 2 });
+
+    if (found.isPhone) {
+      // phones: sweep to the left edge, run straight down it, and swing in to the pool at the end
+      const spine = RIVER.phoneSpine;
+      stops.push({ x: spine, y: mouth.straight.y + 170, ...down });
+      const pool = found.islands.find((island) => island.end);
+      if (pool) {
+        stops.push({ x: spine, y: Math.max(mouth.straight.y + 200, pool.box.y - 160), ...down });
+        stops.push(middle(pool.box));
+      } else {
+        stops.push({ x: spine, y: found.h - 40, ...down });
+      }
+      return stops;
     }
 
-    const pool = host.querySelector('[data-river-pool]');
-    if (pool) {
-      const p = place(pool);
-      shape.to = p.y + p.h / 2;
-      shape.stillEnd = true;
-      shape.points = [{ y: 0, x: spine }, { y: Math.max(0, p.y - 150), x: spine }, { y: shape.to, x: p.x + p.w / 2 }];
+    const calls = [
+      ...found.vias.map((box) => ({ y: box.y, via: box })),
+      ...found.islands.map((island) => ({ y: island.box.y, island })),
+    ].sort((a, b) => a.y - b.y);
+    for (const call of calls) {
+      if (call.y < mouth.straight.y + 30) continue;                  // nothing may pull the river back up
+      if (call.via) {                                                // straight down the whole height of the marked gap
+        const gap = call.via;
+        stops.push({ x: gap.x + gap.w / 2, y: gap.y, ...down, through: true });
+        stops.push({ x: gap.x + gap.w / 2, y: gap.y + gap.h, ...down });
+        continue;
+      }
+      const { box, round } = call.island;
+      if (round) { stops.push(middle(box)); continue; }             // through the middle of a round island, whichever way it is going
+      stops.push({ x: box.x + box.w / 2, y: box.y, ...down, through: true });
+      stops.push({ x: box.x + box.w / 2, y: box.y + box.h, ...down });
     }
+    return stops;
+  }
 
-    if (host.classList.contains('bend') && !isPhone) {
-      const side = host.classList.contains('bend--l') ? -1 : 1;
-      shape.points = [{ y: 0, x: spine }, { y: h / 2, x: spine + side * Math.min(w * 0.2, 280) }, { y: h, x: spine }];
+  /** The centre line as points with their distance along the river and the direction across it. */
+  function route(found, mouth) {
+    const stops = stopsOf(found, mouth);
+    // a stop with no fixed direction takes the direction from the stop before it to the stop after it
+    stops.forEach((stop, i) => {
+      if (stop.tx !== undefined) return;
+      const before = stops[i - 1], after = stops[i + 1] || stop;
+      const dx = after.x - before.x, dy = after.y - before.y, len = Math.hypot(dx, dy) || 1;
+      stop.tx = dx / len; stop.ty = dy / len;
+    });
+
+    const line = [], pins = [];
+    for (let i = 0; i < stops.length - 1; i++) {
+      const a = stops[i], b = stops[i + 1];
+      const chord = Math.hypot(b.x - a.x, b.y - a.y);
+      const reachOut = clamp(Math.abs(b.y - a.y) * 0.5, chord * 0.2, chord * 0.55);
+      const out = a.out || reachOut, into = b.in || reachOut;
+      pins.push(line.length ? line.length - 1 : 0);
+      addCurve(line, a, { x: a.x + a.tx * out, y: a.y + a.ty * out }, { x: b.x - b.tx * into, y: b.y - b.ty * into }, b, !!a.through || i === 0);
     }
-    // where drawing starts: at the source, or a few px above the top so it overlaps the piece before it
-    shape.start = shape.stillStart ? shape.from : -RIVER.overlap;
-    river.shape = shape;
+    pins.push(line.length - 1);
+
+    const measureAlong = () => { let s = 0; line.forEach((p, i) => { if (i) s += Math.hypot(p.x - line[i - 1].x, p.y - line[i - 1].y); p.s = s; }); };
+    const faceAcross = () => line.forEach((p, i) => {
+      const a = line[Math.max(0, i - 1)], b = line[Math.min(line.length - 1, i + 1)];
+      const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+      p.tx = (b.x - a.x) / len; p.ty = (b.y - a.y) / len;
+      p.nx = -p.ty; p.ny = p.tx;                                       // across the river, towards its right bank
+    });
+    measureAlong(); faceAcross();
+
+    // the river strays a little from its line, except near the places that pin it
+    const stray = found.isPhone ? RIVER.wander.phone : RIVER.wander.wide;
+    let pin = 0;
+    line.forEach((p, i) => {
+      while (pin < pins.length - 2 && i > pins[pin + 1]) pin++;
+      const free = Math.min(p.s - line[pins[pin]].s, line[pins[pin + 1]].s - p.s);
+      const drift = p.still ? 0 : stray * ease((free - 50) / 190) * (Math.sin(p.s / 150) + 0.5 * Math.sin(p.s / 63 + 2));
+      p.x += p.nx * drift; p.y += p.ny * drift;
+    });
+    measureAlong(); faceAcross();
+    return line;
   }
 
-  /** x of the river's centre line at height y (y counts from the top of the host). */
-  function centre(s, y) {
-    const p = s.points;
-    let i = 0;
-    while (i < p.length - 2 && y > p[i + 1].y) i++;
-    const a = p[i], b = p[i + 1];
-    const x = a.x + (b.x - a.x) * ease((y - a.y) / ((b.y - a.y) || 1));
-    // a slow wander, measured from the top of the page so neighbouring pieces meet exactly
-    const Y = s.pageTop + y;
-    const still = (s.stillStart ? ease((y - s.from) / 220) : 1) * (s.stillEnd ? ease((s.to - y) / 220) : 1);
-    return x + still * s.wander * (Math.sin(Y / 150) + 0.5 * Math.sin(Y / 63 + 2));
-  }
+  /* ---------- 3. shape: the line becomes water */
 
-  /** Half the river's width at height y. */
-  function halfWidth(s, y) {
-    const Y = s.pageTop + y;
-    let half = (s.width / 2) * (1 + 0.09 * Math.sin(Y / 170 + 1) + 0.05 * Math.sin(Y / 61));
-    if (s.sourceWidth) half += (s.sourceWidth / 2 - half) * (1 - ease((y - s.from) / 260));
-    return half;
-  }
-
-  /** The river's cross-section at height y: its centre, and the step (ox, oy) from the centre to the
-      right-hand edge for a half-width of 1. In open water that step is square to the flow, so the river
-      keeps its width through a bend. Close to where two pieces meet it turns level, so both pieces are
-      cut along the same straight line and join without a notch. */
-  function section(s, y) {
-    const x = centre(s, y);
-    const slope = (centre(s, y + 2) - centre(s, y - 2)) / 4;
-    const len = Math.sqrt(1 + slope * slope);
-    const toJoin = Math.min(s.stillStart ? Infinity : y, s.stillEnd ? Infinity : s.h - y);
-    const square = ease(toJoin / 60);
-    return { x, ox: square / len + (1 - square) * len, oy: square * -slope / len };
-  }
-
-  const outline = (left, right) => 'M' + left.join('L') + 'L' + right.reverse().join('L') + 'Z';
-  const at = (c, y, reach) => px(c.x + c.ox * reach) + ' ' + px(y + c.oy * reach);
-
-  function drawBody(river) {
-    const s = river.shape, left = [], right = [];
-    for (let y = s.start; ; y += RIVER.step) {
-      if (y > s.to) y = s.to;
-      const c = section(s, y), half = halfWidth(s, y);
-      left.push(at(c, y, -half));
-      right.push(at(c, y, half));
-      if (y === s.to) break;
+  /** The outline of an island as points about 4px apart, clockwise from the middle of its top edge,
+      each with the direction pointing away from the island. A radius of half its size makes it a circle. */
+  function outlineOf(box, radius) {
+    const r = Math.max(0, radius);
+    const flat = box.w - 2 * r, tall = box.h - 2 * r, bend = Math.PI * r / 2;
+    const x0 = box.x, y0 = box.y, x1 = box.x + box.w, y1 = box.y + box.h;
+    const corner = (cx, cy, a) => ({ x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r, nx: Math.cos(a), ny: Math.sin(a) });
+    // the stretches of a rounded rectangle in order: [length, the point at distance d along it]
+    const runs = [
+      [flat / 2, (d) => ({ x: x0 + box.w / 2 + d, y: y0, nx: 0, ny: -1 })],
+      [bend, (d) => corner(x1 - r, y0 + r, -Math.PI / 2 + d / r)],
+      [tall, (d) => ({ x: x1, y: y0 + r + d, nx: 1, ny: 0 })],
+      [bend, (d) => corner(x1 - r, y1 - r, d / r)],
+      [flat, (d) => ({ x: x1 - r - d, y: y1, nx: 0, ny: 1 })],
+      [bend, (d) => corner(x0 + r, y1 - r, Math.PI / 2 + d / r)],
+      [tall, (d) => ({ x: x0, y: y1 - r - d, nx: -1, ny: 0 })],
+      [bend, (d) => corner(x0 + r, y0 + r, Math.PI + d / r)],
+      [flat / 2, (d) => ({ x: x0 + r + d, y: y0, nx: 0, ny: -1 })],
+    ];
+    const around = runs.reduce((sum, run) => sum + run[0], 0);
+    const count = Math.max(24, Math.round(around / 4));
+    const points = [];
+    for (let i = 0; i < count; i++) {
+      let d = around * i / count, run = 0;
+      while (run < runs.length - 1 && d >= runs[run][0]) { d -= runs[run][0]; run++; }
+      points.push(runs[run][1](d));
     }
-    const d = outline(left, right);
-    river.bodies.forEach((path) => path.setAttribute('d', d));
-    const over = RIVER.overlap;
-    river.svgs.forEach((svg) => { svg.setAttribute('viewBox', '0 ' + -over + ' ' + s.w + ' ' + (s.h + over)); svg.style.height = (s.h + over) + 'px'; });
+    return { points, spacing: around / count };
   }
 
-  function drawStreaks(river, seconds) {
-    const s = river.shape;
+  /** Is the point inside the closed outline? */
+  function inside(outline, x, y) {
+    let hit = false;
+    for (let i = 0, j = outline.length - 1; i < outline.length; j = i++) {
+      const a = outline[i], b = outline[j];
+      if ((a.y > y) !== (b.y > y) && x < (b.x - a.x) * (y - a.y) / (b.y - a.y) + a.x) hit = !hit;
+    }
+    return hit;
+  }
+
+  /** The water round one island: a collar that is thick where the river arrives and leaves and thin elsewhere,
+      with a smooth web where each bank of the river runs into it. */
+  function shapeIsland(island, river) {
+    const { box } = island, { line, width } = river;
+    const { points, spacing } = outlineOf(box, island.radius);
+    const count = points.length, around = count * spacing;
+    const cfg = RIVER.collar;
+    const side = Math.max(4, width * cfg.side), peak = Math.max(12, width * cfg.peak);
+    const wrap = (i) => ((i % count) + count) % count;
+
+    // the river's first and last points on the island are where it arrives and where it leaves
+    const cx = box.x + box.w / 2, cy = box.y + box.h / 2, lap = width * 0.5;
+    const onIsland = island.round
+      ? (p) => Math.hypot(p.x - cx, p.y - cy) <= box.w / 2 + lap
+      : (p) => p.x > box.x - lap && p.x < box.x + box.w + lap && p.y >= box.y && p.y <= box.y + box.h;
+    let first = -1, last = -1;
+    line.forEach((p, i) => { if (onIsland(p)) { if (first < 0) first = i; last = i; } });
+
+    const shape = { island, points, spacing, count, around, wrap, side, first, last, webs: [], iIn: -1, iOut: -1 };
+    if (first < 0) {                                                  // the river does not pass here: a plain thin rim
+      shape.thick = points.map(() => side);
+    } else {
+      const nearest = (p) => {
+        let best = 0, gap = Infinity;
+        points.forEach((q, i) => { const d = (q.x - p.x) ** 2 + (q.y - p.y) ** 2; if (d < gap) { gap = d; best = i; } });
+        return best;
+      };
+      const round = (i, j) => { const d = Math.abs(i - j); return Math.min(d, count - d) * spacing; };   // distance round the outline
+      shape.iIn = nearest(line[first]);
+      shape.iOut = island.end ? -1 : nearest(line[last]);
+      shape.reach = island.end ? around / 2 : clamp(box.w * cfg.reach, 70, 640);
+      shape.fromIn = points.map((_, i) => round(i, shape.iIn));
+      shape.thick = points.map((_, i) => {
+        const near = (1 - ease(shape.fromIn[i] / shape.reach)) + (shape.iOut < 0 ? 0 : 1 - ease(round(i, shape.iOut) / shape.reach));
+        return side + (peak - side) * Math.min(1, near);
+      });
+      shape.yIn = line[first].y; shape.yOut = line[last].y;
+    }
+    shape.outer = points.map((p, i) => ({ x: p.x + p.nx * shape.thick[i], y: p.y + p.ny * shape.thick[i] }));
+    shape.inner = points.map((p) => ({ x: p.x - p.nx * 3, y: p.y - p.ny * 3 }));   // just under the island, so no gap can show
+    if (first >= 0) {
+      addWebs(shape, river, first, 1);
+      if (!island.end) addWebs(shape, river, last, -1);
+    }
+    return shape;
+  }
+
+  /** Where a bank of the river meets the collar there would be a sharp inside corner. A web rounds it off:
+      a curve that leaves the bank a little way out and lands on the collar's edge a little way round.
+      `index` is the point of the river's line at the island's edge; `sense` is 1 where the river arrives
+      and -1 where it leaves. */
+  function addWebs(shape, river, index, sense) {
+    const { outer, inner, wrap, spacing } = shape, { line } = river, { box } = shape.island;
+    const run = clamp(river.width * 1.5, 30, shape.reach * 0.55), rise = river.width * 0.95;
+    const bankAt = (i, bank) => ({ x: line[i].x + line[i].nx * line[i].half * bank, y: line[i].y + line[i].ny * line[i].half * bank });
+    const inCollar = (p) => inside(outer, p.x, p.y);
+    for (const bank of [1, -1]) {
+      const start = bankAt(index, bank);
+      // a bank that passes the island by, or runs down its side (as on phones), has no corner to round off
+      if (!inCollar(start)) continue;
+      if (!shape.island.round && (start.x < box.x + shape.island.radius + 4 || start.x > box.x + box.w - shape.island.radius - 4)) continue;
+      // walk out along the bank, away from the island, to where it leaves the collar: that is the corner
+      let i = index;
+      while (i - sense > 0 && i - sense < line.length - 1 && Math.abs(i - index) < 60 && inCollar(bankAt(i - sense, bank))) i -= sense;
+      const far = clamp(i - sense * Math.round(rise / RIVER.step), 0, line.length - 1);
+      if (far === i) continue;
+      const corner = bankAt(i, bank), a = bankAt(far, bank);
+      let iC = 0, gap = Infinity;
+      outer.forEach((q, k) => { const dd = (q.x - corner.x) ** 2 + (q.y - corner.y) ** 2; if (dd < gap) { gap = dd; iC = k; } });
+      // the web lands on the collar's edge on the side away from the river
+      const steps = Math.max(3, Math.round(run / spacing));
+      const away = (k) => ((outer[wrap(k)].x - line[index].x) * line[index].nx + (outer[wrap(k)].y - line[index].y) * line[index].ny) * bank;
+      const iB = away(iC + steps) > away(iC - steps) ? wrap(iC + steps) : wrap(iC - steps);
+      const land = outer[iB];
+      const curve = [];
+      for (let k = 0; k <= 14; k++) {
+        const t = k / 14, u = 1 - t;
+        curve.push({ x: u * u * a.x + 2 * u * t * corner.x + t * t * land.x, y: u * u * a.y + 2 * u * t * corner.y + t * t * land.y });
+      }
+      // closed through the island's edge and the middle of the river, so the web only ever covers water
+      shape.webs.push({ sense, d: loop([...curve, inner[iB], inner[iC], line[i], line[far]]) });
+    }
+  }
+
+  /** The first stretch, where the river leaves the logo. The emblem's lower edge cuts the logo's river at a
+      slant, so its right bank ends well upstream of its left bank. From there the right bank is one sweeping
+      curve down to where the river runs straight; the river's points get their own width on that side
+      (`halfNear`) so its edge follows the curve, and a wedge fills the gap up to the emblem's edge. */
+  function shapeThroat(river) {
+    const { line, mouth } = river;
+    const end = line.findIndex((p) => p.s > 40 && p.ty > 0.995);
+    if (end < 2) { river.wedge = [mouth.leftBank, mouth.rightBank, mouth.tip]; return; }
+    const last = line[end];
+    const from = mouth.rightBank, to = { x: last.x - last.nx * last.half, y: last.y - last.ny * last.half };
+    const reach = Math.hypot(to.x - from.x, to.y - from.y) * 0.42;
+    const c1 = { x: from.x + mouth.flow.x * reach, y: from.y + mouth.flow.y * reach }, c2 = { x: to.x, y: to.y - reach };
+    const bank = [];
+    for (let i = 0; i <= 60; i++) {
+      const t = i / 60, u = 1 - t;
+      bank.push({ x: u * u * u * from.x + 3 * u * u * t * c1.x + 3 * u * t * t * c2.x + t * t * t * to.x,
+                  y: u * u * u * from.y + 3 * u * u * t * c1.y + 3 * u * t * t * c2.y + t * t * t * to.y });
+    }
+    // each point of the river up to there reaches as far as the curve on that side
+    let reached = 0;
+    for (let i = 0; i < end; i++) {
+      const p = line[i];
+      let best = reached, off = Infinity;
+      for (let k = reached; k < bank.length; k++) {
+        const along = Math.abs((bank[k].x - p.x) * p.tx + (bank[k].y - p.y) * p.ty);
+        if (along < off) { off = along; best = k; }
+      }
+      reached = best;
+      p.halfNear = Math.max(4, -((bank[best].x - p.x) * p.nx + (bank[best].y - p.y) * p.ny));
+      if (i === 0) river.wedgeEnd = best;
+    }
+    // the wedge: from both banks at the emblem's edge down to the river's first full cross-section
+    river.wedge = [mouth.leftBank, ...bank.slice(0, (river.wedgeEnd || 0) + 2), line[1], { x: line[0].x + line[0].nx * line[0].half, y: line[0].y + line[0].ny * line[0].half }];
+  }
+
+  /** Works the whole river out from the measurements. */
+  function shapeRiver(found) {
+    if (!found.source) return null;
+    const mouth = mouthOf(found.source);
+    const line = route(found, mouth);
+    const width = found.isPhone ? RIVER.width.phone : clamp(mouth.width, RIVER.width.min, RIVER.width.max);
+    const river = { found, mouth, line, width, top: mouth.top, bottom: line[line.length - 1].y };
+
+    // half the river's width at every point: it leaves the logo as wide as the logo's river and settles to its own width
+    const settle = line.find((p) => p.s > 40 && p.ty > 0.995) || line[0];
+    line.forEach((p) => {
+      const own = (width / 2) * (1 + 0.07 * Math.sin(p.s / 170 + 1) + 0.04 * Math.sin(p.s / 61));
+      p.half = own + (mouth.width / 2 - own) * (1 - ease((p.s - settle.s) / 220));
+    });
+
+    shapeThroat(river);
+    river.islands = found.islands.map((island) => shapeIsland(island, river));
+
+    // the flow lines fade out as the river reaches an island and come back after it
+    const fade = width * 1.1;
+    line.forEach((p) => { p.quiet = ease(p.s / 70); });             // they also grow from nothing where the river leaves the logo
+    river.islands.forEach((shape) => {
+      if (shape.first < 0) return;
+      const from = line[shape.first].s, to = line[shape.last].s;
+      line.forEach((p) => { p.quiet = Math.min(p.quiet, p.s < from ? ease((from - p.s - 6) / fade) : p.s > to ? ease((p.s - to - 6) / fade) : 0); });
+    });
+    return river;
+  }
+
+  /* ---------- drawing */
+
+  /** The river between two points of its line, as an outline. With `capped` it ends in a round front. */
+  function ribbon(line, from, to, capped) {
+    const left = [], right = [];
+    for (let i = from; i <= to; i++) {
+      const p = line[i];
+      const near = p.halfNear || p.half;
+      left.push({ x: p.x - p.nx * near, y: p.y - p.ny * near });
+      right.push({ x: p.x + p.nx * p.half, y: p.y + p.ny * p.half });
+    }
+    if (capped) {
+      const p = line[to];
+      for (let i = 1; i < 8; i++) {
+        const a = Math.PI * i / 8;
+        right.push({ x: p.x + (p.nx * Math.cos(a) + p.tx * Math.sin(a)) * p.half, y: p.y + (p.ny * Math.cos(a) + p.ty * Math.sin(a)) * p.half });
+      }
+    }
+    return loop([...right, ...left.reverse()]);
+  }
+
+  /** The dark flow lines of one stretch of river at a moment in time. */
+  function riverCuts(line, from, to, seconds) {
     let d = '';
     for (const lane of RIVER.lanes) {
       let left = null, right = null;
-      for (let y = s.start; y <= s.to; y += RIVER.step) {
-        const along = (((s.pageTop + y + lane.shift - seconds * lane.speed) % lane.every) + lane.every) % lane.every;
-        const half = halfWidth(s, y);
-        const thick = along < lane.long ? half * 0.16 * Math.sin(Math.PI * along / lane.long) : 0;
-        if (thick > 0.35) {
-          const c = section(s, y), mid = lane.at * half * 2;
-          (left = left || []).push(at(c, y, mid - thick));
-          (right = right || []).push(at(c, y, mid + thick));
-        } else if (left) { d += outline(left, right); left = right = null; }
+      for (let i = from; i <= to; i++) {
+        const p = line[i];
+        const along = (((p.s + lane.shift - seconds * lane.speed) % lane.every) + lane.every) % lane.every;
+        const thick = along < lane.long ? p.half * 0.16 * p.quiet * Math.sin(Math.PI * along / lane.long) : 0;
+        if (thick > 0.9) {
+          const mid = lane.at * p.half * 2;
+          (left = left || []).push({ x: p.x + p.nx * (mid - thick), y: p.y + p.ny * (mid - thick) });
+          (right = right || []).push({ x: p.x + p.nx * (mid + thick), y: p.y + p.ny * (mid + thick) });
+        } else if (left) { d += loop([...left, ...right.reverse()]); left = right = null; }
       }
-      if (left) d += outline(left, right);
+      if (left) d += loop([...left, ...right.reverse()]);
     }
-    river.streak.setAttribute('d', d);
+    return d;
   }
 
-  /** Uncover the bright river down to the "lit line" of the viewport, so it flows on as the page scrolls. */
-  function light() {
-    const line = reduce.matches ? Infinity : window.scrollY + window.innerHeight * RIVER.litLine;
-    for (const river of rivers) {
-      if (!river.shape) continue;
-      // the first piece, at the dragon, is always lit
-      const height = river.shape.sourceWidth ? river.shape.h : Math.max(0, Math.min(river.shape.h, line - river.shape.pageTop));
-      if (Math.abs(height - river.litHeight) >= 1) {
-        river.litHeight = height;
-        river.lit.style.height = (height > 0 ? height + RIVER.overlap : 0) + 'px';
-        river.lit.classList.toggle('is-full', height >= river.shape.h);   // a fully lit piece has no fading tip
+  /** The dark flow lines in an island's collar at a moment in time. */
+  function collarCuts(shape, seconds) {
+    const { points, thick, spacing, wrap, reach } = shape;
+    let d = '';
+    const ends = [[shape.iIn, 1], [shape.iOut, -1]];           // lines run away from where the river arrives, and towards where it leaves
+    for (const [anchor, sense] of ends) {
+      if (anchor < 0) continue;
+      for (const way of [1, -1]) for (const lane of RIVER.collarLanes) {
+        const phase = (((seconds * lane.speed * sense + lane.shift) % 1) + 1) % 1;
+        const centre = (lane.from + (lane.to - lane.from) * phase) * reach, long = lane.long * reach;
+        const swell = Math.sin(Math.PI * phase);                 // each line grows from nothing and fades back to nothing
+        const outerEdge = [], innerEdge = [];
+        const pieces = Math.max(6, Math.round(long / spacing));
+        for (let k = 0; k <= pieces; k++) {
+          const i = wrap(anchor + way * Math.round((centre - long / 2 + long * k / pieces) / spacing));
+          const p = points[i], t = thick[i];
+          if (t < 9) continue;
+          const mid = t * lane.at, fat = t * 0.13 * swell * Math.sin(Math.PI * k / pieces);
+          outerEdge.push({ x: p.x + p.nx * (mid + fat), y: p.y + p.ny * (mid + fat) });
+          innerEdge.push({ x: p.x + p.nx * (mid - fat), y: p.y + p.ny * (mid - fat) });
+        }
+        if (outerEdge.length > 2) d += loop([...outerEdge, ...innerEdge.reverse()]);
+      }
+    }
+    return d;
+  }
+
+  /** The collar as far round the island as `upTo` px from where the river arrives, both ways. */
+  function collarPath(shape, upTo) {
+    if (shape.iIn < 0 || upTo >= shape.around / 2) return loop(shape.outer);
+    const steps = Math.floor(upTo / shape.spacing);
+    if (steps < 1) return '';
+    const outer = [], inner = [];
+    for (let k = -steps; k <= steps; k++) { const i = shape.wrap(shape.iIn + k); outer.push(shape.outer[i]); inner.push(shape.inner[i]); }
+    return loop([...outer, ...inner.reverse()]);
+  }
+
+  let river = null;        // the river as last worked out
+  let layer = null;        // the svg it is drawn in
+  let tip = 0;             // how far down the page the river has been poured (it never runs back)
+  let firstPour = true;
+  let pourFrom = 0;        // the first pour waits a moment, until the logo has appeared
+
+  const pathIn = (group) => group.appendChild(doc.createElementNS(SVG, 'path'));
+
+  /** Builds the drawing for a freshly worked-out river: one path per stretch, so only what changes is redrawn. */
+  function stage(next) {
+    if (!layer) {
+      const holder = doc.createElement('div');
+      holder.className = 'river';
+      holder.setAttribute('aria-hidden', 'true');
+      layer = holder.appendChild(doc.createElementNS(SVG, 'svg'));
+      main.prepend(holder);
+    }
+    layer.textContent = '';
+    layer.setAttribute('width', next.found.w);
+    layer.setAttribute('height', next.found.h);
+    layer.setAttribute('viewBox', '0 0 ' + next.found.w + ' ' + next.found.h);
+    const water = layer.appendChild(doc.createElementNS(SVG, 'g')); water.setAttribute('class', 'water');
+    const cuts = layer.appendChild(doc.createElementNS(SVG, 'g')); cuts.setAttribute('class', 'cuts');
+
+    next.wedge = { path: pathIn(water), d: loop(next.wedge), shown: null };
+    const perStretch = 60;                                          // points of the line per stretch
+    next.stretches = [];
+    for (let from = 0; from < next.line.length - 1; from += perStretch) {
+      const to = Math.min(next.line.length - 1, from + perStretch);
+      const start = Math.max(0, from - 1);                           // one point of overlap with the stretch before, so no hairline shows
+      next.stretches.push({ from: start, to, top: next.line[start].y, bottom: next.line[to].y, body: pathIn(water), cuts: pathIn(cuts), full: ribbon(next.line, start, to, to === next.line.length - 1), mode: '', end: start });
+    }
+    next.islands.forEach((shape) => {
+      shape.ring = pathIn(water);
+      shape.webPaths = shape.webs.map((web) => ({ web, path: pathIn(water), shown: null }));
+      shape.cuts = pathIn(cuts);
+      shape.mode = '';
+      shape.top = shape.island.box.y - 40; shape.bottom = shape.island.box.y + shape.island.box.h + 40;
+    });
+  }
+
+  /** Draws the river as far as the tip. Only the stretch and the island the tip is in are redrawn. */
+  function pour() {
+    if (!river) return;
+    const { line } = river;
+    const wedgeShown = tip > river.mouth.top;
+    if (river.wedge.shown !== wedgeShown) { river.wedge.shown = wedgeShown; river.wedge.path.setAttribute('d', wedgeShown ? river.wedge.d : ''); }
+
+    for (const stretch of river.stretches) {
+      if (tip >= stretch.bottom) {
+        if (stretch.mode !== 'full') { stretch.mode = 'full'; stretch.end = stretch.to; stretch.body.setAttribute('d', stretch.full); }
+      } else if (tip <= stretch.top) {
+        if (stretch.mode !== 'none') { stretch.mode = 'none'; stretch.end = stretch.from; stretch.body.setAttribute('d', ''); stretch.cuts.setAttribute('d', ''); }
+      } else {
+        let end = stretch.from;
+        while (end < stretch.to && line[end + 1].y <= tip) end++;
+        stretch.mode = 'part'; stretch.end = end;
+        stretch.body.setAttribute('d', end > stretch.from ? ribbon(line, stretch.from, end, true) : '');
+      }
+    }
+
+    for (const shape of river.islands) {
+      if (shape.iIn < 0) { if (shape.mode !== 'full') { shape.mode = 'full'; shape.ring.setAttribute('d', loop(shape.outer)); } continue; }
+      const share = clamp((tip - shape.yIn) / Math.max(1, shape.yOut - shape.yIn), 0, 1);
+      const mode = share >= 1 ? 'full' : share <= 0 ? 'none' : 'part';
+      if (mode === 'part' || mode !== shape.mode) {
+        shape.mode = mode;
+        shape.ring.setAttribute('d', mode === 'none' ? '' : collarPath(shape, mode === 'full' ? Infinity : share * shape.around / 2));
+        if (mode !== 'full') shape.cuts.setAttribute('d', '');
+        shape.webPaths.forEach((entry) => {
+          const shown = entry.web.sense > 0 ? mode !== 'none' : mode === 'full';
+          if (entry.shown !== shown) { entry.shown = shown; entry.path.setAttribute('d', shown ? entry.web.d : ''); }
+        });
       }
     }
   }
 
+  /** Moves the flow lines of whatever part of the river is on screen. */
+  function flow(seconds) {
+    if (!river) return;
+    const top = window.scrollY - river.found.top - 160, bottom = top + window.innerHeight + 320;
+    for (const stretch of river.stretches) {
+      if (stretch.mode === 'none' || stretch.bottom < top || stretch.top > bottom) continue;
+      stretch.cuts.setAttribute('d', stretch.end > stretch.from ? riverCuts(river.line, stretch.from, stretch.end, seconds) : '');
+    }
+    for (const shape of river.islands) {
+      if (shape.mode !== 'full' || shape.iIn < 0 || shape.bottom < top || shape.top > bottom) continue;
+      shape.cuts.setAttribute('d', collarCuts(shape, seconds));
+    }
+  }
+
+  /* ---------- the clock: pours the river towards where the reader is and keeps the flow lines moving */
+  let ticking = false, lastTick = 0, lastFlow = 0;
+  const pourTarget = () => (river ? window.scrollY + window.innerHeight + RIVER.pourAhead - river.found.top : 0);
+  const riverOnScreen = () => river && window.scrollY - river.found.top < river.bottom + 200 && window.scrollY - river.found.top + window.innerHeight > river.top - 200;
+
+  function tick(now) {
+    ticking = false;
+    if (!river) return;
+    const dt = Math.min(0.05, Math.max(0.001, (now - lastTick) / 1000)); lastTick = now;
+    if (reduce.matches) {                                           // reduced motion: the whole river at once, standing still
+      if (tip !== Infinity) { tip = Infinity; pour(); flow(0); }
+      return;
+    }
+    const target = now < pourFrom ? tip : Math.max(tip, pourTarget());
+    let busy = now < pourFrom;
+    if (tip < target) {
+      tip += (target - tip) * (1 - Math.exp(-dt / (firstPour ? 0.5 : 0.16)));
+      if (target - tip < 0.6) { tip = target; firstPour = false; }
+      pour();
+      busy = true;
+    }
+    if (riverOnScreen()) {
+      if (now - lastFlow > 32) { lastFlow = now; flow(now / 1000); }   // about 30 times a second is plenty
+      busy = true;
+    }
+    if (busy) wake();
+  }
+  function wake() { if (!ticking) { ticking = true; lastTick = lastTick || performance.now(); requestAnimationFrame(tick); } }
+
+  /** Measure, work out, draw. Called when the page's layout may have changed. */
   function layout() {
-    const seconds = reduce.matches ? 0 : performance.now() / 1000;
-    for (const river of rivers) { measure(river); drawBody(river); drawStreaks(river, seconds); }
-    light();
+    if (!main) return;
+    const found = measure();
+    const next = shapeRiver(found);
+    if (!next) return;
+    stage(next);
+    river = next;
+    root.style.setProperty('--rw', Math.round(next.width) + 'px');   // the styles keep the banks clear of a river this wide
+    if (tip === 0) { tip = next.mouth.top; pourFrom = performance.now() + 650; }   // nothing poured yet: start at the logo
+    if (reduce.matches) tip = Infinity;
+    pour();
+    flow(reduce.matches ? 0 : performance.now() / 1000);
+    wake();
   }
 
-  if (rivers.length) {
-    let pending = 0;
-    const relayout = () => { clearTimeout(pending); pending = setTimeout(layout, 80); };
+  if (main && main.querySelector('[data-river-source]')) {
+    let queued = false;
+    const relayout = () => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; layout(); }); };
     layout();
-    window.addEventListener('resize', relayout);
-    window.addEventListener('load', layout);
-    if (doc.fonts && doc.fonts.ready) doc.fonts.ready.then(layout);
-    if ('ResizeObserver' in window) { const ro = new ResizeObserver(relayout); rivers.forEach((r) => ro.observe(r.host)); }
-
-    if (hasIO) {
-      const near = new IntersectionObserver((entries) => {
-        entries.forEach((e) => { const river = rivers.find((r) => r.host === e.target); if (river) river.onScreen = e.isIntersecting; });
-      }, { rootMargin: '120px 0px' });
-      rivers.forEach((r) => near.observe(r.host));
-    }
-
-    // the flow lines drift downstream, about 30 times a second, and only in the pieces on screen
-    let last = 0;
-    const flow = (now) => {
-      if (!reduce.matches && now - last > 32) {
-        last = now;
-        for (const river of rivers) if (river.onScreen && river.shape) drawStreaks(river, now / 1000);
-      }
-      requestAnimationFrame(flow);
-    };
-    requestAnimationFrame(flow);
+    layout();                                                         // once more: the first pass told the styles how wide the river is
+    let lastWidth = window.innerWidth;
+    window.addEventListener('resize', () => {
+      if (window.innerWidth === lastWidth) { wake(); return; }       // a phone's address bar sliding away changes only the height
+      lastWidth = window.innerWidth; relayout();
+    });
+    window.addEventListener('load', relayout);
+    if (doc.fonts && doc.fonts.ready) doc.fonts.ready.then(relayout);
+    if ('ResizeObserver' in window) new ResizeObserver(relayout).observe(main);
+    onChange(reduce, () => { if (!reduce.matches) tip = river ? river.mouth.top : 0; relayout(); });
+    onChange(phone, relayout);
   }
 
   /* ---------- one scroll listener for the top bar and the river */
-  let queued = false;
-  const onScroll = () => {
-    if (queued) return;
-    queued = true;
-    requestAnimationFrame(() => { queued = false; stick(); light(); });
-  };
-  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('scroll', () => { stick(); wake(); }, { passive: true });
   stick();
 })();
 </script>
